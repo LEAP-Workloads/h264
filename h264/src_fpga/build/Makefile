@@ -64,6 +64,7 @@ bsvsrcs = \
 	$(srcdir)/mkMemClient.bsv \
 	$(srcdir)/mkBRAMMemController.bsv \
         $(srcdir)/mkRoundRobinMemScheduler.bsv \
+        $(srcdir)/mkReadFirstRoundRobinMemScheduler.bsv \
         $(srcdir)/mkPriorityRoundRobinMemScheduler.bsv \
         $(srcdir)/BRAM.bsv \
         $(srcdir)/FIFO_2.bsv \
@@ -88,7 +89,7 @@ BSC_COMP = bsc
 #BSC_OPTS = -u -show-module-use - -keep-fires -aggressive-conditions \
 #           -relax-method-earliness -relax-method-urgency -v
 
-BSC_OPTS = -u -v -sim -aggressive-conditions
+BSC_OPTS = +RTS -K40000k --RTS -u -v -verilog -aggressive-conditions
  
 # Copy over the bluespec source
 
