@@ -64,7 +64,6 @@ bsvsrcs = \
 	$(srcdir)/mkMemClient.bsv \
 	$(srcdir)/mkBRAMMemController.bsv \
         $(srcdir)/mkRoundRobinMemScheduler.bsv \
-        $(srcdir)/mkReadFirstRoundRobinMemScheduler.bsv \
         $(srcdir)/mkPriorityRoundRobinMemScheduler.bsv \
         $(srcdir)/BRAM.bsv \
         $(srcdir)/FIFO_2.bsv \
