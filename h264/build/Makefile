@@ -63,7 +63,7 @@ BSC_COMP = bsc
 #BSC_OPTS = -u -show-module-use -verilog -keep-fires -aggressive-conditions \
 #           -relax-method-earliness -relax-method-urgency -v
 
-BSC_OPTS = -u -v -verilog -aggressive-conditions
+BSC_OPTS = -u -v -sim -aggressive-conditions
 
 # Copy over the bluespec source
 
