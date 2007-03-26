@@ -54,6 +54,8 @@ bsvsrcs = \
 	$(srcdir)/mkFrameBuffer.bsv \
 	$(srcdir)/mkFinalOutput.bsv \
 	$(srcdir)/mkTH.bsv \
+        $(srcdir)/EntropyTee.bsv \
+        $(srcdir)/DeblockTee.bsv \
 
 #--------------------------------------------------------------------
 # Build rules
