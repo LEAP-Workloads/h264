@@ -44,6 +44,8 @@ bscsrcs = \
 	$(bsrcdir)/mkPrediction.v \
         $(bsrcdir)/mkDeblockFilter.v \
         $(bsrcdir)/mkBufferControl.v \
+        $(bsrcdir)/mkInterpolator.v \
+        $(bsrcdir)/mkbSVector.v \
         $(bsrcdir)/mkLeftVector.v \
         $(bsrcdir)/mkTopVector.v \
         $(bsrcdir)/mkWorkVectorHor.v \
