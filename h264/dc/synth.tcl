@@ -62,6 +62,8 @@ write -format ddc -hierarchy -output synthesized.ddc
 report_timing -capacitance -transition_time -nosplit -nworst 10 -max_paths 500 > synth_timing.rpt
 report_reference -nosplit > synth_area.rpt
 report_resources -nosplit > synth_resources.rpt
+report_power     -nosplit -hier > synth_power.rpt
+
 set cells [get_cells -hierarchical -filter "is_hierarchical == true"]
 set zcells [sort_collection $cells { full_name }]
 foreach_in_collection eachcell $zcells {
