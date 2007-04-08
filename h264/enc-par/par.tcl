@@ -124,6 +124,8 @@ setNanoRouteMode -envNumberProcessor 1
 setNanoRouteMode -drouteOptimizeUseMultiCutVia true
 globalDetailRoute
 
+delayCal -sdf postroute.sdf
+
 #------------------------------------------------------------
 # postroute reports
 #------------------------------------------------------------
