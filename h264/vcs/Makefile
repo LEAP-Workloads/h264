@@ -103,11 +103,11 @@ endef
 vcs_sim = simv
 
 par-sdf:
-	cp $(pardir)/postroute.sdf ./
+	cp $(pardir)/postroute.sdf ./top.sdf
 
-$(vcs_sim) : $(vsrcs), par-sdf
-	$(VCS) $(VCS_OPTS) +incdir+$(tsllibs) -o $(vcs_sim) +csdf+precompile\
-		   +libext+.v -y $(tsllibs) \
+$(vcs_sim) : $(vsrcs) par-sdf
+	$(VCS) $(VCS_OPTS) +incdir+$(tsllibs) -o $(vcs_sim) +csdf+precompile +sdfverbose\
+		  +libext+.v -y $(tsllibs) \
 	       +incdir+$(vclibdir) $(addprefix -v ,$(vclibsrcs)) +incdir+$(bsclibdir) $(addprefix -v ,$(bsclibsrcs)) $(vsrcs)
 
 sim-rtl : $(vcs_sim)
@@ -121,11 +121,11 @@ junk += simv* csrc *.vpd vcs.key
 # Default make target
 #--------------------------------------------------------------------
 
-all : $(vcs_sim)
+all : foreman
 
 #--------------------------------------------------------------------
 # Clean up
 #--------------------------------------------------------------------
 
 clean :
-	rm -rf $(objs) $(junk) *~ \#* *.log *.cmd *.daidir
+	rm -rf $(objs) $(junk) *~ \#* *.log *.cmd *.daidir *.sdf *.hex *.v *.264 *.sdf_c *.vcd
