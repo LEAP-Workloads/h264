@@ -24,7 +24,7 @@ bsrcdir = $(basedir)/dc/current
 verilogsrc = $(basedir)/src_verilog
 
 vsrcs = \
-	$(bsrcdir)/synthesized.v \
+	$(pardir)/par.v \
 	$(testsrcdir)/mkTH.v \
 	$(verilogsrc)/top.v \
 #	$(bsrcdir)/mkbSVector.v \
