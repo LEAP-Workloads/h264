@@ -56,6 +56,7 @@ bsvsrcs = \
 	$(srcdir)/mkTH.bsv \
         $(srcdir)/EntropyTee.bsv \
         $(srcdir)/DeblockTee.bsv \
+        $(srcdir)/MemoryTee.bsv \
 
 #--------------------------------------------------------------------
 # Build rules
@@ -79,7 +80,7 @@ $(notdir $(bsvclibsrcs)) : % : $(bsvclibdir)/%
 
 bsv_TH_vsrc = $(toplevel_module).v
 $(bsv_TH_vsrc) $(bsv_lib_use) : $(notdir $(bsvsrcs) $(bsvclibsrcs))
-	$(BSC_COMP) $(BSC_OPTS) -g $(toplevel_module) $(toplevel_module).bsv > out.log
+	$(BSC_COMP) $(BSC_OPTS) +RTS -K2000M -RTS -g $(toplevel_module) $(toplevel_module).bsv > out.log
 
 compile : $(toplevel_module).v
 
