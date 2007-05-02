@@ -57,6 +57,9 @@ bsvsrcs = \
         $(srcdir)/EntropyTee.bsv \
         $(srcdir)/DeblockTee.bsv \
         $(srcdir)/MemoryTee.bsv \
+        $(srcdir)/IDecoupledClient.bsv \
+	$(srcdir)/IMemEDDecoupled.bsv \
+	$(srcdir)/mkMemEDDecoupled.bsv \
 
 #--------------------------------------------------------------------
 # Build rules
