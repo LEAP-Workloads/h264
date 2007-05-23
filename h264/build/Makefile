@@ -60,6 +60,7 @@ bsvsrcs = \
         $(srcdir)/IDecoupledClient.bsv \
 	$(srcdir)/IMemEDDecoupled.bsv \
 	$(srcdir)/mkMemEDDecoupled.bsv \
+	$(srcdir)/FIFOUtility.bsv \
 
 #--------------------------------------------------------------------
 # Build rules
