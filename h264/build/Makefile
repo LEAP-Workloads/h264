@@ -61,7 +61,7 @@ bsvsrcs = \
 	$(srcdir)/IMemEDDecoupled.bsv \
 	$(srcdir)/mkMemEDDecoupled.bsv \
 	$(srcdir)/FIFOUtility.bsv \
-
+        $(srcdir)/Print.bsv \
 #--------------------------------------------------------------------
 # Build rules
 #--------------------------------------------------------------------
