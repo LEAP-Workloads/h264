@@ -61,7 +61,6 @@ bsvsrcs = \
 	$(srcdir)/IMemEDDecoupled.bsv \
 	$(srcdir)/mkMemEDDecoupled.bsv \
 	$(srcdir)/FIFOUtility.bsv \
-        $(srcdir)/Print.bsv \
 #--------------------------------------------------------------------
 # Build rules
 #--------------------------------------------------------------------
@@ -70,7 +69,7 @@ BSC_COMP = bsc
 #BSC_OPTS = -u -show-module-use -verilog -keep-fires -aggressive-conditions \
 #           -relax-method-earliness -relax-method-urgency -v
 
-BSC_OPTS = -u -v -sim -aggressive-conditions
+BSC_OPTS = -u -v -verilog -aggressive-conditions
 
 # Copy over the bluespec source
 
