@@ -49,7 +49,10 @@ source synth.sdc
 # probably produce better results. The boundary_optimization means that
 # the synthesizer is free to invert ports if it will increase performance.
 
-compile -map_effort medium -area_effort medium -boundary_optimization
+link
+set_flatten true -effort high
+compile -map_effort high -area_effort high -boundary_optimization 
+#compile_ultra
 
 # We write out the results as a verilog netlist and in ddc format
 
