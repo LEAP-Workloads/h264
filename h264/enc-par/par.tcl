@@ -38,7 +38,7 @@ setClockDomains -all
 #------------------------------------------------------------
 
 # This does the actual placement
-amoebaPlace -timingdriven
+amoebaPlace -highEffort -timingdriven -ipo
 
 # Optimize the placement
 setOptMode -reclaimArea
@@ -78,7 +78,7 @@ saveDesign postclksynth -netlist -tcon -rc
 # preroute reports
 #------------------------------------------------------------
 
-trialRoute -guide par_clk.rguide
+trialRoute -highEffort -guide par_clk.rguide
 
 setAnalysisMode -setup -async -skew -clockTree
 buildTimingGraph
@@ -113,14 +113,14 @@ setNanoRouteMode -timingEngine CTE
 setNanoRouteMode -routeWithTimingDriven true
 setNanoRouteMode -routeWithEco false
 setNanoRouteMode -routeWithSiDriven true
-setNanoRouteMode -routeTdrEffort 0
+setNanoRouteMode -routeTdrEffort 10
 setNanoRouteMode -routeSiEffort low
 setNanoRouteMode -siNoiseCTotalThreshold 0.050000
 setNanoRouteMode -siNoiseCouplingCapThreshold 0.005000
 setNanoRouteMode -routeWithSiPostRouteFix false
-setNanoRouteMode -drouteAutoStop true
+setNanoRouteMode -drouteAutoStop false
 setNanoRouteMode -routeSelectedNetOnly false
-setNanoRouteMode -envNumberProcessor 1
+setNanoRouteMode -envNumberProcessor 3 
 setNanoRouteMode -drouteOptimizeUseMultiCutVia true
 globalDetailRoute
 
@@ -128,7 +128,7 @@ delayCal -sdf postroute.sdf
 
 #------------------------------------------------------------
 # postroute reports
-#------------------------------------------------------------
+#------------------------------------------------------------ 
 
 extractRC -outfile par.cap
 
