@@ -1,0 +1,16 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 entropy decoder module
+%desc H264 entropy decoder module
+%provides h264_entropy_decoder
+
+%attributes
+
+%public mkEntropyDecoder.bsv
+
+%AWB_END
+

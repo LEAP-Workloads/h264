@@ -1,0 +1,16 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 buffer control module
+%desc H264 buffer control module
+%provides h264_buffer_control
+
+%attributes
+
+%public mkBufferControl.bsv
+
+%AWB_END
+
