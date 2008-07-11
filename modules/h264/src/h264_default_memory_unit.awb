@@ -1,0 +1,16 @@
+*******************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 default simulation module
+%desc H264 default simulation module, a generic amalgamation of all the memory and I/O files
+%provides h264_memory_unit
+
+%attributes h264
+
+* I get the feeling that I'll want to split some of this out eventually
+%public IMemED.bsv IMemEDDecoupled.bsv IFrameBuffer.bsv IInputGen.bsv IFinalOutput.bsv IDecoupledClient.bsv mkMemED.bsv mkMemEDDecoupled.bsv mkFrameBuffer.bsv mkInputGen.bsv mkFinalOutput.bsv
+
+%AWB_END

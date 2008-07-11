@@ -8,7 +8,7 @@
 %desc H264 buffer control module
 %provides h264_buffer_control
 
-%attributes
+%attributes h264
 
 %public mkBufferControl.bsv
 

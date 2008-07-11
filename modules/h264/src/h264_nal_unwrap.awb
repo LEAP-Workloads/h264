@@ -10,6 +10,6 @@
 
 %attributes h264
 
-%public mkNAlUnwrap.bsv
+%public mkNalUnwrap.bsv INalUnwrap.bsv
 
 %AWB_END

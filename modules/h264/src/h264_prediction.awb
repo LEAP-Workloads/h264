@@ -4,12 +4,14 @@
 
 %AWB_START
 
-%name H264 inverse transform module
-%desc H264 inverse transform module
-%provides h264_inverse_transform
+%name H264 Inter/Intra prediction module
+%desc H264 Inter/Intra prediction module
+%provides h264_prediction
 
 %attributes h264
 
-%public mkInverseTrans.bsv
+%requires h264_interpolator
+
+%public mkPrediction.bsv
 
 %AWB_END

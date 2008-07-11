@@ -9,9 +9,15 @@
 %provides h264_decoder
 
 %requires h264_deblocking
+%requires h264_prediction
+%requires h264_nal_unwrap
+%requires h264_inverse_transform
+%requires h264_buffer_control
+%requires h264_entropy_decoder
+%requires h264_memory_unit
 
 %attributes h264
 
-%public mkH264.bsv
+%public mkH264.bsv H264Types.bsv IH264.bsv
 
 %AWB_END

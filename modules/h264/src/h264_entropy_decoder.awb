@@ -10,7 +10,7 @@
 
 %attributes
 
-%public mkEntropyDecoder.bsv
+%public mkEntropyDec.bsv IEntropyDec.bsv
 
 %AWB_END
 
