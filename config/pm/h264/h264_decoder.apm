@@ -1,0 +1,94 @@
+
+[Global]
+Type=HAsim
+Version=2.1
+File=h264_decoder
+SaveParameters=0
+Description=H264 Decoder
+Name=H264 Decoder
+Class=Asim::Model
+
+[Model]
+DefaultAttributes=h264 bluespec
+model=Pure Bluespec Hardware-Only Model Foundation
+
+[H264 deblocking module]
+File=modules/h264/src/h264_deblocking.awb
+Packagehint=h264
+
+[H264 interpolator module]
+File=modules/h264/src/h264_interpolator.awb
+Packagehint=h264
+
+[H264 prediction module/Requires]
+h264_interpolator = H264 interpolator module
+
+[H264 interpolator module]
+File=modules/h264/src/h264_interpolator.awb
+Packagehint=h264
+
+[H264 prediction module]
+File=modules/h264/src/h264_prediction.awb
+Packagehint=h264
+
+[H264 nal unwrap module]
+File=modules/h264/src/h264_nal_unwrap.awb
+Packagehint=h264
+
+[H264 inverse transform module]
+File=modules/h264/src/h264_inverse_transform.awb
+Packagehint=h264
+
+[H264 buffer control module]
+File=modules/h264/src/h264_buffer_control.awb
+Packagehint=h264
+
+[H264 entropy decoder module]
+File=modules/h264/src/h264_entropy_decoder.awb
+Packagehint=h264
+
+[H264 memory unit module]
+File=modules/h264/src/h264_default_memory_unit.awb
+Packagehint=h264
+
+[H264 decoder module/Requires]
+h264_deblocking= H264 deblocking module
+h264_prediction= H264 prediction module
+h264_nal_unwrap = H264 nal unwrap module
+h264_inverse_transform = H264 inverse transform module
+h264_buffer_control = H264 buffer control module
+h264_entropy_decoder = H264 entropy decoder module
+h264_memory_unit = H264 memory unit module
+
+[H264 decoder module]
+File=modules/h264/src/h264_decoder.awb
+Packagehint=h264
+
+[H264 System]
+File=modules/h264/src/h264_h264_system.awb
+Packagehint=h264
+
+[H264 System/Requires]
+h264_decoder=H264 decoder module
+
+[Hardware-Only Null Controller]
+File=modules/hasim/controller/controller-null-hardware-only.awb
+Packagehint=hasim
+
+[FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-null.apm
+Packagehint=platforms
+
+[Pure Bluespec Hardware-Only Model Foundation/Requires]
+bluespec_common=Bluespec Null Library
+bluespec_system=H264 System
+hasim_controller=Hardware-Only Null Controller
+fpgaenv=FPGA Environment
+
+[Pure Bluespec Hardware-Only Model Foundation]
+File=modules/model/pure_bluespec_model.awb
+Packagehint=hasim
+
+[Bluespec Null Library]
+File=modules/bluespec/common/null/bluespec_null.awb
+Packagehint=hasim

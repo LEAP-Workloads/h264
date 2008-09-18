@@ -10,6 +10,6 @@
 
 %attributes h264
 
-%public mkInverseTrans.bsv
+%public mkInverseTrans.bsv IInverseTrans.bsv
 
 %AWB_END

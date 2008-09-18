@@ -8,9 +8,9 @@
 %desc H264 entropy decoder module
 %provides h264_entropy_decoder
 
-%attributes
+%attributes h264
 
-%public mkEntropyDec.bsv IEntropyDec.bsv
+%public mkEntropyDec.bsv IEntropyDec.bsv ExpGolomb.bsv CAVLC.bsv ICalc_nC.bsv mkCalc_nC.bsv
 
 %AWB_END
 

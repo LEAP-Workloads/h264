@@ -27,7 +27,7 @@
 //
 //
 
-package mkTH;
+`include "low_level_platform_interface.bsh"
 
 import H264Types::*;
 import IMemED::*;
@@ -43,14 +43,14 @@ import mkFrameBuffer::*;
 import mkInputGen::*;
 import mkFinalOutput::*;
 import mkH264::*;
-import MemoryTee::*;
+
 
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
 
-(* synthesize *)
-module mkTH( Empty );
+
+module mkSystem#( LowLevelPlatformInterface llpi ) (Empty);
 
    // Instantiate the modules
 
@@ -89,11 +89,11 @@ module mkTH( Empty );
    mkConnection( h264.mem_clientD_data.response, memD_data.response);
 
    mkConnection( h264.mem_clientD_parameter, memD_parameter.mem_server );
-   Empty memT1 <- mkMemoryTee( h264.buffer_client_load1, framebuffer.server_load1, "MEMT1" );
+   mkConnection( h264.buffer_client_load1, framebuffer.server_load1 );
    mkConnection( h264.buffer_client_load2, framebuffer.server_load2 );
    mkConnection( h264.buffer_client_store, framebuffer.server_store );
    mkConnection( h264.ioout, finaloutput.ioin );
    
 endmodule
 
-endpackage
+

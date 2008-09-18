@@ -10,7 +10,7 @@
 
 %requires h264_decoder
 
-%attributes decoder
+%attributes h264
 
 %public mkTH.bsv
 

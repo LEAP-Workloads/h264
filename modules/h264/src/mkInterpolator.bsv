@@ -93,7 +93,7 @@ endmodule
 //-----------------------------------------------------------
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkInterpolator( Interpolator );
    
    FIFO#(InterpolatorIT) reqfifoLoad <- mkSizedFIFO(interpolator_reqfifoLoad_size);  // This fifo takes in motion vector

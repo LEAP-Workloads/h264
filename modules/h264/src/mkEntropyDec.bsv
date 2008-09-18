@@ -112,7 +112,7 @@ endfunction
 //-----------------------------------------------------------
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkEntropyDec( IEntropyDec );
    
    FIFO#(NalUnwrapOT)       infifo      <- mkSizedFIFO(entropyDec_infifo_size);

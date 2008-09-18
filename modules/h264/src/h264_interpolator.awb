@@ -10,7 +10,7 @@
 
 %attributes h264
 
-%public mkInterpolator.bsv
+%public mkInterpolator.bsv IInterpolator.bsv
 
 %AWB_END
 

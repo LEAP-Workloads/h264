@@ -12,6 +12,6 @@
 
 %requires h264_interpolator
 
-%public mkPrediction.bsv
+%public mkPrediction.bsv IPrediction.bsv
 
 %AWB_END

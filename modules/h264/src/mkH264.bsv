@@ -43,14 +43,13 @@ import mkInverseTrans::*;
 import mkPrediction::*;
 import mkDeblockFilter::*;
 import mkBufferControl::*;
-import EntropyTee::*;
-import DeblockTee::*;
+
  
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
 
-(* synthesize *)
+//(* synthesize *)
 module mkH264( IH264 );
 
    // Instantiate the modules

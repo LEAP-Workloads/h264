@@ -10,6 +10,6 @@
 
 %attributes h264
 
-%public mkDeblockFilter.bsv
+%public mkDeblockFilter.bsv IDeblockFilter.bsv FIFOUtility.bsv
 
 %AWB_END

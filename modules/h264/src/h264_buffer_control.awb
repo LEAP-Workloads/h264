@@ -10,7 +10,7 @@
 
 %attributes h264
 
-%public mkBufferControl.bsv
+%public mkBufferControl.bsv IBufferControl.bsv
 
 %AWB_END
 

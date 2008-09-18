@@ -27,7 +27,7 @@
 //
 //
 
-package mkCalc_nC;
+//package mkCalc_nC;
 
 import H264Types::*;
 import ICalc_nC::*;
@@ -38,7 +38,7 @@ import GetPut::*;
 import ClientServer::*;
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkCalc_nC( Calc_nC );
 
    Reg#(Bit#(PicWidthSz)) picWidth       <- mkReg(maxPicWidthInMB);
@@ -333,4 +333,4 @@ endmodule
 
 
 
-endpackage
+//endpackage

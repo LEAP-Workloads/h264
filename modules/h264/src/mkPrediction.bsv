@@ -161,7 +161,7 @@ endfunction
 //-----------------------------------------------------------
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkPrediction( IPrediction );
 
    //Common state

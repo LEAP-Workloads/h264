@@ -244,7 +244,7 @@ interface ILeftVector;
   method Action upd(Bit#(5) addr, Bit#(32) data);
 endinterface
  
-(*synthesize*)
+//(*synthesize*)
 module mkLeftVector(ILeftVector);
   RFileSingle#(Bit#(5),Bit#(32)) leftVector <- mkRFileSingleFull;
   method sub = leftVector.sub;
@@ -256,7 +256,7 @@ interface IWorkVectorVer;
   method Action upd(Bit#(4) addr, Bit#(32) data);
 endinterface
  
-(*synthesize*)
+//(*synthesize*)
 module mkWorkVectorVer(IWorkVectorVer);
   RFileSingle#(Bit#(4),Bit#(32)) workVector <- mkRFileSingleFull();
   method sub = workVector.sub;
@@ -268,7 +268,7 @@ interface IWorkVectorHor;
   method Action upd(Bit#(3) addr, Bit#(32) data);
 endinterface
  
-(*synthesize*)
+//(*synthesize*)
 module mkWorkVectorHor(IWorkVectorHor);
   RFileSingle#(Bit#(3),Bit#(32)) workVector <- mkRFileSingleFull();
   method sub = workVector.sub;
@@ -280,7 +280,7 @@ interface ITopVector;
   method Action upd(Bit#(4) addr, Bit#(32) data);  
 endinterface
  
-(*synthesize*)
+//(*synthesize*)
 module mkTopVector(ITopVector);
   RFileSingle#(Bit#(4),Bit#(32)) topVector <- mkRFileSingleFull();
   method sub = topVector.sub;
@@ -292,7 +292,7 @@ interface IbSVector;
   method Action upd(Bit#(4) addr, Bit#(3) data);  
 endinterface
  
-(*synthesize*)
+//(*synthesize*)
 module mkbSVector(IbSVector);
   RFileSingle#(Bit#(4),Bit#(3)) bsVector <- mkRFileSingleFull();
   method sub = bsVector.sub;
@@ -303,7 +303,7 @@ endmodule
 
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkDeblockFilter( IDeblockFilter );
 
    FIFOF#(EntropyDecOT) infifo     <- mkSizedFIFOF(deblockFilter_infifo_size);

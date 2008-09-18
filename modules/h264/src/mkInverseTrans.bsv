@@ -172,7 +172,7 @@ endfunction
 //-----------------------------------------------------------
 
 
-(* synthesize *)
+//(* synthesize *)
 module mkInverseTrans( IInverseTrans );
 
    FIFO#(EntropyDecOT_InverseTrans) infifo  <- mkSizedFIFO(inverseTrans_infifo_size);
