@@ -37,7 +37,7 @@ interface INalUnwrap;
 
   // Interface for inter-module io
   interface Put#(InputGenOT) ioin;
-  interface Get#(NalUnwrapOT) ioout;
+//  interface Get#(NalUnwrapOT) ioout;
 
 endinterface
 

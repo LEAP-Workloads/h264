@@ -44,7 +44,7 @@ interface Calc_nC;
    method Action  nNupdate_chroma( Bit#(3) microBlockNum, Bit#(5) updataVal );
    method Action  nNupdate_pskip( Bit#(PicAreaSz) mb_skip_run );
    method Action  nNupdate_ipcm();
-   interface Client#(MemReq#(TAdd#(PicWidthSz,1),20),MemResp#(20)) mem_client;
+//   interface Client#(MemReq#(TAdd#(PicWidthSz,1),20),MemResp#(20)) mem_client;
 endinterface
 
 endpackage

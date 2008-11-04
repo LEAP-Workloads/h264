@@ -1,4 +1,3 @@
-
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -29,6 +28,9 @@
 
 package mkH264;
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
 import H264Types::*;
 import IH264::*;
 import INalUnwrap::*;
@@ -37,11 +39,12 @@ import IInverseTrans::*;
 import IPrediction::*;
 import IDeblockFilter::*;
 import IBufferControl::*;
+import IDecoupledClient::*;
 import mkNalUnwrap::*;
-import mkEntropyDec::*;
-import mkInverseTrans::*;
-import mkPrediction::*;
-import mkDeblockFilter::*;
+//import mkEntropyDec::*;
+//import mkInverseTrans::*;
+//import mkPrediction::*;
+//import mkDeblockFilter::*;
 import mkBufferControl::*;
 
  
@@ -50,36 +53,84 @@ import GetPut::*;
 import ClientServer::*;
 
 //(* synthesize *)
-module mkH264( IH264 );
+module [HASIM_MODULE] mkH264( IH264 );
 
    // Instantiate the modules
 
    INalUnwrap     nalunwrap     <- mkNalUnwrap();
-   IEntropyDec    entropydec    <- mkEntropyDec();
-   IInverseTrans  inversetrans  <- mkInverseTrans();
-   IPrediction    prediction    <- mkPrediction();
-   IDeblockFilter deblockfilter <- mkDeblockFilter();
+//   Empty    entropydec    <- mkEntropyDec();
+//   Empty    inversetrans  <- mkInverseTrans();
+//   Empty    prediction    <- mkPrediction();
+//   Empty    deblockfilter <- mkDeblockFilter();
    IBufferControl buffercontrol <- mkBufferControl();
 
-   // Internal connections
-   mkConnection( prediction.mem_client_buffer, buffercontrol.inter_server );
 
-   mkConnection( nalunwrap.ioout, entropydec.ioin );
-   mkConnection( entropydec.ioout_InverseTrans, inversetrans.ioin );
-   mkConnection( entropydec.ioout, prediction.ioin );
-   mkConnection( inversetrans.ioout, prediction.ioin_InverseTrans );
-   mkConnection(prediction.ioout, deblockfilter.ioin);
-   mkConnection( deblockfilter.ioout, buffercontrol.ioin);
+   // The Deblocking data pipeline connections. Memory pipeline exists elsewhere.   
+    
+
+   // Internal connections
+   //   mkConnection( prediction.mem_client_buffer, buffercontrol.inter_server );
+
+   //mkConnection( nalunwrap.ioout, entropydec.ioin );
+   //mkConnection( entropydec.ioout_InverseTrans, inversetrans.ioin );
+   //mkConnection( entropydec.ioout, prediction.ioin );
+   //mkConnection( inversetrans.ioout, prediction.ioin_InverseTrans );
+   //mkConnection(prediction.ioout, deblockfilter.ioin);
+   //mkConnection( deblockfilter.ioout, buffercontrol.ioin);   
+
+   // SOft Connections to Prediction
+   Connection_Send#(MemResp#(68)) intraMemRespQTX <- mkConnection_Send("mkPrediction_intraMemRespQ");
+   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQRX <- mkConnection_Receive("mkPrediction_intraMemReqQ");
+   Connection_Send#(MemResp#(32)) interMemRespQTX <- mkConnection_Send("mkPrediction_interMemRespQ");
+   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQRX <- mkConnection_Receive("mkPrediction_interMemReqQ");
+  
+
+
+   // Soft Connection to Deblock 
+   Connection_Send#(MemResp#(13)) parameterMemRespQTX <- mkConnection_Send("mkDeblocking_parameterMemRespQ");
+   Connection_Receive#(MemReq#(PicWidthSz,13)) parameterMemReqQRX <- mkConnection_Receive("mkDeblocking_parameterMemReqQ");
+   
+   Connection_Send#(MemResp#(32)) dataMemRespQTX <- mkConnection_Send("mkDeblocking_dataMemRespQ");
+   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQRX <- mkConnection_Receive("mkDeblocking_dataMemStoreReqQ");  
+   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQRX <- mkConnection_Receive("mkDeblocking_dataMemLoadReqQ");
+  
+
+   //Soft Connection to Entropy
+   Connection_Send#(MemResp#(20)) calcncMemRespQTX <- mkConnection_Send("mkCalc_nc_MemRespQ");
+   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,1),20)) calcncMemReqQRX <- mkConnection_Receive("mkCalc_nc_MemReqQ");
 
    // Interface to input generator
    interface ioin = nalunwrap.ioin;
-   
+
+
    // Memory interfaces
-   interface mem_clientED          = entropydec.mem_client; 
-   interface mem_clientP_intra     = prediction.mem_client_intra;
-   interface mem_clientP_inter     = prediction.mem_client_inter;
-   interface mem_clientD_data      = deblockfilter.mem_client_data;
-   interface mem_clientD_parameter = deblockfilter.mem_client_parameter;
+   interface mem_clientED          = interface  Client#(MemReq#(TAdd#(PicWidthSz,1),20),MemResp#(20));
+                                       interface request = connectionToGet(calcncMemReqQRX);
+                                       interface response = connectionToPut(calcncMemRespQTX);
+                                     endinterface; 
+   interface mem_clientP_intra     = interface Client#(MemReq#(TAdd#(PicWidthSz,2),68),MemResp#(68));
+                                       interface request = connectionToGet(intraMemReqQRX);
+                                       interface response = connectionToPut(intraMemRespQTX);
+                                     endinterface; 
+
+
+ 
+   interface mem_clientP_inter     = interface Client#(MemReq#(TAdd#(PicWidthSz,2),32),MemResp#(32));
+                                       interface request = connectionToGet(interMemReqQRX);
+                                       interface response = connectionToPut(interMemRespQTX);
+                                     endinterface;
+ 
+
+   interface mem_clientD_data      = interface IDecoupledClient#(MemReq#(TAdd#(PicWidthSz,5),32),MemResp#(32));
+                                       interface request_load = connectionToGet(dataMemLoadReqQRX);
+                                       interface request_store = connectionToGet(dataMemStoreReqQRX);
+                                       interface response = connectionToPut(dataMemRespQTX);
+                                     endinterface;
+ 
+
+   interface mem_clientD_parameter = interface Client#(MemReq#(PicWidthSz,13),MemResp#(13));
+
+                                     endinterface;
    interface buffer_client_load1   = buffercontrol.buffer_client_load1;
    interface buffer_client_load2   = buffercontrol.buffer_client_load2;
    interface buffer_client_store   = buffercontrol.buffer_client_store;

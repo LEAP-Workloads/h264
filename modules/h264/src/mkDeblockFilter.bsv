@@ -27,7 +27,9 @@
 //     
 //
 
-package mkDeblockFilter;
+
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
 
 import H264Types::*;
 
@@ -304,7 +306,7 @@ endmodule
 
 
 //(* synthesize *)
-module mkDeblockFilter( IDeblockFilter );
+module [HASIM_MODULE] mkDeblockFilter( );
 
    FIFOF#(EntropyDecOT) infifo     <- mkSizedFIFOF(deblockFilter_infifo_size);
    FIFO#(DeblockFilterOT) outfifo <- mkFIFO();
@@ -1169,22 +1171,25 @@ end
     outfifo.enq(EndOfFrame);
     process <= Passing;
   endrule
+
+
+   Connection_Receive#(EntropyDecOT) infifoRX <- mkConnection_Receive("mkDeblocking_infifo");
+   Connection_Receive#(MemResp#(13)) parameterMemRespQRX <- mkConnection_Receive("mkDeblocking_parameterMemRespQ");
+   Connection_Receive#(MemResp#(32)) dataMemRespQRX <- mkConnection_Receive("mkDeblocking_dataMemRespQ");
+   Connection_Send#(DeblockFilterOT) outfifoTX <- mkConnection_Send("mkDeblocking_outfifo");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQTX <- mkConnection_Send("mkDeblocking_dataMemStoreReqQ");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQTX <- mkConnection_Send("mkDeblocking_dataMemLoadReqQ");
+   Connection_Send#(MemReq#(PicWidthSz,13)) parameterMemReqQTX <- mkConnection_Send("mkDeblocking_parameterMemReqQ");
   
-   interface IDecoupledClient mem_client_data;
-      interface Get request_store  = fifoToGet(dataMemStoreReqQ);
-      interface Get request_load   = fifoToGet(dataMemLoadReqQ);      
-      interface Put response = fifoToPut(guardedfifofToFifo(dataMemRespQ));
-   endinterface
+   mkConnection(connectionToGet(infifoRX), fifoToPut(guardedfifofToFifo(infifo)));
+   mkConnection(connectionToGet(parameterMemRespQRX), fifoToPut(guardedfifofToFifo(parameterMemRespQ)));
+   mkConnection(connectionToGet(dataMemRespQRX), fifoToPut(guardedfifofToFifo(dataMemRespQ)));
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
+   mkConnection(fifoToGet(dataMemStoreReqQ),connectionToPut(dataMemStoreReqQTX));  
+   mkConnection(fifoToGet(dataMemLoadReqQ),connectionToPut(dataMemLoadReqQTX));  
+   mkConnection(fifoToGet(parameterMemReqQ),connectionToPut(parameterMemReqQTX));  
 
-   interface Client mem_client_parameter;
-      interface Get request  = fifoToGet(parameterMemReqQ);
 
-      interface Put response = fifoToPut(guardedfifofToFifo(parameterMemRespQ));
-   endinterface
-
-   interface Put ioin  = fifoToPut(guardedfifofToFifo(infifo));
-   interface Get ioout = fifoToGet(outfifo);
-      
 endmodule
 
-endpackage
+

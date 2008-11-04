@@ -16,6 +16,7 @@
 %requires h264_entropy_decoder
 %requires h264_memory_unit
 
+
 %attributes h264
 
 %public mkH264.bsv H264Types.bsv IH264.bsv

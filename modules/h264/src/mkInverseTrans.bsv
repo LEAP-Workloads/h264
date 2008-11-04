@@ -27,7 +27,11 @@
 //
 //
 
+
 package mkInverseTrans;
+
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
 
 import H264Types::*;
 
@@ -173,7 +177,7 @@ endfunction
 
 
 //(* synthesize *)
-module mkInverseTrans( IInverseTrans );
+module [HASIM_MODULE] mkInverseTrans();
 
    FIFO#(EntropyDecOT_InverseTrans) infifo  <- mkSizedFIFO(inverseTrans_infifo_size);
    FIFO#(InverseTransOT)            outfifo <- mkFIFO;
@@ -716,10 +720,15 @@ module mkInverseTrans( IInverseTrans );
 
 
 
-   interface Put ioin  = fifoToPut(infifo);
-   interface Get ioout = fifoToGet(outfifo);
 
-      
+   Connection_Receive#(EntropyDecOT_InverseTrans) infifoRX <- mkConnection_Receive("mkInverseTransform_infifo");
+
+   mkConnection(connectionToGet(infifoRX), fifoToPut(infifo));
+
+   Connection_Send#(InverseTransOT) outfifoTX <- mkConnection_Send("mkPrediction_infifo_ITB");
+   
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));     
+
 endmodule
 
 endpackage

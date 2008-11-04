@@ -28,6 +28,8 @@
 //
 
 `include "low_level_platform_interface.bsh"
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
 
 import H264Types::*;
 import IMemED::*;
@@ -43,6 +45,10 @@ import mkFrameBuffer::*;
 import mkInputGen::*;
 import mkFinalOutput::*;
 import mkH264::*;
+import mkEntropyDec::*;
+import mkInverseTrans::*;
+import mkPrediction::*;
+import mkDeblockFilter::*;
 
 
 import Connectable::*;
@@ -50,7 +56,7 @@ import GetPut::*;
 import ClientServer::*;
 
 
-module mkSystem#( LowLevelPlatformInterface llpi ) (Empty);
+module [HASIM_MODULE] mkSystem ();//#( LowLevelPlatformInterface llpi ) (Empty);
 
    // Instantiate the modules
 
@@ -63,6 +69,12 @@ module mkSystem#( LowLevelPlatformInterface llpi ) (Empty);
    IMemED#(PicWidthSz,13)          memD_parameter <- mkMemED();
    IFrameBuffer   framebuffer   <- mkFrameBuffer();
    IFinalOutput   finaloutput   <- mkFinalOutput();
+
+   Empty    entropydec    <- mkEntropyDec();
+   Empty    inversetrans  <- mkInverseTrans();
+   Empty    prediction    <- mkPrediction();
+   Empty    deblockfilter <- mkDeblockFilter();
+
 
    // Cycle counter
    Reg#(Bit#(32)) cyclecount <- mkReg(0);

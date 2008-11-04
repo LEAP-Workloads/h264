@@ -36,7 +36,7 @@ import H264Types::*;
       
    //-----------------------------------------------------------
    // Helper functions
-   (* noinline *)
+  // (* noinline *)
    function Bufcount expgolomb_numbits32( Buffer inbuffer );//number of bits consumed by exp-golomb code
       Bufcount tempout = 100;
       for(Integer ii=33; ii>0; ii=ii-1)
@@ -47,7 +47,7 @@ import H264Types::*;
       return tempout;
    endfunction
 
-   (* noinline *)
+//   (* noinline *)
    function Bit#(33) expgolomb_codenum32( Buffer inbuffer, Bufcount egnumbits );//exp-golomb codenum calculation
       Bit#(33) tempbuffer = inbuffer[buffersize-1:buffersize-33];
       Bufcount shiftamount = 33-egnumbits;
@@ -60,7 +60,7 @@ import H264Types::*;
       return truncate(codenum);
    endfunction
 
-   (* noinline *)
+  // (* noinline *)
    function Bit#(32) expgolomb_signed32( Buffer inbuffer, Bufcount egnumbits );//signed exp-golomb code calculation
       Bit#(33) codenum = expgolomb_codenum32( inbuffer, egnumbits );
       Bit#(33) tempout = (codenum+1) >> 1;
@@ -70,7 +70,7 @@ import H264Types::*;
 
 
 
-   (* noinline *)
+  // (* noinline *)
    function Bufcount expgolomb_numbits( Buffer inbuffer );//number of bits consumed by exp-golomb code
       Bufcount tempout = 100;
       for(Integer ii=17; ii>0; ii=ii-1)
@@ -81,7 +81,7 @@ import H264Types::*;
       return tempout;
    endfunction
 
-   (* noinline *)
+///   (* noinline *)
    function Bit#(17) expgolomb_codenum( Buffer inbuffer );//exp-golomb codenum calculation
       Bufcount egnumbits = expgolomb_numbits( inbuffer ) >> 1;
       Bit#(33) tempbuffer = inbuffer[buffersize-1:buffersize-33] << zeroExtend(egnumbits);
@@ -90,13 +90,13 @@ import H264Types::*;
       return (tempout >> zeroExtend(shiftamount))-1;
    endfunction
    
-   (* noinline *)
+ //  (* noinline *)
    function Bit#(16) expgolomb_unsigned( Buffer inbuffer );//unsigned exp-golomb code calculation
       Bit#(17) codenum = expgolomb_codenum( inbuffer );
       return truncate(codenum);
    endfunction
 
-   (* noinline *)
+  // (* noinline *)
    function Bit#(16) expgolomb_signed( Buffer inbuffer );//signed exp-golomb code calculation
       Bit#(17) codenum = expgolomb_codenum( inbuffer );
       Bit#(17) tempout = (codenum+1) >> 1;
@@ -104,7 +104,7 @@ import H264Types::*;
       return truncate(tempout2);
    endfunction
 
-   (* noinline *)
+  // (* noinline *)
    function Bit#(6) expgolomb_coded_block_pattern( Buffer inbuffer, MbType mbtype );//unsigned exp-golomb code calculation
       Bit#(6) codenum = truncate(expgolomb_codenum( inbuffer ));
       if(mbPartPredMode(mbtype,0) == Intra_4x4)

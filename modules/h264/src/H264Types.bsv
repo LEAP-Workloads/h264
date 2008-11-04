@@ -28,11 +28,11 @@
 //
 //
 
-
-package H264Types;
+`include "soft_connections.bsh"
 
 import Vector::*;
 import RegFile::*;
+import GetPut::*;
 
 typedef 7   PicWidthSz;//number of bits to represent the horizontal position of a MB
 typedef 7   PicHeightSz;//number of bits to represent the vertical position of a MB
@@ -434,5 +434,25 @@ MemResp#( type dataSz )
 deriving(Eq,Bits);
 
 
+   function Put#(data_t) connectionToPut(Connection_Send#(data_t) connection);
+      Put#(data_t) m = interface Put#(data_t);
+               method Action put(data_t data);
+                 connection.send(data);
+               endmethod
+        endinterface;
+      return m;
+   endfunction
 
-endpackage
+  function Get#(data_t) connectionToGet(Connection_Receive#(data_t) connection);
+      Get#(data_t) m = interface Get#(data_t);
+               method ActionValue#(data_t) get();
+                 soft_connections::Connection_Receive#(data_t) connect = connection;
+                 connect.deq;
+                 return connect.receive;
+               endmethod
+      endinterface; 
+      return m;
+   endfunction
+
+
+

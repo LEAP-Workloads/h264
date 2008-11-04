@@ -29,6 +29,9 @@
 
 package mkEntropyDec;
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
 import H264Types::*;
 import ExpGolomb::*;
 import CAVLC::*;
@@ -113,7 +116,7 @@ endfunction
 
 
 //(* synthesize *)
-module mkEntropyDec( IEntropyDec );
+module [HASIM_MODULE] mkEntropyDec();
    
    FIFO#(NalUnwrapOT)       infifo      <- mkSizedFIFO(entropyDec_infifo_size);
    FIFO#(EntropyDecOT)      outfifo     <- mkFIFO;
@@ -1668,12 +1671,24 @@ module mkEntropyDec( IEntropyDec );
       
    endrule
    
+   Connection_Send#(EntropyDecOT) outfifoTX <- mkConnection_Send("mkPrediction_infifo");
    
-   interface Put ioin  = fifoToPut(infifo);
-   interface Get ioout = fifoToGet(outfifo);
-   interface Get ioout_InverseTrans = fifoToGet(outfifo_ITB);
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));     
 
-   interface mem_client = calcnc.mem_client; 
+
+   Connection_Send#(EntropyDecOT_InverseTrans) outfifo_ITBTX <- mkConnection_Send("mkInverseTransform_infifo");
+ 
+   mkConnection(fifoToGet(outfifo_ITB),connectionToPut(outfifo_ITBTX));     
+  
+   Connection_Receive#(NalUnwrapOT) infifoRX <- mkConnection_Receive("mkEntropyDec_infifo");
+
+   mkConnection(connectionToGet(infifoRX),fifoToPut(infifo));
+
+   //interface Put ioin  = fifoToPut(infifo);
+   //interface Get ioout = fifoToGet(outfifo);
+   //interface Get ioout_InverseTrans = fifoToGet(outfifo_ITB);
+
+   //interface mem_client = calcnc.mem_client; 
       
 endmodule
 

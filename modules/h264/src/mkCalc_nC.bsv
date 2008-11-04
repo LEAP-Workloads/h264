@@ -29,6 +29,9 @@
 
 //package mkCalc_nC;
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
 import H264Types::*;
 import ICalc_nC::*;
 import FIFO::*;
@@ -39,7 +42,7 @@ import ClientServer::*;
 
 
 //(* synthesize *)
-module mkCalc_nC( Calc_nC );
+module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 
    Reg#(Bit#(PicWidthSz)) picWidth       <- mkReg(maxPicWidthInMB);
    Reg#(Bit#(PicAreaSz))  firstMb        <- mkReg(0);
@@ -118,6 +121,12 @@ module mkCalc_nC( Calc_nC );
 	 end
       pskipCount <= pskipCount - 1;
    endrule
+
+   Connection_Receive#(MemResp#(20)) calcncMemRespQRX <- mkConnection_Receive("mkCalc_nc_MemRespQ");
+   mkConnection(connectionToGet(calcncMemRespQRX),fifoToPut(memRespQ));     
+
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,1),20)) calcncMemReqQTX <- mkConnection_Send("mkCalc_nc_MemReqQ");
+   mkConnection(fifoToGet(memReqQ),connectionToPut(calcncMemReqQTX));     
 
    method Action initialize_picWidth( Bit#(PicWidthSz) picWidthInMb ) if( waiting == 0 && currMbHor<zeroExtend(picWidth) );
       picWidth  <= picWidthInMb;
@@ -323,10 +332,13 @@ module mkCalc_nC( Calc_nC );
       memReqQ.enq(StoreReq {addr:temp,data:20'b10000100001000010000} );
    endmethod
 
-   interface Client mem_client;
-      interface Get request  = fifoToGet(memReqQ);
-      interface Put response = fifoToPut(memRespQ);
-   endinterface
+
+
+
+//   interface Client mem_client;
+//      interface Get request  = fifoToGet(memReqQ);
+//      interface Put response = fifoToPut(memRespQ);
+//   endinterface
 
 
 endmodule

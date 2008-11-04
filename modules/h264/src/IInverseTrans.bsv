@@ -38,7 +38,7 @@ interface IInverseTrans;
 
   // Interface for inter-module io
   interface Put#(EntropyDecOT_InverseTrans) ioin;
-  interface Get#(InverseTransOT) ioout;
+
 
 endinterface
 

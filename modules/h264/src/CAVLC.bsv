@@ -37,7 +37,7 @@ import H264Types::*;
    // Helper functions
 
 
-   (* noinline *)
+//   (* noinline *)
    function Tuple3#(Bit#(2),Bit#(5),Bufcount) cavlc_coeff_token( Buffer inbuffer, Bit#(6) nC );
       if(nC[5] == 1)
 	 begin
@@ -328,7 +328,7 @@ import H264Types::*;
 	 end
    endfunction
    
-   (* noinline *)
+//   (* noinline *)
    function Bit#(4) cavlc_level_prefix( Buffer inbuffer );
       Bit#(4) tempout = 15;
       for(Integer ii=15; ii>0; ii=ii-1)
@@ -339,7 +339,7 @@ import H264Types::*;
       return tempout;
    endfunction
 
-   (* noinline *)
+//   (* noinline *)
    function Tuple2#(Bit#(4),Bufcount) cavlc_total_zeros( Buffer inbuffer, Bit#(4) inTotalCoeff, Bit#(5) inMaxNumCoeff);
       if(inMaxNumCoeff==4)
 	 begin
@@ -566,7 +566,7 @@ import H264Types::*;
 	 end
    endfunction
 
-   (* noinline *)
+//   (* noinline *)
    function Tuple2#(Bit#(4),Bufcount) cavlc_run_before( Buffer inbuffer, Bit#(4) inZerosLeft);
       Bit#(3) buffertemp3 = inbuffer[buffersize-1:buffersize-3];
       Bit#(2) buffertemp2 = inbuffer[buffersize-1:buffersize-2];

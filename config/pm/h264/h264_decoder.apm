@@ -10,23 +10,50 @@ Class=Asim::Model
 
 [Model]
 DefaultAttributes=h264 bluespec
-model=Pure Bluespec Hybrid Model Foundation
+model=HAsim Hybrid Model Foundation
 
-[H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
+[FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
+Packagehint=platforms
+
+[Hasim Common Library]
+File=config/pm/hasim/submodels/common/hasim_common.apm
+Packagehint=hasim
+
+[HAsim Hybrid Model Foundation]
+File=modules/model/hasim_model.awb
+Packagehint=hasim
+
+[Hybrid Null Controller]
+File=config/pm/hasim/submodels/controller/hybrid_null_controller.apm
+Packagehint=hasim
+
+[HAsim Hybrid Model Foundation/Requires]
+hasim_common=Hasim Common Library
+hasim_system=H264 System
+hasim_controller=Hybrid Null Controller
+fpgaenv=FPGA Environment
+
+[H264 System]
+File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
-[H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
+[H264 deblocking filter module]
+File=modules/h264/src/h264_deblocking.awb
 Packagehint=h264
 
-[H264 nal unwrap module]
-File=modules/h264/src/h264_nal_unwrap.awb
+[H264 default simulation module]
+File=modules/h264/src/h264_default_memory_unit.awb
 Packagehint=h264
 
-[H264 inverse transform module]
-File=modules/h264/src/h264_inverse_transform.awb
-Packagehint=h264
+[H264 decoder module/Requires]
+h264_deblocking=H264 deblocking filter module
+h264_inverse_transform=H264 inverse transform module
+h264_memory_unit=H264 default simulation module
+h264_prediction=H264 Inter/Intra prediction module
+h264_entropy_decoder=H264 entropy decoder module
+h264_nal_unwrap=H264 nal unwrap module
+h264_buffer_control=H264 buffer control module
 
 [H264 buffer control module]
 File=modules/h264/src/h264_buffer_control.awb
@@ -36,53 +63,20 @@ Packagehint=h264
 File=modules/h264/src/h264_entropy_decoder.awb
 Packagehint=h264
 
-[H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module
-h264_prediction=H264 Inter/Intra prediction module
-h264_nal_unwrap=H264 nal unwrap module
-h264_inverse_transform=H264 inverse transform module
-h264_buffer_control=H264 buffer control module
-h264_entropy_decoder=H264 entropy decoder module
-h264_memory_unit=H264 default simulation module
-smart_synth_boundaries=Smart Synthesis Boundaries
-soft_connections=Soft Connections
-
-[H264 decoder module]
-File=modules/h264/src/h264_decoder.awb
-Packagehint=h264
-
-[H264 System]
-File=modules/h264/src/h264_h264_system.awb
+[H264 interpolator module]
+File=modules/h264/src/h264_interpolator.awb
 Packagehint=h264
 
 [H264 System/Requires]
 h264_decoder=H264 decoder module
 
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
-Packagehint=platforms
-
-[H264 deblocking filter module]
-File=modules/h264/src/h264_deblocking.awb
+[H264 nal unwrap module]
+File=modules/h264/src/h264_nal_unwrap.awb
 Packagehint=h264
 
-[Pure Bluespec Hybrid Model Foundation]
-File=modules/model/pure_bluespec_hybrid_model.awb
-Packagehint=hasim
-
-[H264 default simulation module]
-File=modules/h264/src/h264_default_memory_unit.awb
+[H264 decoder module]
+File=modules/h264/src/h264_decoder.awb
 Packagehint=h264
-
-[Pure Bluespec Hybrid Model Foundation/Requires]
-bluespec_common=Bluespec Common Library with FPGA
-bluespec_system=H264 System
-hasim_controller=Hybrid Null Controller
-fpgaenv=FPGA Environment
-
-[Bluespec Common Library with FPGA]
-File=modules/bluespec/common/base/bluespec_base.awb
-Packagehint=hasim
 
 [H264 Inter/Intra prediction module/Requires]
 h264_interpolator=H264 interpolator module
@@ -91,34 +85,6 @@ h264_interpolator=H264 interpolator module
 File=modules/h264/src/h264_prediction.awb
 Packagehint=h264
 
-[Smart Synthesis Boundaries]
-File=modules/common/smart_synthesis_boundaries/smart_synth_boundaries.awb
-Packagehint=hasim
-
-[Soft Connections/Requires]
-soft_connections_alg=Soft Connection Algorithm
-
-[Soft Connections]
-File=modules/bluespec/common/soft_connections/soft_connections.awb
-Packagehint=hasim
-
-[Soft Connection Algorithm]
-File=modules/bluespec/common/soft_connections/alg/typed/soft_connections_alg.awb
-Packagehint=hasim
-
-[Hybrid Null Controller]
-File=modules/hasim/controller/controller-null-hybrid.awb
-Packagehint=hasim
-
-[Hybrid Null Controller/Requires]
-starter=Hybrid Null Starter
-command_switches=Standard Command Switches
-
-[Standard Command Switches]
-File=modules/hasim/controller/command_switches/standard-command-switches.awb
-Packagehint=hasim
-
-
-[Hybrid Null Starter]
-File=modules/hasim/controller/starter/hybrid-null-starter.awb
-Packagehint=hasim
+[H264 inverse transform module]
+File=modules/h264/src/h264_inverse_transform.awb
+Packagehint=h264

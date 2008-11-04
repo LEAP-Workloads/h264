@@ -29,6 +29,9 @@
 
 package mkNalUnwrap;
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
 import H264Types::*;
 import INalUnwrap::*;
 import FIFO::*;
@@ -42,7 +45,7 @@ import GetPut::*;
 // NAL Unwrapper Module
 //-----------------------------------------------------------
 
-module mkNalUnwrap( INalUnwrap );
+module [HASIM_MODULE] mkNalUnwrap( INalUnwrap );
 
    FIFO#(InputGenOT)  infifo    <- mkFIFO;
    FIFO#(NalUnwrapOT) outfifo   <- mkFIFO;
@@ -163,9 +166,12 @@ module mkNalUnwrap( INalUnwrap );
 	 
    endrule
 
+   Connection_Send#(NalUnwrapOT) outfifoTX <- mkConnection_Send("mkEntropyDec_infifo");
+
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));
    
    interface Put ioin  = fifoToPut(infifo);
-   interface Get ioout = fifoToGet(outfifo);
+//   interface Get ioout = fifoToGet(outfifo);
       
 endmodule
 

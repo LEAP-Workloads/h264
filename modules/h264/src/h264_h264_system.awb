@@ -6,12 +6,14 @@
 
 %name H264 System
 %desc H264 System
-%provides bluespec_system
+%provides hasim_system
 
 %requires h264_decoder
 
 %attributes h264
 
 %public mkTH.bsv
+
+%param SMART_SYNTH_BOUNDARY 1 "turn on synth"
 
 %AWB_END

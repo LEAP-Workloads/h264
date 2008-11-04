@@ -29,6 +29,9 @@
 
 package mkBufferControl;
 
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
+
 import H264Types::*;
 
 import IBufferControl::*;
@@ -437,8 +440,8 @@ endmodule
 //-----------------------------------------------------------
 
 
-(* synthesize *)
-module mkBufferControl( IBufferControl );
+//(* synthesize *)
+module [HASIM_MODULE] mkBufferControl( IBufferControl );
 
    FIFO#(DeblockFilterOT) infifo  <- mkSizedFIFO(bufferControl_infifo_size);
    FIFO#(BufferControlOT) outfifo <- mkFIFO();
@@ -973,9 +976,15 @@ module mkBufferControl( IBufferControl );
       //$display( "Trace BufferControl: interResp %h %h", inLoadOutOfBounds.first(), data);
    endrule
 
-   
 
-   interface Put ioin  = fifoToPut(infifo);
+   Connection_Receive#(DeblockFilterOT) infifoRX <- mkConnection_Receive("mkDeblocking_outfifo");  
+   mkConnection(connectionToGet(infifoRX), fifoToPut(infifo));
+
+   Connection_Send#(InterpolatorLoadResp) interpolatorMemRespQX <- mkConnection_Send("mkPrediction_interpolatorMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) interpolatorMemReqQRX <- mkConnection_Receive("mkPrediction_interpolatorMemReqQ");
+   mkConnection(connectionToGet(interpolatorMemReqQRX),fifoToPut(inLoadReqQ));
+   mkConnection(fifoToGet(inLoadRespQ),connectionToPut( interpolatorMemRespQX));
+
    interface Get ioout = fifoToGet(outfifo);
    interface Client buffer_client_load1;
       interface Get request   = fifoToGet(loadReqQ1);
@@ -986,12 +995,7 @@ module mkBufferControl( IBufferControl );
       interface Put response  = fifoToPut(loadRespQ2);
    endinterface
    interface Get buffer_client_store = fifoToGet(storeReqQ);
-   interface Server inter_server;
-      interface Put request   = fifoToPut(inLoadReqQ);
-      interface Get response  = fifoToGet(inLoadRespQ);
-   endinterface
-
-	 
+  	 
 endmodule
 
 endpackage

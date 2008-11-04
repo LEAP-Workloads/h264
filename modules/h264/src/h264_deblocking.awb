@@ -10,6 +10,9 @@
 
 %attributes h264
 
+
 %public mkDeblockFilter.bsv IDeblockFilter.bsv FIFOUtility.bsv
+
+%param SYNTH_BOUNDARY mkDeblockFilter "synth boundary"
 
 %AWB_END

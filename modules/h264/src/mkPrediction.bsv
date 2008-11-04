@@ -27,7 +27,10 @@
 //
 //
 
-package mkPrediction;
+
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
+
 
 import H264Types::*;
 
@@ -162,7 +165,7 @@ endfunction
 
 
 //(* synthesize *)
-module mkPrediction( IPrediction );
+module [HASIM_MODULE] mkPrediction ();
 
    //Common state
    FIFO#(EntropyDecOT)   infifo     <- mkSizedFIFO(prediction_infifo_size);
@@ -2264,23 +2267,28 @@ module mkPrediction( IPrediction );
       //$display( "Trace Prediction: intraProcessStep");
    endrule
 
-   
-   
-   interface Client mem_client_intra;
-      interface Get request  = fifoToGet(intraMemReqQ);
-      interface Put response = fifoToPut(intraMemRespQ);
-   endinterface
-   interface Client mem_client_inter;
-      interface Get request  = fifoToGet(interMemReqQ);
-      interface Put response = fifoToPut(interMemRespQ);
-   endinterface
-   interface Client mem_client_buffer = interpolator.mem_client;
+   Connection_Receive#(EntropyDecOT) infifoRX <- mkConnection_Receive("mkPrediction_infifo");
+   Connection_Receive#(InverseTransOT) infifo_ITBRX <- mkConnection_Receive("mkPrediction_infifo_ITB");
+   Connection_Send#(EntropyDecOT) outfifoTX <- mkConnection_Send("mkDeblocking_infifo");
+   Connection_Receive#(MemResp#(68)) intraMemRespQRx <- mkConnection_Receive("mkPrediction_intraMemRespQ");
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQTx <- mkConnection_Send("mkPrediction_intraMemReqQ");
+   Connection_Receive#(MemResp#(32)) interMemRespQRx <- mkConnection_Receive("mkPrediction_interMemRespQ");
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQTx <- mkConnection_Send("mkPrediction_interMemReqQ");
+   Connection_Receive#(InterpolatorLoadResp) interpolatorMemRespQRx <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) interpolatorMemReqQTx <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
 
-   interface Put ioin  = fifoToPut(infifo);
-   interface Put ioin_InverseTrans  = fifoToPut(infifo_ITB);
-   interface Get ioout = fifoToGet(outfifo);
 
+
+   mkConnection(connectionToGet(infifoRX), fifoToPut(infifo));
+   mkConnection(connectionToGet(infifo_ITBRX), fifoToPut(infifo_ITB));
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
+   mkConnection(connectionToGet(intraMemRespQRx), fifoToPut(intraMemRespQ));
+   mkConnection(fifoToGet(intraMemReqQ),connectionToPut(intraMemReqQTx));  
+   mkConnection(connectionToGet( interMemRespQRx), fifoToPut(interMemRespQ));
+   mkConnection(fifoToGet(interMemReqQ),connectionToPut(interMemReqQTx));  
+   mkConnection(connectionToGet(interpolatorMemRespQRx).get, interpolator.mem_client.response.put);
+   mkConnection(interpolator.mem_client.request.get,connectionToPut(interpolatorMemReqQTx).put);  
       
 endmodule
 
-endpackage
+
