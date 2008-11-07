@@ -44,9 +44,9 @@ interface IH264;
    interface Client#(MemReq#(TAdd#(PicWidthSz,2),32),MemResp#(32)) mem_clientP_inter;
    interface Client#(MemReq#(PicWidthSz,13),MemResp#(13)) mem_clientD_parameter;
    interface IDecoupledClient#(MemReq#(TAdd#(PicWidthSz,5),32),MemResp#(32)) mem_clientD_data;
-   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load1;
-   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load2;
-   interface Get#(FrameBufferStoreReq) buffer_client_store;
+//   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load1;
+//   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load2;
+//   interface Get#(FrameBufferStoreReq) buffer_client_store;
    interface Get#(BufferControlOT) ioout;
 
 endinterface

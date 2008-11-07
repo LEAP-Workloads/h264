@@ -38,12 +38,12 @@ interface IBufferControl;
 
    // Interface for inter-module io
 //   interface Put#(DeblockFilterOT) ioin;
-   interface Get#(BufferControlOT) ioout;
+//   interface Get#(BufferControlOT) ioout;
 
    // Interface for module to frame buffer
-   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load1;
-   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load2;
-   interface Get#(FrameBufferStoreReq) buffer_client_store;
+//   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load1;
+//   interface Client#(FrameBufferLoadReq,FrameBufferLoadResp) buffer_client_load2;
+//   interface Get#(FrameBufferStoreReq) buffer_client_store;
 
 endinterface
 

@@ -441,7 +441,7 @@ endmodule
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkBufferControl( IBufferControl );
+module [HASIM_MODULE] mkBufferControl();
 
    FIFO#(DeblockFilterOT) infifo  <- mkSizedFIFO(bufferControl_infifo_size);
    FIFO#(BufferControlOT) outfifo <- mkFIFO();
@@ -985,16 +985,34 @@ module [HASIM_MODULE] mkBufferControl( IBufferControl );
    mkConnection(connectionToGet(interpolatorMemReqQRX),fifoToPut(inLoadReqQ));
    mkConnection(fifoToGet(inLoadRespQ),connectionToPut( interpolatorMemRespQX));
 
-   interface Get ioout = fifoToGet(outfifo);
-   interface Client buffer_client_load1;
-      interface Get request   = fifoToGet(loadReqQ1);
-      interface Put response  = fifoToPut(loadRespQ1);
-   endinterface
-   interface Client buffer_client_load2;
-      interface Get request   = fifoToGet(loadReqQ2);
-      interface Put response  = fifoToPut(loadRespQ2);
-   endinterface
-   interface Get buffer_client_store = fifoToGet(storeReqQ);
+
+   Connection_Send#(FrameBufferLoadReq) loadReqQ1TX <- mkConnection_Send("frameBuffer_LoadReqQ1");
+   Connection_Receive#(FrameBufferLoadResp) loadRespQ1RX <- mkConnection_Receive("frameBuffer_LoadRespQ1");
+   Connection_Send#(FrameBufferLoadReq) loadReqQ2TX <- mkConnection_Send("frameBuffer_LoadReqQ2");
+   Connection_Receive#(FrameBufferLoadResp) loadRespQ2RX <- mkConnection_Receive("frameBuffer_LoadRespQ2");
+   Connection_Send#(FrameBufferStoreReq) storeReqQTX <- mkConnection_Send("frameBuffer_StoreReqQ");
+
+   mkConnection(connectionToGet(loadRespQ1RX),fifoToPut(loadRespQ1));  
+   mkConnection(fifoToGet(loadReqQ1),connectionToPut(loadReqQ1TX));  
+   mkConnection(connectionToGet(loadRespQ2RX),fifoToPut(loadRespQ2));  
+   mkConnection(fifoToGet(loadReqQ2),connectionToPut(loadReqQ2TX));  
+   mkConnection(fifoToGet(storeReqQ),connectionToPut(storeReqQTX));  
+
+
+   Connection_Send#(BufferControlOT) outfifoTX <- mkConnection_Send("bufferControl_outfifo");
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
+
+//   interface Get ioout = fifoToGet(outfifo);
+
+//   interface Client buffer_client_load1;
+//      interface Get request   = fifoToGet(loadReqQ1);
+//      interface Put response  = fifoToPut(loadRespQ1);
+//   endinterface
+//   interface Client buffer_client_load2;
+//      interface Get request   = fifoToGet(loadReqQ2);
+//      interface Put response  = fifoToPut(loadRespQ2);
+//   endinterface
+//   interface Get buffer_client_store = fifoToGet(storeReqQ);
   	 
 endmodule
 

@@ -12,5 +12,7 @@
 
 %public mkBufferControl.bsv IBufferControl.bsv
 
+%param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
+
 %AWB_END
 

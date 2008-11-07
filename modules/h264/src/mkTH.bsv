@@ -49,7 +49,7 @@ import mkEntropyDec::*;
 import mkInverseTrans::*;
 import mkPrediction::*;
 import mkDeblockFilter::*;
-
+import mkBufferControl::*;
 
 import Connectable::*;
 import GetPut::*;
@@ -67,14 +67,14 @@ module [HASIM_MODULE] mkSystem ();//#( LowLevelPlatformInterface llpi ) (Empty);
    IMemED#(TAdd#(PicWidthSz,2),32) memP_inter     <- mkMemED();
    IMemEDDecoupled#(TAdd#(PicWidthSz,5),32) memD_data      <- mkMemEDDecoupled();
    IMemED#(PicWidthSz,13)          memD_parameter <- mkMemED();
-   IFrameBuffer   framebuffer   <- mkFrameBuffer();
+   Empty   framebuffer   <- mkFrameBuffer();
    IFinalOutput   finaloutput   <- mkFinalOutput();
 
    Empty    entropydec    <- mkEntropyDec();
    Empty    inversetrans  <- mkInverseTrans();
    Empty    prediction    <- mkPrediction();
    Empty    deblockfilter <- mkDeblockFilter();
-
+   Empty    buffercontrol <- mkBufferControl();
 
    // Cycle counter
    Reg#(Bit#(32)) cyclecount <- mkReg(0);
@@ -101,9 +101,9 @@ module [HASIM_MODULE] mkSystem ();//#( LowLevelPlatformInterface llpi ) (Empty);
    mkConnection( h264.mem_clientD_data.response, memD_data.response);
 
    mkConnection( h264.mem_clientD_parameter, memD_parameter.mem_server );
-   mkConnection( h264.buffer_client_load1, framebuffer.server_load1 );
-   mkConnection( h264.buffer_client_load2, framebuffer.server_load2 );
-   mkConnection( h264.buffer_client_store, framebuffer.server_store );
+//   mkConnection( h264.buffer_client_load1, framebuffer.server_load1 );
+//   mkConnection( h264.buffer_client_load2, framebuffer.server_load2 );
+//   mkConnection( h264.buffer_client_store, framebuffer.server_store );
    mkConnection( h264.ioout, finaloutput.ioin );
    
 endmodule

@@ -30,11 +30,16 @@
 
 package mkFrameBuffer;
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
+
 import H264Types::*;
 import IFrameBuffer::*;
 import RegFile::*;
 import GetPut::*;
 import ClientServer::*;
+import Connectable::*;
 import FIFO::*;
 
 
@@ -71,7 +76,8 @@ endmodule
 // Main module
 //----------------------------------------------------------------------
 
-module mkFrameBuffer( IFrameBuffer );
+
+module [HASIM_MODULE] mkFrameBuffer ();
 
   //-----------------------------------------------------------
   // State
@@ -120,16 +126,17 @@ module mkFrameBuffer( IFrameBuffer );
       storeReqQ.deq();
    endrule
 
-   
-   interface Server server_load1;
-      interface Put request   = fifoToPut(loadReqQ1);
-      interface Get response  = fifoToGet(loadRespQ1);
-   endinterface
-   interface Server server_load2;
-      interface Put request   = fifoToPut(loadReqQ2);
-      interface Get response  = fifoToGet(loadRespQ2);
-   endinterface
-   interface Put server_store = fifoToPut(storeReqQ);
+
+   Connection_Receive#(FrameBufferLoadReq) loadReqQ1RX <- mkConnection_Receive("frameBuffer_LoadReqQ1");
+   Connection_Send#(FrameBufferLoadResp) loadRespQ1TX <- mkConnection_Send("frameBuffer_LoadRespQ1");
+   Connection_Receive#(FrameBufferLoadReq) loadReqQ2RX <- mkConnection_Receive("frameBuffer_LoadReqQ2");
+   Connection_Send#(FrameBufferLoadResp) loadRespQ2TX <- mkConnection_Send("frameBuffer_LoadRespQ2");
+   Connection_Receive#(FrameBufferStoreReq) storeReqQRX <- mkConnection_Receive("frameBuffer_StoreReqQ");
+   mkConnection(connectionToGet(loadReqQ1RX),fifoToPut(loadReqQ1));  
+   mkConnection(fifoToGet(loadRespQ1),connectionToPut(loadRespQ1TX));  
+   mkConnection(connectionToGet(loadReqQ2RX),fifoToPut(loadReqQ2));  
+   mkConnection(fifoToGet(loadRespQ2),connectionToPut(loadRespQ2TX));  
+   mkConnection(connectionToGet(storeReqQRX),fifoToPut(storeReqQ));  
 
 endmodule
 

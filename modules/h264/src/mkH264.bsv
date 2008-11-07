@@ -26,7 +26,7 @@
 //
 //
 
-package mkH264;
+
 
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
@@ -41,10 +41,6 @@ import IDeblockFilter::*;
 import IBufferControl::*;
 import IDecoupledClient::*;
 import mkNalUnwrap::*;
-//import mkEntropyDec::*;
-//import mkInverseTrans::*;
-//import mkPrediction::*;
-//import mkDeblockFilter::*;
 import mkBufferControl::*;
 
  
@@ -58,11 +54,6 @@ module [HASIM_MODULE] mkH264( IH264 );
    // Instantiate the modules
 
    INalUnwrap     nalunwrap     <- mkNalUnwrap();
-//   Empty    entropydec    <- mkEntropyDec();
-//   Empty    inversetrans  <- mkInverseTrans();
-//   Empty    prediction    <- mkPrediction();
-//   Empty    deblockfilter <- mkDeblockFilter();
-   IBufferControl buffercontrol <- mkBufferControl();
 
 
    // The Deblocking data pipeline connections. Memory pipeline exists elsewhere.   
@@ -85,7 +76,6 @@ module [HASIM_MODULE] mkH264( IH264 );
    Connection_Receive#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQRX <- mkConnection_Receive("mkPrediction_interMemReqQ");
   
 
-
    // Soft Connection to Deblock 
    Connection_Send#(MemResp#(13)) parameterMemRespQTX <- mkConnection_Send("mkDeblocking_parameterMemRespQ");
    Connection_Receive#(MemReq#(PicWidthSz,13)) parameterMemReqQRX <- mkConnection_Receive("mkDeblocking_parameterMemReqQ");
@@ -98,6 +88,8 @@ module [HASIM_MODULE] mkH264( IH264 );
    //Soft Connection to Entropy
    Connection_Send#(MemResp#(20)) calcncMemRespQTX <- mkConnection_Send("mkCalc_nc_MemRespQ");
    Connection_Receive#(MemReq#(TAdd#(PicWidthSz,1),20)) calcncMemReqQRX <- mkConnection_Receive("mkCalc_nc_MemReqQ");
+
+   Connection_Receive#(BufferControlOT) outfifoRX <- mkConnection_Receive("bufferControl_outfifo");
 
    // Interface to input generator
    interface ioin = nalunwrap.ioin;
@@ -131,13 +123,14 @@ module [HASIM_MODULE] mkH264( IH264 );
    interface mem_clientD_parameter = interface Client#(MemReq#(PicWidthSz,13),MemResp#(13));
 
                                      endinterface;
-   interface buffer_client_load1   = buffercontrol.buffer_client_load1;
-   interface buffer_client_load2   = buffercontrol.buffer_client_load2;
-   interface buffer_client_store   = buffercontrol.buffer_client_store;
+//   interface buffer_client_load1   = buffercontrol.buffer_client_load1;
+//   interface buffer_client_load2   = buffercontrol.buffer_client_load2;
+//   interface buffer_client_store   = buffercontrol.buffer_client_store;
 
    // Interface for output 
-   interface ioout = buffercontrol.ioout;
+   
+   interface ioout =  connectionToGet(outfifoRX);
       
 endmodule
 
-endpackage
+
