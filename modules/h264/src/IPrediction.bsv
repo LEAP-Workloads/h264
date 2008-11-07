@@ -28,9 +28,8 @@
 //
 //
 
-package IPrediction;
+`include "h264_types.bsh"
 
-import H264Types::*;
 import GetPut::*;
 import ClientServer::*;
 
@@ -47,6 +46,4 @@ interface IPrediction;
   interface Client#(InterpolatorLoadReq,InterpolatorLoadResp) mem_client_buffer;
 
 endinterface
-
-endpackage
 

@@ -28,10 +28,8 @@
 //
 //
 
-package mkMemED;
+`include "h264_types.bsh"
 
-import H264Types::*;
-import IMemED::*;
 import RegFile::*;
 import GetPut::*;
 import ClientServer::*;
@@ -72,4 +70,3 @@ module mkMemED(IMemED#(index_size,data_size))
 
 endmodule
 
-endpackage

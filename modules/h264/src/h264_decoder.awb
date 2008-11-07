@@ -20,6 +20,6 @@
 
 %attributes h264
 
-%public mkH264.bsv H264Types.bsv IH264.bsv
+%public mkH264.bsv IH264.bsv
 
 %AWB_END

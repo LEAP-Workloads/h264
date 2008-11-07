@@ -28,9 +28,8 @@
 //
 //
 
-package INalUnwrap;
+`include "h264_types.bsh"
 
-import H264Types::*;
 import GetPut::*;
 
 interface INalUnwrap;
@@ -40,6 +39,4 @@ interface INalUnwrap;
 //  interface Get#(NalUnwrapOT) ioout;
 
 endinterface
-
-endpackage
 

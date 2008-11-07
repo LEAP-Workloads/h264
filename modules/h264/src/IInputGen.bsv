@@ -28,9 +28,9 @@
 //
 //
 
-package IInputGen;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 
 interface IInputGen;
@@ -39,6 +39,4 @@ interface IInputGen;
   interface Get#(InputGenOT) ioout;
 
 endinterface
-
-endpackage
 

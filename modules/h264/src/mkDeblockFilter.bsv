@@ -31,13 +31,13 @@
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
-import H264Types::*;
+`include "h264_types.bsh"
+`include "h264_memory_unit.bsh"
 
-import IDeblockFilter::*;
+
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;
-import IDecoupledClient::*;
 import FIFOUtility::*;
 
 import Connectable::*;

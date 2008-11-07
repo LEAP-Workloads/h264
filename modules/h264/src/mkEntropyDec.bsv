@@ -27,17 +27,11 @@
 //
 //
 
-package mkEntropyDec;
-
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
-import H264Types::*;
-import ExpGolomb::*;
-import CAVLC::*;
-import ICalc_nC::*;
-import mkCalc_nC::*;
-import IEntropyDec::*;
+`include "h264_types.bsh"
+
 import FIFO::*;
 
 import Connectable::*;
@@ -1692,4 +1686,3 @@ module [HASIM_MODULE] mkEntropyDec();
       
 endmodule
 
-endpackage

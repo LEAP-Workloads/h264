@@ -28,14 +28,12 @@
 //
 //
 
-package mkFrameBuffer;
-
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
 
-import H264Types::*;
-import IFrameBuffer::*;
+`include "h264_types.bsh"
+
 import RegFile::*;
 import GetPut::*;
 import ClientServer::*;
@@ -140,4 +138,3 @@ module [HASIM_MODULE] mkFrameBuffer ();
 
 endmodule
 
-endpackage

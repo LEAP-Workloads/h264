@@ -28,8 +28,8 @@
 //
 
 
-import H264Types::*;
-import IInterpolator::*;
+`include "h264_types.bsh"
+
 import FIFO::*;
 import Vector::*;
 

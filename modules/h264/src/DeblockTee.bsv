@@ -21,8 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+`include "h264_types.bsh"
+
 import GetPut::*;
-import H264Types::*;
 import RegFile::*;
 
 typedef enum 

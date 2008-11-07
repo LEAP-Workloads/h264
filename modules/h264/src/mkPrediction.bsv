@@ -31,12 +31,10 @@
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
+`include "h264_prediction.bsh"
+`include "h264_interpolator.bsh"
+`include "h264_types.bsh"
 
-import H264Types::*;
-
-import IPrediction::*;
-import IInterpolator::*;
-import mkInterpolator::*;
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;

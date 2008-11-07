@@ -4,17 +4,12 @@
 
 %AWB_START
 
-%name H264 System
-%desc H264 System
-%provides hasim_system
-
-%requires h264_decoder
-%requires h264_types
+%name H264 types
+%desc H264 types
+%provides h264_types
 
 %attributes h264
 
-%public mkTH.bsv
-
-%param SMART_SYNTH_BOUNDARY 1 "turn on synth"
+%public H264Types.bsv 
 
 %AWB_END

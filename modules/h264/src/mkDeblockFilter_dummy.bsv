@@ -27,11 +27,8 @@
 //
 //
 
-package mkDeblockFilter;
+`include "h264_types.bsh"
 
-import H264Types::*;
-
-import IDeblockFilter::*;
 import FIFO::*;
 import Vector::*;
 
@@ -212,4 +209,3 @@ module mkDeblockFilter( IDeblockFilter );
       
 endmodule
 
-endpackage

@@ -31,25 +31,15 @@
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
-import H264Types::*;
-import IMemED::*;
-import IMemEDDecoupled::*;
-import IFrameBuffer::*;
-import IInputGen::*;
-import IFinalOutput::*;
-import IDecoupledClient::*;
-import IH264::*;
-import mkMemED::*;
-import mkMemEDDecoupled::*;
-import mkFrameBuffer::*;
-import mkInputGen::*;
-import mkFinalOutput::*;
-import mkH264::*;
-import mkEntropyDec::*;
-import mkInverseTrans::*;
-import mkPrediction::*;
-import mkDeblockFilter::*;
-import mkBufferControl::*;
+`include "h264_entropy_decoder.bsh"
+`include "h264_inverse_transform.bsh"
+`include "h264_prediction.bsh"
+`include "h264_deblocking.bsh"
+`include "h264_buffer_control.bsh"
+`include "h264_frame_buffer.bsh"
+`include "h264_decoder.bsh"
+`include "h264_memory_unit.bsh"
+`include "h264_types.bsh"
 
 import Connectable::*;
 import GetPut::*;

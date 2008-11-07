@@ -28,9 +28,9 @@
 //
 //
 
-package IFrameBuffer;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import ClientServer::*;
 import GetPut::*;
 
@@ -42,5 +42,3 @@ interface IFrameBuffer;
   interface Put#(FrameBufferStoreReq) server_store;
 
 endinterface
-
-endpackage

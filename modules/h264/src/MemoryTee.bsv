@@ -21,7 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 import ClientServer::*;
 

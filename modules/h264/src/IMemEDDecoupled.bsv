@@ -29,7 +29,8 @@
 //
 
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import ClientServer::*;
 import GetPut::*;
 

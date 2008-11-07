@@ -27,10 +27,9 @@
 //
 //
 
-package mkInputGen;
 
-import H264Types::*;
-import IInputGen::*;
+`include "h264_types.bsh"
+
 import RegFile::*;
 import FIFO::*;
 
@@ -68,6 +67,3 @@ module mkInputGen( IInputGen );
    interface Get ioout = fifoToGet(outfifo);
    
 endmodule
-
-
-endpackage

@@ -28,10 +28,10 @@
 //
 //
 
-package IH264;
 
-import IDecoupledClient::*;
-import H264Types::*;
+`include "h264_types.bsh"
+`include "h264_memory_unit.bsh"
+
 import GetPut::*;
 import ClientServer::*;
 
@@ -50,6 +50,4 @@ interface IH264;
    interface Get#(BufferControlOT) ioout;
 
 endinterface
-
-endpackage
 

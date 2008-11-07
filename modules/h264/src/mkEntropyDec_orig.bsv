@@ -27,14 +27,8 @@
 //
 //
 
-package mkEntropyDec;
+`include "h264_types.bsh"
 
-import H264Types::*;
-import ExpGolomb::*;
-import CAVLC::*;
-import ICalc_nC::*;
-import mkCalc_nC::*;
-import IEntropyDec::*;
 import FIFO::*;
 
 import Connectable::*;
@@ -1719,4 +1713,3 @@ module mkEntropyDec( IEntropyDec );
       
 endmodule
 
-endpackage

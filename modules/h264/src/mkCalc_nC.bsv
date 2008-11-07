@@ -27,13 +27,11 @@
 //
 //
 
-//package mkCalc_nC;
-
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
-import H264Types::*;
-import ICalc_nC::*;
+`include "h264_types.bsh"
+
 import FIFO::*;
 
 import Connectable::*;
@@ -344,5 +342,3 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 endmodule
 
 
-
-//endpackage

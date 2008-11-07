@@ -27,10 +27,8 @@
 //
 //
 
-package mkFinalOutput;
+`include "h264_types.bsh"
 
-import H264Types::*;
-import IFinalOutput::*;
 import FIFO::*;
 import RegFile::*;
 
@@ -99,4 +97,3 @@ module mkFinalOutput( IFinalOutput );
 
 endmodule
 
-endpackage

@@ -28,9 +28,9 @@
 //
 //
 
-package IMemED;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import ClientServer::*;
 import GetPut::*;
 
@@ -40,5 +40,3 @@ interface IMemED #(type index_size, type data_size);
   interface Server#(MemReq#(index_size,data_size),MemResp#(data_size)) mem_server;
 
 endinterface
-
-endpackage

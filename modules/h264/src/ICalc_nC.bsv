@@ -28,9 +28,9 @@
 //
 //
 
-package ICalc_nC;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 import ClientServer::*;
 
@@ -46,6 +46,4 @@ interface Calc_nC;
    method Action  nNupdate_ipcm();
 //   interface Client#(MemReq#(TAdd#(PicWidthSz,1),20),MemResp#(20)) mem_client;
 endinterface
-
-endpackage
 

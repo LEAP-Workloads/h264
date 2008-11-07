@@ -27,10 +27,8 @@
 //
 //
 
-package mkInterpolator;
+`include "h264_types.bsh"
 
-import H264Types::*;
-import IInterpolator::*;
 import FIFO::*;
 import Vector::*;
 
@@ -745,5 +743,3 @@ module mkInterpolator( Interpolator );
 
 endmodule
 
-
-endpackage

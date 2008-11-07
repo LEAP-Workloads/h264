@@ -28,12 +28,12 @@
 //
 //
 
-package IDeblockFilter;
 
-import H264Types::*;
+`include "h264_types.bsh"
+`include "h264_memory_unit.bsh"
+
 import GetPut::*;
 import ClientServer::*;
-import IDecoupledClient::*;
 
 interface IDeblockFilter;
 
@@ -46,6 +46,3 @@ interface IDeblockFilter;
    interface Client#(MemReq#(PicWidthSz,13),MemResp#(13)) mem_client_parameter;
      
 endinterface
-
-endpackage
-

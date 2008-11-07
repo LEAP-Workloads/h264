@@ -28,9 +28,9 @@
 //
 //
 
-package IBufferControl;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 import ClientServer::*;
 
@@ -47,5 +47,4 @@ interface IBufferControl;
 
 endinterface
 
-endpackage
 

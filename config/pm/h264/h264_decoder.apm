@@ -54,6 +54,7 @@ h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module
+h264_frame_buffer=H264 simulation module
 
 [H264 buffer control module]
 File=modules/h264/src/h264_buffer_control.awb
@@ -69,6 +70,7 @@ Packagehint=h264
 
 [H264 System/Requires]
 h264_decoder=H264 decoder module
+h264_types=H264 types
 
 [H264 nal unwrap module]
 File=modules/h264/src/h264_nal_unwrap.awb
@@ -87,4 +89,12 @@ Packagehint=h264
 
 [H264 inverse transform module]
 File=modules/h264/src/h264_inverse_transform.awb
+Packagehint=h264
+
+[H264 simulation module]
+File=modules/h264/src/h264_simulation_frame_buffer.awb
+Packagehint=h264
+
+[H264 types]
+File=modules/h264/src/h264_types.awb
 Packagehint=h264

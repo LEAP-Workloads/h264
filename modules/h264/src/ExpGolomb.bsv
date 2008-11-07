@@ -28,10 +28,7 @@
 //
 //
 
-package ExpGolomb;
-
-import H264Types::*;
-
+`include "h264_types.bsh"
 
       
    //-----------------------------------------------------------
@@ -216,5 +213,3 @@ import H264Types::*;
    endfunction
 
 
-
-endpackage

@@ -27,13 +27,11 @@
 //
 //
 
-package mkNalUnwrap;
-
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
-import H264Types::*;
-import INalUnwrap::*;
+`include "h264_types.bsh"
+
 import FIFO::*;
 
 import Connectable::*;
@@ -175,4 +173,3 @@ module [HASIM_MODULE] mkNalUnwrap( INalUnwrap );
       
 endmodule
 
-endpackage

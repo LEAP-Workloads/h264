@@ -31,18 +31,8 @@
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
-import H264Types::*;
-import IH264::*;
-import INalUnwrap::*;
-import IEntropyDec::*;
-import IInverseTrans::*;
-import IPrediction::*;
-import IDeblockFilter::*;
-import IBufferControl::*;
-import IDecoupledClient::*;
-import mkNalUnwrap::*;
-import mkBufferControl::*;
-
+`include "h264_types.bsh"
+`include "h264_nal_unwrap.bsh"
  
 import Connectable::*;
 import GetPut::*;

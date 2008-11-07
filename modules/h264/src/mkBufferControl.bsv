@@ -27,14 +27,12 @@
 //
 //
 
-package mkBufferControl;
-
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
-import H264Types::*;
 
-import IBufferControl::*;
+`include "h264_types.bsh"
+
 import FIFO::*;
 import Vector::*;
 
@@ -1016,4 +1014,3 @@ module [HASIM_MODULE] mkBufferControl();
   	 
 endmodule
 
-endpackage

@@ -28,9 +28,8 @@
 //
 //
 
-package IInverseTrans;
+`include "h264_types.bsh"
 
-import H264Types::*;
 import GetPut::*;
 import ClientServer::*;
 
@@ -41,6 +40,4 @@ interface IInverseTrans;
 
 
 endinterface
-
-endpackage
 

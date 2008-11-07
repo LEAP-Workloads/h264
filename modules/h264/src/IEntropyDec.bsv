@@ -28,9 +28,9 @@
 //
 //
 
-package IEntropyDec;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 import ClientServer::*;
 
@@ -46,5 +46,4 @@ interface IEntropyDec;
 
 endinterface
 
-endpackage
 

@@ -28,9 +28,7 @@
 //
 //
 
-package CAVLC;
-
-import H264Types::*;
+`include "h264_types.bsh"
 
       
    //-----------------------------------------------------------
@@ -669,6 +667,3 @@ import H264Types::*;
       endcase
    endfunction
 
-
-
-endpackage

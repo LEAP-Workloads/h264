@@ -28,14 +28,11 @@
 //
 
 
-package mkInverseTrans;
-
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
-import H264Types::*;
+`include "h264_types.bsh"
 
-import IInverseTrans::*;
 import FIFO::*;
 import Vector::*;
 
@@ -731,4 +728,3 @@ module [HASIM_MODULE] mkInverseTrans();
 
 endmodule
 
-endpackage

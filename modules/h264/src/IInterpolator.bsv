@@ -28,9 +28,9 @@
 //
 //
 
-package IInterpolator;
 
-import H264Types::*;
+`include "h264_types.bsh"
+
 import GetPut::*;
 import Vector::*;
 import ClientServer::*;
@@ -44,6 +44,4 @@ interface Interpolator;
    method Action   endOfFrame();
    interface Client#(InterpolatorLoadReq,InterpolatorLoadResp) mem_client;
 endinterface
-
-endpackage
 

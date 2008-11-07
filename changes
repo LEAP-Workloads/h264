@@ -1,0 +1,75 @@
+
+----------
+pellauer    Date: Fri Nov  7 16:26:56 EST 2008  CSN: CSN-h264-112
+                  Fri Nov  7 21:26:57 UTC 2008
+
+
+Directory config/pm/h264
+ h264_decoder.apm          Locally Modified          111 
+
+Directory modules/h264/src
+ h264_types.awb            Locally Added               0 
+ mkInputGen_intersquid.bsv Locally Modified          111 
+ IH264.bsv                 Locally Modified          111 
+ IFrameBuffer.bsv          Locally Modified          111 
+ mkFinalOutput.bsv         Locally Modified          111 
+ mkEntropyDec.bsv          Locally Modified          111 
+ mkCalc_nC.bsv             Locally Modified          111 
+ mkInterpolator_4stage_16ready.bsv Locally Modified          111 
+ IBufferControl.bsv        Locally Modified          111 
+ IEntropyDec.bsv           Locally Modified          111 
+ mkPrediction_intra32.bsv  Locally Modified          111 
+ IInterpolator.bsv         Locally Modified          111 
+ EntropyTee.bsv            Locally Modified          111 
+ mkBufferControl.bsv       Locally Modified          111 
+ mkTH.bsv                  Locally Modified          111 
+ mkMemEDDecoupled.bsv      Locally Modified          111 
+ MemoryTee.bsv             Locally Modified          111 
+ h264_h264_system.awb      Locally Modified          111 
+ mkH264.bsv                Locally Modified          111 
+ mkInputGen_news.bsv       Locally Modified          111 
+ IDeblockFilter.bsv        Locally Modified          111 
+ IFinalOutput.bsv          Locally Modified          111 
+ IMemEDDecoupled.bsv       Locally Modified          111 
+ mkInputGen_akiyo224nodeblock.bsv Locally Modified          111 
+ h264_decoder.awb          Locally Modified          111 
+ mkPrediction.bsv          Locally Modified          111 
+ ICalc_nC.bsv              Locally Modified          111 
+ IInverseTrans.bsv         Locally Modified          111 
+ mkInputGen_park.bsv       Locally Modified          111 
+ mkInputGen_nodeblock.bsv  Locally Modified          111 
+ mkDeblockFilter.bsv       Locally Modified          111 
+ DeblockTee.bsv            Locally Modified          111 
+ mkInputGen_park20inter.bsv Locally Modified          111 
+ IInputGen.bsv             Locally Modified          111 
+ IPrediction.bsv           Locally Modified          111 
+ mkInterpolator.bsv        Locally Modified          111 
+ mkFrameBuffer.bsv         Locally Modified          111 
+ mkInputGen_akiyo.bsv      Locally Modified          111 
+ mkPrediction_intra8.bsv   Locally Modified          111 
+ mkInputGen_intra.bsv      Locally Modified          111 
+ mkMemED_bram.bsv          Locally Modified          111 
+ mkInterpolator_3stage.bsv Locally Modified          111 
+ INalUnwrap.bsv            Locally Modified          111 
+ mkDeblockFilter_orig.bsv  Locally Modified          111 
+ CAVLC.bsv                 Locally Modified          111 
+ ExpGolomb.bsv             Locally Modified          111 
+ mkNalUnwrap.bsv           Locally Modified          111 
+ IMemED.bsv                Locally Modified          111 
+ mkInputGen_x264.bsv       Locally Modified          111 
+ mkInverseTrans.bsv        Locally Modified          111 
+ mkDeblockFilter_dummy.bsv Locally Modified          111 
+ mkMemED_regfile.bsv       Locally Modified          111 
+ mkMemED.bsv               Locally Modified          111 
+ mkInterpolator_4stage.bsv Locally Modified          111 
+ mkInputGen.bsv            Locally Modified          111 
+ mkEntropyDec_orig.bsv     Locally Modified          111 
+
+
+* Removed package/endpackage
+* Used AWB import pattern
+* AWB packages no longer explicitly import private files.
+
+Building with synth boundaries should work now.
+
+Michael

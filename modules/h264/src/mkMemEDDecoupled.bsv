@@ -28,8 +28,8 @@
 //
 //
 
-import H264Types::*;
-import IMemEDDecoupled::*;
+`include "h264_types.bsh"
+
 import RegFile::*;
 import GetPut::*;
 import ClientServer::*;

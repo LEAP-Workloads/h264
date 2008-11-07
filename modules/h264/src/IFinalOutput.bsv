@@ -28,9 +28,8 @@
 //
 //
 
-package IFinalOutput;
+`include "h264_types.bsh"
 
-import H264Types::*;
 import GetPut::*;
 import ClientServer::*;
 
@@ -40,6 +39,3 @@ interface IFinalOutput;
   interface Put#(BufferControlOT) ioin;
 
 endinterface
-
-endpackage
-

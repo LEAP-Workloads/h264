@@ -22,7 +22,8 @@
 // THE SOFTWARE.
 
 import GetPut::*;
-import H264Types::*;
+
+`include "h264_types.bsh"
 
 
 
