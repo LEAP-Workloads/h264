@@ -12,7 +12,7 @@
 
 %public mkInverseTrans.bsv IInverseTrans.bsv
 
-%param SYNTH_BOUNDARY mkInverseTransform "synth boundary names"
+%param SYNTH_BOUNDARY mkInverseTrans "synth boundary names"
 
 
 %AWB_END

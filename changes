@@ -73,3 +73,16 @@ Directory modules/h264/src
 Building with synth boundaries should work now.
 
 Michael
+
+----------
+pellauer    Date: Mon Nov 10 12:16:29 EST 2008  CSN: CSN-h264-113
+                  Mon Nov 10 17:16:29 UTC 2008
+
+
+Directory modules/h264/src
+ h264_inverse_transform.awb Locally Modified          112 
+
+
+Fix synth boundary typo.
+
+Michael
