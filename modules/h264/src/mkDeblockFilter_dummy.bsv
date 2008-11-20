@@ -27,7 +27,12 @@
 //
 //
 
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
 `include "h264_types.bsh"
+`include "h264_memory_unit.bsh"
+
 
 import FIFO::*;
 import Vector::*;
@@ -57,13 +62,15 @@ import ClientServer::*;
 //-----------------------------------------------------------
 
 
-(* synthesize *)
-module mkDeblockFilter( IDeblockFilter );
+module [HASIM_MODULE] mkDeblockFilter (Empty);
 
    FIFO#(EntropyDecOT) infifo     <- mkFIFO();
    FIFO#(DeblockFilterOT) outfifo <- mkFIFO();
 
-   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemReqQ       <- mkSizedFIFO(1);
+   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQ       <- mkSizedFIFO(1);
+
+   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQ       <- mkSizedFIFO(1);
+
    FIFO#(MemReq#(PicWidthSz,13))          parameterMemReqQ  <- mkSizedFIFO(1);
    FIFO#(MemResp#(32))                    dataMemRespQ      <- mkSizedFIFO(1);
    FIFO#(MemResp#(13))                    parameterMemRespQ <- mkSizedFIFO(1);
@@ -93,26 +100,26 @@ module mkDeblockFilter( IDeblockFilter );
 	 tagged NewUnit . xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	       $display("ccl5newunit");
 	       $display("ccl5rbspbyte %h", xdata);
 	    end
 	 tagged SPSpic_width_in_mbs .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	       picWidth <= xdata;
 	    end
 	 tagged SPSpic_height_in_map_units .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	       picHeight <= xdata;
 	    end
 	 tagged SHfirst_mb_in_slice .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	       firstMb   <= xdata;
 	       currMb    <= xdata;
 	       currMbHor <= xdata;
@@ -128,9 +135,9 @@ module mkDeblockFilter( IDeblockFilter );
 	       Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);
 	       Bit#(32) pixelq = {xdata[3],xdata[2],xdata[1],xdata[0]};
 	       if(chromaFlag==0)
-		  outfifo.enq(DFBLuma {ver:{currMbVer,blockVer,pixelVer},hor:{currMbHorT,blockHor},data:pixelq});
+		  outfifo.enq(tagged DFBLuma {ver:{currMbVer,blockVer,pixelVer},hor:{currMbHorT,blockHor},data:pixelq});
 	       else
-		  outfifo.enq(DFBChroma {uv:blockHor[1],ver:{currMbVer,blockVer[0],pixelVer},hor:{currMbHorT,blockHor[0]},data:pixelq});
+		  outfifo.enq(tagged DFBChroma {uv:blockHor[1],ver:{currMbVer,blockVer[0],pixelVer},hor:{currMbHorT,blockHor[0]},data:pixelq});
 	       if(pixelNum == 12)
 		  begin
 		     pixelNum <= 0;
@@ -158,14 +165,14 @@ module mkDeblockFilter( IDeblockFilter );
 	 tagged EndOfFile :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	       $display( "ccl5: EndOfFile reached");
 	       //$finish(0);
 	    end
 	 default:
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT infifo.first());
+	       outfifo.enq(tagged EDOT infifo.first());
 	    end
       endcase
    endrule
@@ -188,24 +195,27 @@ module mkDeblockFilter( IDeblockFilter );
 
 
    rule outputEndOfFrame(endOfFrame);
-      outfifo.enq(EndOfFrame);
+      outfifo.enq(tagged EndOfFrame);
       endOfFrame <= False;
       //$display( "Trace Deblocking Filter: outputEndOfFrame %h", pack(infifo.first()));
    endrule
    
-   
-   interface Client mem_client_data;
-      interface Get request  = fifoToGet(dataMemReqQ);
-      interface Put response = fifoToPut(dataMemRespQ);
-   endinterface
 
-   interface Client mem_client_parameter;
-      interface Get request  = fifoToGet(parameterMemReqQ);
-      interface Put response = fifoToPut(parameterMemRespQ);
-   endinterface
 
-   interface Put ioin  = fifoToPut(infifo);
-   interface Get ioout = fifoToGet(outfifo);
-      
+   Connection_Receive#(EntropyDecOT) infifoRX <- mkConnection_Receive("mkDeblocking_infifo");
+   Connection_Receive#(MemResp#(13)) parameterMemRespQRX <- mkConnection_Receive("mkDeblocking_parameterMemRespQ");
+   Connection_Receive#(MemResp#(32)) dataMemRespQRX <- mkConnection_Receive("mkDeblocking_dataMemRespQ");
+   Connection_Send#(DeblockFilterOT) outfifoTX <- mkConnection_Send("mkDeblocking_outfifo");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQTX <- mkConnection_Send("mkDeblocking_dataMemStoreReqQ");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQTX <- mkConnection_Send("mkDeblocking_dataMemLoadReqQ");
+   Connection_Send#(MemReq#(PicWidthSz,13)) parameterMemReqQTX <- mkConnection_Send("mkDeblocking_parameterMemReqQ");
+  
+   mkConnection(connectionToGet(infifoRX), fifoToPut(infifo));
+   mkConnection(connectionToGet(parameterMemRespQRX), fifoToPut(parameterMemRespQ));
+   mkConnection(connectionToGet(dataMemRespQRX), fifoToPut(dataMemRespQ));
+   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
+   mkConnection(fifoToGet(dataMemStoreReqQ),connectionToPut(dataMemStoreReqQTX));  
+   mkConnection(fifoToGet(dataMemLoadReqQ),connectionToPut(dataMemLoadReqQTX));  
+   mkConnection(fifoToGet(parameterMemReqQ),connectionToPut(parameterMemReqQTX));  
 endmodule
 

@@ -208,7 +208,7 @@ endfunction
 
 //-----------------------------------------------------------
 // 1 read port register file module
-
+/*
 interface RFileSingle#(type idx_t, type d_t);
    method Action upd(idx_t x1, d_t x2);
    method ActionValue#(d_t) sub(idx_t x1);
@@ -301,7 +301,7 @@ module mkbSVector(IbSVector);
   method upd = bsVector.upd;
 endmodule
 
-
+*/
 
 
 
@@ -383,13 +383,13 @@ module [HASIM_MODULE] mkDeblockFilter( );
 			       { 4, 6, 9 }, { 5, 7,10 }, { 6, 8,11 }, { 6, 8,13 }, { 7,10,14 }, { 8,11,16 },
 			       { 9,12,18 }, {10,13,20 }, {11,15,23 }, {13,17,25 }};
 
-   IWorkVectorHor workVectorRows <- mkWorkVectorHor();
-   IWorkVectorVer workVectorCols <- mkWorkVectorVer();
-   ILeftVector leftVector <- mkLeftVector();
-   ITopVector  topVector  <- mkTopVector();
+   RegFile#(Bit#(3),Bit#(32)) workVectorRows <- mkRegFileFull();
+   RegFile#(Bit#(4),Bit#(32)) workVectorCols <- mkRegFileFull();
+   RegFile#(Bit#(5),Bit#(32)) leftVector <- mkRegFileFull();
+   RegFile#(Bit#(4),Bit#(32)) topVector  <- mkRegFileFull();
 
-   IbSVector bSfileHor <- mkbSVector();
-   IbSVector bSfileVer <- mkbSVector();
+   RegFile#(Bit#(4),Bit#(3)) bSfileHor <- mkRegFileFull;
+   RegFile#(Bit#(4),Bit#(3)) bSfileVer <- mkRegFileFull;
 
    Reg#(Bit#(6)) cleanup_state <- mkReg(0);
 
@@ -803,12 +803,12 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	       Bit#(32) pixelp;
 	       if(leftEdge)
                  begin
-		   pixelp <- leftVector.sub(addrpLeft);
+		   pixelp = leftVector.sub(addrpLeft);
                    $display( "TRACE Deblocking Filter: horizontal P (left) addr %h, data %h ",addrpLeft, pixelp);
                  end
 	       else
                  begin
-                   pixelp <- workVectorRows.sub({blockVer[0], pixelVer});
+                   pixelp = workVectorRows.sub({blockVer[0], pixelVer});
                    $display( "TRACE Deblocking Filter: horizontal P (work) addr %h, data %h ",addrpCurr, pixelp);
                  end
 	       Bit#(64) result = {pixelq,pixelp};
@@ -828,7 +828,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
 		    if(filter_test({pixelq[15:0],pixelp[31:16]},alphaMbLeft,betaMbLeft))
                       begin
                          $display("TRACE mkDeblockFilter: Applying horizontal, left filter");
-                         Bit#(3) bsData <- bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0}));
+                         Bit#(3) bsData = bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0}));
                          result = filter_input({pixelq,pixelp},chromaFlagHor==1,bsData,alphaMbLeft,betaMbLeft,tc0MbLeft);
                        end
 		  end
@@ -837,7 +837,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
 		     if(filter_test({pixelq[15:0],pixelp[31:16]},alphaInternal,betaInternal))
                        begin
                          $display("TRACE mkDeblockFilter: Applying horizontal, internal filter");
-                         Bit#(3) bSData <- bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0})); 
+                         Bit#(3) bSData = bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0})); 
                          result = filter_input({pixelq,pixelp},chromaFlagHor==1,bSData,alphaInternal,betaInternal,tc0Internal);
                        end
 		  end
@@ -953,7 +953,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
       end
     pixelNum <= pixelNum + 1;
     // push the correction into reorder block;
-    Bit#(32) work_data <- workVectorRows.sub({blockVer[0], pixelNum});
+    Bit#(32) work_data = workVectorRows.sub({blockVer[0], pixelNum});
     rowToColumnStore[pixelNum].enq(work_data);
   endrule
 
@@ -1057,7 +1057,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
       else
 	 begin  
             // We read this value from the original vector           
-	    tempV <- topVector.sub({blockHor, columnNumber});	
+	    tempV = topVector.sub({blockHor, columnNumber});	
             $display( "TRACE Deblocking Filter: vertical P (work) addr %h, orig data %h ",{blockHor, blockVer - 1, columnNumber}, tempV);   
 	    alpha = alphaInternal;
 	    beta = betaInternal;
@@ -1073,7 +1073,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
       if((filter_test({workV[15:8],workV[7:0],tempV[31:24],tempV[23:16]},alpha,beta)) && ((topEdge && filterTopMbEdgeFlag)|| (!topEdge && filterInternalEdgesFlag) ))
         begin
           $display("TRACE mkDeblockFilter: Applying vertical filter");
-          Bit#(3) bsData <- bSfileVer.sub((chromaFlag==0?blockNumCols:{blockVer[0],blockHor[0],1'b0,columnNumber[1]}));
+          Bit#(3) bsData = bSfileVer.sub((chromaFlag==0?blockNumCols:{blockVer[0],blockHor[0],1'b0,columnNumber[1]}));
 	  resultV = filter_input(resultV,chromaFlag==1,bsData,alpha,beta,tc0);
         end
       //Write out the result data  31:0 are the done q values
@@ -1148,7 +1148,7 @@ end
             // Horizontal Postion is 3, but vertical position is 0, owing to subtraction in the rotation unit
             columnToRowStoreBlock.enq(tuple3({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0,chromaFlagVer));
           end      
-        Bit#(32) w_data <- topVector.sub({blockHor, columnNumber}); 
+        Bit#(32) w_data = topVector.sub({blockHor, columnNumber}); 
         columnToRowStore[columnNumber].enq(w_data);     
      end
    else
@@ -1160,7 +1160,7 @@ end
            // Horizontal Postion is 3, but vertical position is 0, owing to subtraction in the rotation unit
            columnToRowStoreBlock.enq(tuple3({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0,chromaFlagVer));
          end          
-       Bit#(32) w_data <- topVector.sub({blockHor, columnNumber}); 
+       Bit#(32) w_data = topVector.sub({blockHor, columnNumber}); 
        columnToRowStore[columnNumber].enq(w_data);                 
      end
   endrule
