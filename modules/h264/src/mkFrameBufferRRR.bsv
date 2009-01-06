@@ -28,11 +28,17 @@
 //
 //
 
+`include "platform_interface.bsh"
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
 
 `include "h264_types.bsh"
+`include "scratchpad_memory.bsh"
+
+//`include "asim/rrr/service_ids.bsh"
+
+
 
 import RegFile::*;
 import GetPut::*;
@@ -41,79 +47,78 @@ import Connectable::*;
 import FIFO::*;
 
 
-//-----------------------------------------------------------
-// Register file module
-//-----------------------------------------------------------
-
-interface FBRFile2;
-   method Action store( Bit#(FrameBufferSz) addr, Bit#(32) data );
-   method Bit#(32) load1( Bit#(FrameBufferSz) addr );
-   method Bit#(32) load2( Bit#(FrameBufferSz) addr );
-endinterface
-
-module mkFBRFile2( FBRFile2 );
-
-   RegFile#(Bit#(FrameBufferSz),Bit#(32)) rfile <- mkRegFile(0,frameBufferSize);
-   
-   method Action store( Bit#(FrameBufferSz) addr, Bit#(32) data );
-      rfile.upd( addr, data );
-   endmethod
-   
-   method Bit#(32) load1( Bit#(FrameBufferSz) addr );  
-      return rfile.sub(addr);
-   endmethod
-   
-   method Bit#(32) load2( Bit#(FrameBufferSz) addr );
-      return rfile.sub(addr);
-   endmethod
-   
-endmodule
-
 
 //----------------------------------------------------------------------
 // Main module
 //----------------------------------------------------------------------
 
+typedef enum { 
+  Q1,
+  Q2
+} Queue deriving (Bits,Eq);
 
-module [HASIM_MODULE] mkFrameBuffer ();
+module [HASIM_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State
 
-   FBRFile2 rfile2 <- mkFBRFile2;
-   
+   Connection_Client#(SCRATCHPAD_MEM_REQUEST, SCRATCHPAD_MEM_VALUE) link_memory <- mkConnection_Client("vdev_memory");
+   Connection_Receive#(SCRATCHPAD_MEM_ADDRESS)              link_memory_inval <- mkConnection_Receive("vdev_memory_invalidate");
+
+   FIFO#(Queue) qFIFO <- mkFIFO();
    FIFO#(FrameBufferLoadReq)  loadReqQ1  <- mkFIFO();
    FIFO#(FrameBufferLoadResp) loadRespQ1 <- mkFIFO();
    FIFO#(FrameBufferLoadReq)  loadReqQ2  <- mkFIFO();
    FIFO#(FrameBufferLoadResp) loadRespQ2 <- mkFIFO();
    FIFO#(FrameBufferStoreReq) storeReqQ  <- mkFIFO();
 
+   rule linkDeq;
+     $display("Frame Buffer invalidate");
+     link_memory_inval.deq();
+   endrule
+
    rule loading1 ( loadReqQ1.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
-	    loadRespQ1.enq( tagged FBLoadResp rfile2.load1(addrt) );
+            qFIFO.enq(Q1);
 	    loadReqQ1.deq();
-            $display("FrameBuffer loaded %h", value);
+            link_memory.makeReq(tagged SCRATCHPAD_MEM_LOAD zeroExtend({addrt,2'b00}));  
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading1 outside range" );
    endrule
-   
+
+   rule loadingResp1(qFIFO.first == Q1);   
+     qFIFO.deq;
+     SCRATCHPAD_MEM_VALUE value = link_memory.getResp();
+     link_memory.deq();
+     loadRespQ1.enq( tagged FBLoadResp value );
+     $display("FrameBuffer loaded %h", value);
+   endrule
+
    rule loading2 ( loadReqQ2.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
-	    loadRespQ2.enq( tagged FBLoadResp rfile2.load2(addrt) );
+            qFIFO.enq(Q2);
 	    loadReqQ2.deq();
-            $display("FrameBuffer loaded %h", value);
+            link_memory.makeReq(tagged SCRATCHPAD_MEM_LOAD zeroExtend({addrt,2'b00}));  
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading2 outside range" );
    endrule
 
+   rule loadingResp2(qFIFO.first == Q2);   
+     qFIFO.deq;
+     SCRATCHPAD_MEM_VALUE value = link_memory.getResp();
+     link_memory.deq();
+     loadRespQ2.enq( tagged FBLoadResp value );
+     $display("FrameBuffer loaded %h", value);
+   endrule
+
    rule storing ( storeReqQ.first() matches tagged FBStoreReq { addr:.addrt,data:.datat} );
       if(addrt<frameBufferSize)
 	 begin
-	    rfile2.store(addrt,datat);
+            link_memory.makeReq(tagged SCRATCHPAD_MEM_STORE {addr:zeroExtend({addrt,2'b00}),val:datat});  
 	    storeReqQ.deq();
             $display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
 	 end

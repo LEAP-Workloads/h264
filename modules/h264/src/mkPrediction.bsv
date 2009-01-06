@@ -31,7 +31,7 @@
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
-`include "h264_prediction.bsh"
+//`include "h264_prediction.bsh"
 `include "h264_interpolator.bsh"
 `include "h264_types.bsh"
 

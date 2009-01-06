@@ -1,0 +1,100 @@
+
+[Global]
+Type=HAsim
+Version=2.1
+File=h264_decoder_synth
+SaveParameters=0
+Description=H264 Decoder Synth
+Name=H264 Decoder Synth
+Class=Asim::Model
+
+[Model]
+DefaultAttributes=h264 bluespec
+model=HAsim Hybrid Model Foundation
+
+[FPGA Environment]
+File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-htg-v5-pcie.apm
+Packagehint=platforms
+
+[Hasim Common Library]
+File=config/pm/hasim/submodels/common/hasim_common.apm
+Packagehint=hasim
+
+[HAsim Hybrid Model Foundation]
+File=modules/model/hasim_model.awb
+Packagehint=hasim
+
+[Hybrid Null Controller]
+File=config/pm/hasim/submodels/controller/hybrid_null_controller.apm
+Packagehint=hasim
+
+[HAsim Hybrid Model Foundation/Requires]
+hasim_common=Hasim Common Library
+hasim_system=H264 System
+hasim_controller=Hybrid Null Controller
+fpgaenv=FPGA Environment
+
+[H264 System]
+File=modules/h264/src/h264_h264_system.awb
+Packagehint=h264
+
+[H264 default simulation module]
+File=modules/h264/src/h264_default_memory_unit.awb
+Packagehint=h264
+
+[H264 decoder module/Requires]
+h264_deblocking=H264 deblocking filter module (dummy)
+h264_inverse_transform=H264 inverse transform module
+h264_memory_unit=H264 default simulation module
+h264_prediction=H264 Inter/Intra prediction module
+h264_entropy_decoder=H264 entropy decoder module
+h264_nal_unwrap=H264 nal unwrap module
+h264_buffer_control=H264 buffer control module
+h264_frame_buffer=H264 rrr module + cache
+
+[H264 buffer control module]
+File=modules/h264/src/h264_buffer_control.awb
+Packagehint=h264
+
+[H264 entropy decoder module]
+File=modules/h264/src/h264_entropy_decoder.awb
+Packagehint=h264
+
+[H264 interpolator module]
+File=modules/h264/src/h264_interpolator.awb
+Packagehint=h264
+
+[H264 System/Requires]
+h264_decoder=H264 decoder module
+h264_types=H264 types
+
+[H264 nal unwrap module]
+File=modules/h264/src/h264_nal_unwrap.awb
+Packagehint=h264
+
+[H264 decoder module]
+File=modules/h264/src/h264_decoder.awb
+Packagehint=h264
+
+[H264 Inter/Intra prediction module/Requires]
+h264_interpolator=H264 interpolator module
+
+[H264 Inter/Intra prediction module]
+File=modules/h264/src/h264_prediction.awb
+Packagehint=h264
+
+[H264 inverse transform module]
+File=modules/h264/src/h264_inverse_transform.awb
+Packagehint=h264
+
+[H264 types]
+File=modules/h264/src/h264_types.awb
+Packagehint=h264
+
+[H264 deblocking filter module (dummy)]
+File=modules/h264/src/h264_deblocking_dummy.awb
+Packagehint=h264
+
+[H264 rrr module + cache]
+File=modules/h264/src/h264_rrr_cached_frame_buffer.awb
+Packagehint=h264

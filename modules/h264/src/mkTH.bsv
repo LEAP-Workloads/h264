@@ -46,7 +46,9 @@ import GetPut::*;
 import ClientServer::*;
 
 
-module [HASIM_MODULE] mkSystem ();//#( LowLevelPlatformInterface llpi ) (Empty);
+module [HASIM_MODULE] mkSystem (Empty);
+
+
 
    // Instantiate the modules
 
@@ -65,14 +67,14 @@ module [HASIM_MODULE] mkSystem ();//#( LowLevelPlatformInterface llpi ) (Empty);
    Empty    prediction    <- mkPrediction();
    Empty    deblockfilter <- mkDeblockFilter();
    Empty    buffercontrol <- mkBufferControl();
-
+ 
    // Cycle counter
-   Reg#(Bit#(32)) cyclecount <- mkReg(0);
+   Reg#(Bit#(40)) cyclecount <- mkReg(0);
 
    rule countCycles ( True );
       if(cyclecount[4:0]==0) $display( "CCLCycleCount %0d", cyclecount );
       cyclecount <= cyclecount+1;
-      if(cyclecount > 600000000)
+      if(cyclecount > 6000000000)
 	 begin
 	    $display( "ERROR mkTH: time out" );
 	    $finish(0);

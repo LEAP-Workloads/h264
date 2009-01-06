@@ -86,3 +86,24 @@ Directory modules/h264/src
 Fix synth boundary typo.
 
 Michael
+
+----------
+kfleming    Date: Tue Jan  6 14:00:54 EST 2009  CSN: CSN-h264-115
+                  Tue Jan  6 19:00:54 UTC 2009
+
+
+Directory config/pm/h264
+ h264_decoder_synth.apm    Locally Added               0 
+
+Directory modules/h264/src
+ mkFrameBufferCachedRRR.bsv Locally Added               0 
+ h264_rrr_frame_buffer.awb Locally Added               0 
+ mkPrediction_intra32.bsv  Locally Modified          114 
+ mkTH.bsv                  Locally Modified          114 
+ mkPrediction.bsv          Locally Modified          114 
+ mkFrameBuffer.bsv         Locally Modified          114 
+ mkPrediction_intra8.bsv   Locally Modified          114 
+ mkFrameBufferRRR.bsv      Locally Added               0 
+ h264_rrr_cached_frame_buffer.awb Locally Added               0 
+
+This process is way too hard.
