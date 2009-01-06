@@ -98,3 +98,9 @@ Packagehint=h264
 [H264 rrr module + cache]
 File=modules/h264/src/h264_rrr_cached_frame_buffer.awb
 Packagehint=h264
+
+[FPGA Environment/Params]
+MODEL_CLOCK_MULTIPLIER=1
+
+[HAsim Hybrid Model Foundation/Params]
+MAKE_ALL_TARGET=bit

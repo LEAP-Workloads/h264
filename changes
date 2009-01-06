@@ -117,3 +117,17 @@ Directory modules/h264/src
  LoadCache.bsv             Locally Added               0 
 
 Added load cache
+
+----------
+pellauer    Date: Tue Jan  6 14:37:19 EST 2009  CSN: CSN-h264-117
+                  Tue Jan  6 19:37:19 UTC 2009
+
+
+Directory config/pm/h264
+ h264_decoder_synth.apm    Locally Modified          116 
+
+
+* bit is now the default target.
+* Target a 25 MHz clock.
+
+Michael
