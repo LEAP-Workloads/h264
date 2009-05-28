@@ -93,7 +93,6 @@ module [HASIM_MODULE] mkFrameBuffer ();
 	 begin
 	    loadRespQ1.enq( tagged FBLoadResp rfile2.load1(addrt) );
 	    loadReqQ1.deq();
-            $display("FrameBuffer loaded %h", value);
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading1 outside range" );
@@ -104,7 +103,6 @@ module [HASIM_MODULE] mkFrameBuffer ();
 	 begin
 	    loadRespQ2.enq( tagged FBLoadResp rfile2.load2(addrt) );
 	    loadReqQ2.deq();
-            $display("FrameBuffer loaded %h", value);
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading2 outside range" );

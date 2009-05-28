@@ -62,7 +62,7 @@ import ClientServer::*;
 //-----------------------------------------------------------
 
 
-module [HASIM_MODULE] mkDeblockFilter (Empty);
+module [HASIM_MODULE] mkDeblockFilter ();
 
    FIFO#(EntropyDecOT) infifo     <- mkFIFO();
    FIFO#(DeblockFilterOT) outfifo <- mkFIFO();

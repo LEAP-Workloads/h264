@@ -46,7 +46,7 @@ import GetPut::*;
 import ClientServer::*;
 
 
-module [HASIM_MODULE] mkSystem (Empty);
+module [HASIM_MODULE] mkSystem ();
 
 
 
