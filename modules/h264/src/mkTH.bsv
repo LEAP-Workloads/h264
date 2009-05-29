@@ -73,10 +73,11 @@ module [HASIM_MODULE] mkSystem ();
 
    rule countCycles ( True );
       if(cyclecount[4:0]==0) $display( "CCLCycleCount %0d", cyclecount );
-      cyclecount <= cyclecount+1;
-      if(cyclecount > 6000000000)
+      let bscTime <- $time;
+      cyclecount <= cyclecount+1; 
+      if(bscTime > 6000000000)
 	 begin
-	    $display( "ERROR mkTH: time out" );
+	    $display( $time," ERROR mkTH: time out: %d", cyclecount );
 	    $finish(0);
 	 end
    endrule
