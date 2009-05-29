@@ -360,6 +360,7 @@ typedef union tagged
 {
  Bit#(32)  YUV;
  void      EndOfFile;
+ void      EndOfFrame;
 }
 BufferControlOT deriving(Eq,Bits);
 
@@ -455,4 +456,6 @@ deriving(Eq,Bits);
    endfunction
 
 
+typedef Bit#(32) H264OutputAddr;
+typedef Bit#(32) H264InputAddr;
 

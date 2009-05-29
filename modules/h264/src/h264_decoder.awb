@@ -8,6 +8,7 @@
 %desc H264 decoder module
 %provides h264_decoder
 
+%requires h264_control
 %requires h264_deblocking
 %requires h264_prediction
 %requires h264_nal_unwrap

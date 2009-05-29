@@ -40,6 +40,7 @@
 `include "h264_decoder.bsh"
 `include "h264_memory_unit.bsh"
 `include "h264_types.bsh"
+`include "h264_control.bsh"
 
 import Connectable::*;
 import GetPut::*;
@@ -62,6 +63,7 @@ module [HASIM_MODULE] mkSystem ();
    Empty   framebuffer   <- mkFrameBuffer();
    IFinalOutput   finaloutput   <- mkFinalOutput();
 
+   Empty    control       <- mkControl();
    Empty    entropydec    <- mkEntropyDec();
    Empty    inversetrans  <- mkInverseTrans();
    Empty    prediction    <- mkPrediction();

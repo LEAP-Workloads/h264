@@ -27,6 +27,8 @@
 //
 //
 
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
 `include "h264_types.bsh"
 
 import FIFO::*;
@@ -39,7 +41,11 @@ import GetPut::*;
 // Final Output Module
 //-----------------------------------------------------------
 
-module mkFinalOutput( IFinalOutput );
+module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
+   // External connections
+
+   Connection_Receive#(H264OutputAddr) nextFrameRX <- mkConnection_Receive("mkFinalOutput_NextFrame");
+   Connection_Send#(Bit#(1)) endOfFileTX <- mkConnection_Send("mkFinalOutput_EndOfFile");    
 
    FIFO#(BufferControlOT)  infifo    <- mkFIFO; 
    Reg#(Bit#(27))    index   <- mkReg(0);
@@ -48,6 +54,7 @@ module mkFinalOutput( IFinalOutput );
    Reg#(Bit#(32)) data_seen_counter <- mkReg(0); 
    Reg#(Bit#(32)) last_f_count <- mkReg(0);
    Reg#(Bit#(32)) f_count <- mkReg(0);
+   Reg#(Bit#(32)) frameNum <- mkReg(0);
 
    rule tick;
      tick_counter <= tick_counter + 1;
@@ -67,8 +74,9 @@ module mkFinalOutput( IFinalOutput );
 
    //-----------------------------------------------------------
    // Rules
-   rule finalout (True); 
-    //  Bit#(32) data_constant = pack(fromInteger(horizontal_pixels * vertical_pixels))*3/2;
+   rule finaloutData (infifo.first matches tagged YUV .xdata); 
+      
+      //  Bit#(32) data_constant = pack(fromInteger(horizontal_pixels * vertical_pixels))*3/2;
       //if(data_seen_counter + 4 > data_constant)
        // begin
        //   f_count <= f_count + 1;
@@ -80,18 +88,26 @@ module mkFinalOutput( IFinalOutput );
       //  end
 
       index <= index + 4;
-      if(infifo.first() matches tagged YUV .xdata)
-	 begin
-            $display("OUT %h", xdata[7:0]);
-            $display("OUT %h", xdata[15:8]);
-            $display("OUT %h", xdata[23:16]);
-            $display("OUT %h", xdata[31:24]);
-	    infifo.deq();
-	 end
-      else
-	 $finish(0);
+      $display("OUT %h", xdata[7:0]);
+      $display("OUT %h", xdata[15:8]);
+      $display("OUT %h", xdata[23:16]);
+      $display("OUT %h", xdata[31:24]);
+      infifo.deq();
    endrule
 
+   rule finaloutFile (infifo.first matches tagged EndOfFile); 
+     $display($time,"FinalOutput: EndOfFile"); 
+     $finish(0);
+     endOfFileTX.send(?);
+     infifo.deq;
+   endrule
+
+   rule finaloutFrame (infifo.first matches tagged EndOfFrame); 
+     $display($time,"FinalOutput: EndOfFrame #%d", frameNum);
+     frameNum <= frameNum + 1; 
+     let nextAddr <- nextFrameRX.deq;
+     infifo.deq;
+   endrule
 
    interface Put ioin  = fifoToPut(infifo);
 

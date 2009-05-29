@@ -22,7 +22,7 @@
 // THE SOFTWARE.
 
 //**********************************************************************
-// Input Generator implementation
+// top level control implementation
 //----------------------------------------------------------------------
 //
 //
@@ -31,53 +31,41 @@
 `include "hasim_common.bsh"
 `include "h264_types.bsh"
 
-import RegFile::*;
 import FIFO::*;
+import RegFile::*;
 
 import Connectable::*;
 import GetPut::*;
 
-`define INPUT_SIZE 10000000 
+//-----------------------------------------------------------
+// dummy control module
+//-----------------------------------------------------------
 
-module [HASIM_MODULE] mkInputGen( IInputGen );
+module [HASIM_MODULE] mkControl();
+   // External connections
 
-   Connection_Receive#(H264InputAddr) startFileTX <- mkConnection_Receive("mkInput_StartFile");
+   Connection_Send#(H264OutputAddr) nextFrameTX <- mkConnection_Send("mkFinalOutput_NextFrame");
+   Connection_Send#(H264InputAddr) startFileTX <- mkConnection_Send("mkInput_StartFile");
+   Connection_Receive#(Bit#(1)) endOfFileRX <- mkConnection_Receive("mkFinalOutput_EndOfFile");    
 
-   RegFile#(Bit#(1), Bit#(32)) rfile2 <- mkRegFileFullLoad("input_size.hex");
-   RegFile#(Bit#(27), Bit#(8)) rfile <- mkRegFileLoad("input.hex", 0, `INPUT_SIZE);
-   
-   FIFO#(InputGenOT) outfifo <- mkFIFO;
-   Reg#(Bit#(27))    index   <- mkReg(0);
-   Reg#(Bit#(27))    file_size <- mkReg(0);
-   Reg#(Bool)        initialized <- mkReg(False);
-
-   rule init (!initialized); 
-      file_size <= truncate(rfile2.sub(0));
-      $display("File Size: %h", rfile2.sub(0));
-      initialized <= True;
+   // always send next frame signals
+   rule sendNextFrame;
+     $display("Control: sending EndOfFrame");
+     nextFrameTX.send(0);
    endrule
 
-   rule output_byte ((index < file_size) && initialized);
-      $display( "ccl0inputbyte %h", rfile.sub(index) );
-      outfifo.enq(DataByte (rfile.sub(index)));
-      index <= index+1;
-   endrule
-
-   rule end_of_file (index == file_size && initialized);
-      //$finish(0);
-      index <= 0;         
-      startFileTX.deq;
-      $display("InputGen: EndOfFile at %d", file_size);
-      outfifo.enq(EndOfFile);
+   // consume end of file tokens
+   rule receiveEndOfFile;
+     $display("Control: receiving EndOfFile");
+     endOfFileRX.deq;
    endrule
    
-   interface Get ioout = fifoToGet(outfifo);
-   
-
-
-
-
-
-
+   //send start file signal
+   rule sendStartFile;
+     $display("Control: sending StartFile");
+     startFileTX.send(0);
+   endrule
 
 endmodule
+
+

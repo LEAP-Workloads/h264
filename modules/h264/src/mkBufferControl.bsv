@@ -1,6 +1,4 @@
-
 // The MIT License
-
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -733,7 +731,7 @@ module [HASIM_MODULE] mkBufferControl();
 		  tagged EndOfFile :
 		     begin
 			infifo.deq();
-			$display( "INFO Buffer Control: EndOfFile reached");
+			$display( "INFO BufferControl: EndOfFile reached");
 			noMoreInput <= True;
 			//$finish(0);
 			//outfifo.enq(EndOfFile); 
@@ -904,7 +902,10 @@ module [HASIM_MODULE] mkBufferControl();
 	    loadRespQ1.deq();
 	    outfifo.enq(tagged YUV xdata);
 	    if(outRespCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-	       outputframedone <= True;
+               begin 
+	         outputframedone <= True;
+                 $display("EndOfFrame total data: %d", outRespCount);
+               end
 	    outRespCount <= outRespCount+1;
 	 end
    endrule
@@ -923,6 +924,8 @@ module [HASIM_MODULE] mkBufferControl();
       storeReqQ.enq(FBEndFrameSync);
       inLoadReqQ.deq();
       lockInterLoads <= True;
+      $display("BufferControl Sending EndOfFrame");
+      outfifo.enq(EndOfFrame);
    endrule
 
 
@@ -932,6 +935,7 @@ module [HASIM_MODULE] mkBufferControl();
 
 
    rule theEndOfFile ( outputframedone && noMoreInput );
+     $display("BufferControl Sending EndOfFile");
       outfifo.enq(EndOfFile);
    endrule
 

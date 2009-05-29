@@ -1,0 +1,19 @@
+********************************************************************
+* Awb module specification
+
+********************************************************************
+
+%AWB_START
+
+%name H264 deblocking filter module
+%desc H264 deblocking filter module
+%provides h264_deblocking
+
+%attributes h264
+
+
+%public mkDeblockFilter_dummy.bsv FIFOUtility.bsv
+
+%param SYNTH_BOUNDARY mkDeblockFilter "synth boundary"
+
+%AWB_END
