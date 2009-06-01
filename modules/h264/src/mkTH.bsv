@@ -40,6 +40,8 @@
 `include "h264_decoder.bsh"
 `include "h264_memory_unit.bsh"
 `include "h264_types.bsh"
+`include "h264_input.bsh"
+`include "h264_output.bsh"
 `include "h264_control.bsh"
 
 import Connectable::*;
@@ -48,8 +50,6 @@ import ClientServer::*;
 
 
 module [HASIM_MODULE] mkSystem ();
-
-
 
    // Instantiate the modules
 
