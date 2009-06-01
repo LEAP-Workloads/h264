@@ -17,7 +17,8 @@
 %requires h264_entropy_decoder
 %requires h264_frame_buffer
 %requires h264_memory_unit
-
+%requires h264_input
+%requires h264_output
 
 %attributes h264
 

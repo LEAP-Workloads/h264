@@ -4,18 +4,12 @@
 
 %AWB_START
 
-%name H264 System
-%desc H264 System
-%provides hasim_system
-
-%requires h264_decoder
-%requires h264_types
+%name H264 default output simulation module module 
+%desc H264 default output simulation module module 
+%provides h264_output
 
 %attributes h264
 
-%public mkTH.bsv
-%public mkTH.dic
-
-%param SMART_SYNTH_BOUNDARY 1 "turn on synth"
+%public mkFinalOutput.bsv IFinalOutput.bsv
 
 %AWB_END
