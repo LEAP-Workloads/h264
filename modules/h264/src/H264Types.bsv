@@ -364,23 +364,26 @@ typedef union tagged
 }
 BufferControlOT deriving(Eq,Bits);
 
+typedef Bit#(FrameBufferSz) FrameBufferAddr;
+typedef Bit#(32) FrameBufferData;
+typedef 0 FrameBufferMemory;
 
 typedef union tagged                
 {
- Bit#(FrameBufferSz) FBLoadReq;
+ FrameBufferAddr FBLoadReq;
  void FBEndFrameSync;
 }
 FrameBufferLoadReq deriving(Eq,Bits);
 
 typedef union tagged                
 {
- Bit#(32) FBLoadResp;
+  FrameBufferData FBLoadResp;
 }
 FrameBufferLoadResp deriving(Eq,Bits);
 
 typedef union tagged                
 {
- struct { Bit#(FrameBufferSz) addr; Bit#(32) data; } FBStoreReq;  
+ struct {FrameBufferAddr addr; FrameBufferData data; } FBStoreReq;  
  void FBEndFrameSync;
 }
 FrameBufferStoreReq deriving(Eq,Bits);
