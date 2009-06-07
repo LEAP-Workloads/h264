@@ -109,6 +109,16 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
      infifo.deq;
    endrule
 
+   rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata); 
+     $display($time,"FinalOutput: FrameWidth #%d", xdata);
+     infifo.deq;
+   endrule
+
+   rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata); 
+     $display($time,"FinalOutput: FramHeight #%d", xdata);
+     infifo.deq;
+   endrule
+
    interface Put ioin  = fifoToPut(infifo);
 
 endmodule

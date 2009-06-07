@@ -361,6 +361,8 @@ typedef union tagged
  Bit#(32)  YUV;
  void      EndOfFile;
  void      EndOfFrame;
+ Bit#(PicWidthSz) SPSpic_width_in_mbs;//ue+1 1 to ?
+ Bit#(PicHeightSz) SPSpic_height_in_map_units;//ue+1 1 to ?
 }
 BufferControlOT deriving(Eq,Bits);
 

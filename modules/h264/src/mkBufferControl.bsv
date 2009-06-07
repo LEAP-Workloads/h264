@@ -533,12 +533,14 @@ module [HASIM_MODULE] mkBufferControl();
 		     begin
 			infifo.deq();
 			picWidth <= xdata;
+                        outfifo.enq(tagged SPSpic_width_in_mbs xdata);
 		     end
 		  tagged SPSpic_height_in_map_units .xdata :
 		     begin
 			infifo.deq();
 			picHeight <= xdata;
 			frameinmb <= zeroExtend(picWidth)*zeroExtend(xdata);
+                        outfifo.enq(tagged SPSpic_height_in_map_units xdata);
 		     end
 		  tagged PPSnum_ref_idx_l0_active .xdata :
 		     begin
