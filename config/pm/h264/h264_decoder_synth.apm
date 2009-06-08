@@ -24,14 +24,10 @@ Packagehint=hasim
 File=modules/model/hasim_model.awb
 Packagehint=hasim
 
-[Hybrid Null Controller]
-File=config/pm/hasim/submodels/controller/hybrid_null_controller.apm
-Packagehint=hasim
-
 [HAsim Hybrid Model Foundation/Requires]
 hasim_common=Hasim Common Library
 hasim_system=H264 System
-hasim_controller=Hybrid Null Controller
+hasim_controller=Hybrid Basic Controller
 fpgaenv=FPGA Environment
 
 [H264 System]
@@ -50,7 +46,10 @@ h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module
-h264_frame_buffer=H264 rrr module + cache
+h264_frame_buffer=H264 scratchpad frame buffer
+h264_control=H264 default control module
+h264_input=H264 RRR input module
+h264_output=H264 output RRR
 
 [H264 buffer control module]
 File=modules/h264/src/h264_buffer_control.awb
@@ -95,12 +94,29 @@ Packagehint=h264
 File=modules/h264/src/h264_deblocking_dummy.awb
 Packagehint=h264
 
-[H264 rrr module + cache]
-File=modules/h264/src/h264_rrr_cached_frame_buffer.awb
-Packagehint=h264
-
 [FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=1
+MODEL_CLOCK_MULTIPLIER=2
+MODEL_CLOCK_DIVIDER=6
 
 [HAsim Hybrid Model Foundation/Params]
 MAKE_ALL_TARGET=bit
+
+[Hybrid Basic Controller]
+File=config/pm/hasim/submodels/controller/hybrid_basic_controller.apm
+Packagehint=hasim
+
+[H264 default control module]
+File=modules/h264/src/h264_control.awb
+Packagehint=h264
+
+[H264 RRR input module]
+File=modules/h264/src/h264_input_rrr.awb
+Packagehint=h264
+
+[H264 scratchpad frame buffer]
+File=modules/h264/src/h264_scratchpad_frame_buffer.awb
+Packagehint=h264
+
+[H264 output RRR]
+File=modules/h264/src/h264_output_rrr.awb
+Packagehint=h264

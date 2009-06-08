@@ -2,10 +2,10 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder
+File=h264_decoder_synth_acp
 SaveParameters=0
-Description=H264 Decoder
-Name=H264 Decoder
+Description=H264 Decoder Synth
+Name=H264 Decoder Synth
 Class=Asim::Model
 
 [Model]
@@ -13,7 +13,7 @@ DefaultAttributes=h264 bluespec
 model=HAsim Hybrid Model Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
+File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-htg-v5-pcie.apm
 Packagehint=platforms
 
 [Hasim Common Library]
@@ -47,9 +47,9 @@ h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module
 h264_frame_buffer=H264 scratchpad frame buffer
+h264_control=H264 default control module
 h264_input=H264 RRR input module
 h264_output=H264 output RRR
-h264_control=H264 default control module
 
 [H264 buffer control module]
 File=modules/h264/src/h264_buffer_control.awb
@@ -90,26 +90,33 @@ Packagehint=h264
 File=modules/h264/src/h264_types.awb
 Packagehint=h264
 
+[H264 deblocking filter module (dummy)]
+File=modules/h264/src/h264_deblocking_dummy.awb
+Packagehint=h264
+
+[FPGA Environment/Params]
+MODEL_CLOCK_MULTIPLIER=2
+MODEL_CLOCK_DIVIDER=6
+
+[HAsim Hybrid Model Foundation/Params]
+MAKE_ALL_TARGET=bit
+
 [Hybrid Basic Controller]
 File=config/pm/hasim/submodels/controller/hybrid_basic_controller.apm
 Packagehint=hasim
 
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
+[H264 default control module]
+File=modules/h264/src/h264_control.awb
+Packagehint=h264
+
+[H264 RRR input module]
+File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
 
 [H264 scratchpad frame buffer]
 File=modules/h264/src/h264_scratchpad_frame_buffer.awb
 Packagehint=h264
 
-[H264 default control module]
-File=modules/h264/src/h264_control.awb
-Packagehint=h264
-
 [H264 output RRR]
 File=modules/h264/src/h264_output_rrr.awb
-Packagehint=h264
-
-[H264 RRR input module]
-File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
