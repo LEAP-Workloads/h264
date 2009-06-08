@@ -461,6 +461,6 @@ deriving(Eq,Bits);
    endfunction
 
 
-typedef Bit#(32) H264OutputAddr;
-typedef Bit#(32) H264InputAddr;
+typedef Bit#(64) H264OutputAddr;
+typedef Bit#(64) H264InputAddr;
 

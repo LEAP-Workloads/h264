@@ -55,6 +55,7 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
       file_size <= truncate(rfile2.sub(0));
       $display("File Size: %h", rfile2.sub(0));
       initialized <= True;
+      startFileTX.deq;
    endrule
 
    rule output_byte ((index < file_size) && initialized);
@@ -66,7 +67,7 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    rule end_of_file (index == file_size && initialized);
       //$finish(0);
       index <= 0;         
-      startFileTX.deq;
+      initialized <= False;
       $display("InputGen: EndOfFile at %d", file_size);
       outfifo.enq(EndOfFile);
    endrule

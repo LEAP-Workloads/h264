@@ -1,0 +1,17 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 RRR input module 
+%desc H264 RRR input module
+%provides h264_input
+
+%attributes h264
+
+%public mkInputGenRRR.bsv IInputGen.bsv
+%sources -t H    -v PUBLIC  mkInputGenRRR.h
+%sources -t CPP  -v PRIVATE mkInputGenRRR.cpp
+%sources -t RRR  -v PUBLIC  mkInputGenRRR.rrr
+%AWB_END

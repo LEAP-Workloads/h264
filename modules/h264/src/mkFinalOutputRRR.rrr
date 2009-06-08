@@ -1,0 +1,11 @@
+#include "asim/provides/hasim_common.h"
+
+service MKFINALOUTPUTRRR
+{
+    server sw (cpp, method) <- hw (bsv, connection) 
+    {
+       method SendControl (in UINT64[64] reinit, out UINT64[64] value);  
+       method SendOutput (in UINT64[64] reinit, out UINT64[64] value);
+    };
+
+ };

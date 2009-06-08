@@ -31,6 +31,8 @@
 `include "hasim_common.bsh"
 `include "h264_types.bsh"
 
+`include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
+
 import FIFO::*;
 import RegFile::*;
 
@@ -41,20 +43,39 @@ import GetPut::*;
 // Final Output Module
 //-----------------------------------------------------------
 
+typedef enum {
+  PicWidth = 0,
+  PicHeight = 1,
+  EndOfFile = 2,
+  EndOfFrame = 3
+} FinalOutputControl deriving (Bits,Eq);
+
+function Bit#(64) packRRRControl(FinalOutputControl comm, Bit#(32) payload);
+  return zeroExtend(payload) | zeroExtend({pack(comm),32'h0});
+endfunction
+
+typedef enum {
+  SendData,
+  WaitForResp
+} FinalOutputState deriving (Bits,Eq);
+
 module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    // External connections
+   ClientStub_MKFINALOUTPUTRRR client_stub <- mkClientStub_MKFINALOUTPUTRRR();
 
    Connection_Receive#(H264OutputAddr) nextFrameRX <- mkConnection_Receive("mkFinalOutput_NextFrame");
    Connection_Send#(Bit#(1)) endOfFileTX <- mkConnection_Send("mkFinalOutput_EndOfFile");    
 
    FIFO#(BufferControlOT)  infifo    <- mkFIFO; 
-   Reg#(Bit#(27))    index   <- mkReg(0);
-
+  
    Reg#(Bit#(32)) tick_counter <- mkReg(0);
    Reg#(Bit#(32)) data_seen_counter <- mkReg(0); 
    Reg#(Bit#(32)) last_f_count <- mkReg(0);
    Reg#(Bit#(32)) f_count <- mkReg(0);
    Reg#(Bit#(32)) frameNum <- mkReg(0);
+   Reg#(FinalOutputState) state <- mkReg(SendData);
+   Reg#(Bit#(PicWidthSz)) picWidth <- mkReg(0);
+   Reg#(Bit#(PicHeightSz)) picHeight <- mkReg(0);
 
    rule tick;
      tick_counter <= tick_counter + 1;
@@ -74,49 +95,57 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
 
    //-----------------------------------------------------------
    // Rules
-   rule finaloutData (infifo.first matches tagged YUV .xdata); 
-      
-      //  Bit#(32) data_constant = pack(fromInteger(horizontal_pixels * vertical_pixels))*3/2;
-      //if(data_seen_counter + 4 > data_constant)
-       // begin
-       //   f_count <= f_count + 1;
-       //   data_seen_counter <= 0; 
-       // end 
-      //else
-      //  begin
-      //    data_seen_counter <= data_seen_counter+4;
-      //  end
 
-      index <= index + 4;
-      $display("OUT %h", xdata[7:0]);
-      $display("OUT %h", xdata[15:8]);
-      $display("OUT %h", xdata[23:16]);
-      $display("OUT %h", xdata[31:24]);
+   rule finaloutData (infifo.first matches tagged YUV .xdata &&& state == SendData); 
+      state <= WaitForResp;
+      client_stub.makeRequest_SendOutput(zeroExtend(xdata));
+      //$display("OUT %h", xdata[7:0]);
+      //$display("OUT %h", xdata[15:8]);
+      //$display("OUT %h", xdata[23:16]);
+      //$display("OUT %h", xdata[31:24]);
       infifo.deq();
    endrule
 
-   rule finaloutFile (infifo.first matches tagged EndOfFile); 
+   rule finaloutFile (infifo.first matches tagged EndOfFile &&& state == SendData); 
      $display($time,"FinalOutput: EndOfFile"); 
      $finish(0);
-     endOfFileTX.send(?);
      infifo.deq;
+     client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,0));
+     state <= WaitForResp;
    endrule
 
-   rule finaloutFrame (infifo.first matches tagged EndOfFrame); 
+   rule finaloutFrame (infifo.first matches tagged EndOfFrame &&& state == SendData); 
      $display($time,"FinalOutput: EndOfFrame #%d", frameNum);
      frameNum <= frameNum + 1; 
-     let nextAddr <- nextFrameRX.deq;
      infifo.deq;
+     client_stub.makeRequest_SendControl(packRRRControl(EndOfFrame,0));
+     state <= WaitForResp;
    endrule
 
-   rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata); 
+   rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata &&& state == SendData); 
      $display($time,"FinalOutput: FrameWidth #%d", xdata);
+     picWidth <= xdata;
+     infifo.deq;
+     client_stub.makeRequest_SendControl(packRRRControl(PicWidth,zeroExtend(xdata)));
+     state <= WaitForResp;
+   endrule
+
+   rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata  &&& state == SendData); 
+     $display($time,"FinalOutput: FramHeight #%d", xdata);
+     picHeight <= xdata;
+     client_stub.makeRequest_SendControl(packRRRControl(PicHeight,zeroExtend(xdata)));
+     state <= WaitForResp;
      infifo.deq;
    endrule
 
-   rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata); 
-     $display($time,"FinalOutput: FramHeight #%d", xdata);
-     infifo.deq;
+    rule eatDataResp(state == WaitForResp);
+     state <= SendData;
+     let resp <- client_stub.getResponse_SendOutput;
+   endrule
+
+    rule eatCommandResp(state == WaitForResp);
+     state <= SendData;
+     let resp <- client_stub.getResponse_SendControl;
    endrule
 
    interface Put ioin  = fifoToPut(infifo);
