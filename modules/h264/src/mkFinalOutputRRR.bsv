@@ -50,8 +50,8 @@ typedef enum {
   EndOfFile = 3
 } FinalOutputControl deriving (Bits,Eq);
 
-function Bit#(64) packRRRControl(FinalOutputControl comm, Bit#(32) payload);
-  return zeroExtend(payload) | zeroExtend({pack(comm),32'h0});
+function Bit#(64) packRRRControl(FinalOutputControl comm, Bit#(48) payload);
+  return zeroExtend(payload) | zeroExtend({pack(comm),48'h0});
 endfunction
 
 typedef enum {
@@ -68,7 +68,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
 
    FIFO#(BufferControlOT)  infifo    <- mkFIFO; 
   
-   Reg#(Bit#(32)) tick_counter <- mkReg(0);
+   Reg#(Bit#(48)) tickCounter <- mkReg(0);
    Reg#(Bit#(32)) data_seen_counter <- mkReg(0); 
    Reg#(Bit#(32)) last_f_count <- mkReg(0);
    Reg#(Bit#(32)) f_count <- mkReg(0);
@@ -78,8 +78,8 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    Reg#(Bit#(PicHeightSz)) picHeight <- mkReg(0);
 
    rule tick;
-     tick_counter <= tick_counter + 1;
-     if(tick_counter%(1<<20) == 0)
+     tickCounter <= tickCounter + 1;
+     if(tickCounter%(1<<20) == 0)
        begin
          if(last_f_count == f_count)
            begin
@@ -110,7 +110,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
      $display($time,"FinalOutput: EndOfFile %h",packRRRControl(EndOfFile,0)); 
      $finish(0);
      infifo.deq;
-     client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,0));
+     client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,tickCounter));
      state <= WaitForResp;
    endrule
 
@@ -118,7 +118,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
      $display($time,"FinalOutput: EndOfFrame #%d sending(%h) %h", frameNum,packRRRControl(EndOfFrame,0));
      frameNum <= frameNum + 1; 
      infifo.deq;
-     client_stub.makeRequest_SendControl(packRRRControl(EndOfFrame,0));
+     client_stub.makeRequest_SendControl(packRRRControl(EndOfFrame,tickCounter));
      state <= WaitForResp;
    endrule
 

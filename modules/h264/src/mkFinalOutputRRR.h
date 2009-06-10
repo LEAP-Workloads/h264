@@ -12,8 +12,8 @@
 typedef enum {
   PicWidth = 0,
   PicHeight = 1,
-  EndOfFile = 2,
-  EndOfFrame = 3
+  EndOfFrame = 2,
+  EndOfFile = 3
 } FinalOutputControl; 
 
 

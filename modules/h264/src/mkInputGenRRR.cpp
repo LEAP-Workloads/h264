@@ -17,7 +17,7 @@ MKINPUTGENRRR_SERVER_CLASS MKINPUTGENRRR_SERVER_CLASS::instance;
 MKINPUTGENRRR_SERVER_CLASS::MKINPUTGENRRR_SERVER_CLASS()
 {
     // instantiate stub
-    printf("MKINPUTGENRRR init called\n");
+    //printf("MKINPUTGENRRR init called\n");
     inputFile = NULL;
     serverStub = new MKINPUTGENRRR_SERVER_STUB_CLASS(this);
 }
@@ -66,7 +66,7 @@ UINT64
 MKINPUTGENRRR_SERVER_CLASS::Initialize(UINT64 dummy)
 {
    struct stat stats;
-    printf("MKINPUTGENRRR Initialize called\n");
+   //printf("MKINPUTGENRRR Initialize called\n");
     inputFile = fopen("input.264","r");
     assert(inputFile);
     // tabulate file size
@@ -79,7 +79,7 @@ UINT64
 MKINPUTGENRRR_SERVER_CLASS::GetInputData(UINT64 dummy)
 {
     int value;
-    printf("MKINPUTGENRRR GetInputData called %d\n", dummy);
+    //printf("MKINPUTGENRRR GetInputData called %d\n", dummy);
     if(inputFile == NULL) {
       return 0;
     }

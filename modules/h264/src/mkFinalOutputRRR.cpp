@@ -62,7 +62,11 @@ MKFINALOUTPUTRRR_SERVER_CLASS::Poll()
 //
 
 FinalOutputControl extractCommand(UINT64 control) {
-  return (FinalOutputControl)((control >> 32) & 0xffffffff);
+  return (FinalOutputControl)((control >> 48) & 0xffff);
+}
+
+UINT64 extractPayload(UINT64 control) {
+  return (control  & 0xffffffffffff);
 }
 
 
@@ -70,14 +74,16 @@ FinalOutputControl extractCommand(UINT64 control) {
 UINT64
 MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT64 control)
 {
-  printf("FinalOutput C got %llx\n",control);
-  if(EndOfFrame == extractCommand(control)) {
+  //printf("FinalOutput C got %llx\n",control);
+  if(EndOfFile == extractCommand(control)) {
     if(outputFile != NULL) {
-      printf("FinalOutput C got EndOfFile\n");
+      printf("FinalOutput C got EndOfFile at %llu \n",extractPayload(control));
       fclose(outputFile);
       exit(0);
     }
-  }
+  } else if(EndOfFrame == extractCommand(control)) {
+      printf("FinalOutput C got EndOfFrame at %llu \n",extractPayload(control));
+    }
 
   return 0;
 }
@@ -89,7 +95,7 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendOutput(UINT64 dummy)
   int value = dummy & 0xffffffff;
   
   if(outputFile == NULL) {
-    printf("SendOutput Called, opening file\n");
+    //printf("SendOutput Called, opening file\n");
     outputFile = fopen("out_hw.yuv","w");
     assert(outputFile);
   }
