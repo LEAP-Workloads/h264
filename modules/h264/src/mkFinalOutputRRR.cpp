@@ -61,12 +61,24 @@ MKFINALOUTPUTRRR_SERVER_CLASS::Poll()
 // RRR service methods
 //
 
+FinalOutputControl extractCommand(UINT64 control) {
+  return (FinalOutputControl)((control >> 32) & 0xffffffff);
+}
 
 
 // F2HTwoWayMsg
 UINT64
-MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT64 dummy)
+MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT64 control)
 {
+  printf("FinalOutput C got %llx\n",control);
+  if(EndOfFrame == extractCommand(control)) {
+    if(outputFile != NULL) {
+      printf("FinalOutput C got EndOfFile\n");
+      fclose(outputFile);
+      exit(0);
+    }
+  }
+
   return 0;
 }
 
@@ -75,8 +87,9 @@ UINT64
 MKFINALOUTPUTRRR_SERVER_CLASS::SendOutput(UINT64 dummy)
 {
   int value = dummy & 0xffffffff;
-  printf("SendOutput Called\n");
+  
   if(outputFile == NULL) {
+    printf("SendOutput Called, opening file\n");
     outputFile = fopen("out_hw.yuv","w");
     assert(outputFile);
   }

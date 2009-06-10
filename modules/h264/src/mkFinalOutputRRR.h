@@ -9,6 +9,15 @@
 
 // this module provides the RRRTest server functionalities
 
+typedef enum {
+  PicWidth = 0,
+  PicHeight = 1,
+  EndOfFile = 2,
+  EndOfFrame = 3
+} FinalOutputControl; 
+
+
+
 typedef class MKFINALOUTPUTRRR_SERVER_CLASS* MKFINALOUTPUTRRR_SERVER;
 class MKFINALOUTPUTRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
                                public PLATFORMS_MODULE_CLASS
@@ -41,6 +50,8 @@ class MKFINALOUTPUTRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     UINT64 SendControl(UINT64 dummy);
     UINT64 SendOutput(UINT64 dummy);
 };
+
+
 
 // include server stub
 #include "asim/rrr/server_stub_MKFINALOUTPUTRRR.h"

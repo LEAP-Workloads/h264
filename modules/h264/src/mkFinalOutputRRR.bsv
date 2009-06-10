@@ -46,8 +46,8 @@ import GetPut::*;
 typedef enum {
   PicWidth = 0,
   PicHeight = 1,
-  EndOfFile = 2,
-  EndOfFrame = 3
+  EndOfFrame = 2,
+  EndOfFile = 3
 } FinalOutputControl deriving (Bits,Eq);
 
 function Bit#(64) packRRRControl(FinalOutputControl comm, Bit#(32) payload);
@@ -107,7 +107,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    endrule
 
    rule finaloutFile (infifo.first matches tagged EndOfFile &&& state == SendData); 
-     $display($time,"FinalOutput: EndOfFile"); 
+     $display($time,"FinalOutput: EndOfFile %h",packRRRControl(EndOfFile,0)); 
      $finish(0);
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,0));
@@ -115,7 +115,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    endrule
 
    rule finaloutFrame (infifo.first matches tagged EndOfFrame &&& state == SendData); 
-     $display($time,"FinalOutput: EndOfFrame #%d", frameNum);
+     $display($time,"FinalOutput: EndOfFrame #%d sending(%h) %h", frameNum,packRRRControl(EndOfFrame,0));
      frameNum <= frameNum + 1; 
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(EndOfFrame,0));
@@ -123,7 +123,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    endrule
 
    rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata &&& state == SendData); 
-     $display($time,"FinalOutput: FrameWidth #%d", xdata);
+     $display($time,"FinalOutput: FrameWidth #%d sending %h", xdata,packRRRControl(PicWidth,zeroExtend(xdata)));
      picWidth <= xdata;
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(PicWidth,zeroExtend(xdata)));
@@ -131,19 +131,19 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    endrule
 
    rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata  &&& state == SendData); 
-     $display($time,"FinalOutput: FramHeight #%d", xdata);
+     $display($time,"FinalOutput: FramHeight #%d sending %h", xdata,packRRRControl(PicHeight,zeroExtend(xdata)));
      picHeight <= xdata;
      client_stub.makeRequest_SendControl(packRRRControl(PicHeight,zeroExtend(xdata)));
      state <= WaitForResp;
      infifo.deq;
    endrule
 
-    rule eatDataResp(state == WaitForResp);
+   rule eatDataResp(state == WaitForResp);
      state <= SendData;
      let resp <- client_stub.getResponse_SendOutput;
    endrule
 
-    rule eatCommandResp(state == WaitForResp);
+   rule eatCommandResp(state == WaitForResp);
      state <= SendData;
      let resp <- client_stub.getResponse_SendControl;
    endrule
