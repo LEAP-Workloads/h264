@@ -14,7 +14,7 @@
 %attributes h264
 
 %public mkTH.bsv
-%public mkTH.dic
+
 
 %param SMART_SYNTH_BOUNDARY 1 "turn on synth"
 
