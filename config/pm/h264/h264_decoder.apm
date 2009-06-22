@@ -113,3 +113,10 @@ Packagehint=h264
 [H264 RRR input module]
 File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
+
+[Hasim Common Library/Params]
+PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
+
+[FPGA Environment/Params]
+CENTRAL_CACHE_DEBUG_ENABLE=0
+SRATCHPAD_MEMORY_DEBUG_ENABLE=0
