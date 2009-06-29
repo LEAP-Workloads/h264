@@ -4,7 +4,7 @@ service MKFINALOUTPUTRRR
 {
     server sw (cpp, method) <- hw (bsv, connection) 
     {
-       method SendControl (in UINT32[32] ctrl, in UINT64[64] data, out UINT32[32] value);
+       method SendControl (in UINT32[32] ctrl, in UINT64[64] data0, in UINT64[64] data1);
     };
 
  };

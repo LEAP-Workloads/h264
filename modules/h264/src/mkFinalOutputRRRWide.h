@@ -49,7 +49,7 @@ class MKFINALOUTPUTRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     //
     // RRR service methods
     //
-    UINT32 SendControl(UINT32 control, UINT64 data);
+    UINT32 SendControl(UINT32 control, UINT64 data0, UINT64 data1);
 };
 
 

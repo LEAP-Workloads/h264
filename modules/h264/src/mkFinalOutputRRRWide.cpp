@@ -64,14 +64,14 @@ MKFINALOUTPUTRRR_SERVER_CLASS::Poll()
 
 
 UINT32
-MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data)
+MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data0 ,UINT64 data1)
 {
   //printf("FinalOutput C got %llx\n",control);
   FinalOutputControl finalOutputControl = (FinalOutputControl) control;
   switch(finalOutputControl) {
     case EndOfFile:
       if(outputFile != NULL) {
-        printf("FinalOutput C got EndOfFile at %llu \n",data);
+        printf("FinalOutput C got EndOfFile at %llu \n",data0);
         fflush(outputFile);
         fclose(outputFile);
         outputFile = NULL;
@@ -80,10 +80,13 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data)
     break;
 
     case EndOfFrame:
-      printf("FinalOutput C got EndOfFrame at %llu \n",data);
+      printf("FinalOutput C got EndOfFrame at %llu \n",data0);
     break;
 
-    case Data: 
+    case Data:
+      UINT64 dataArr[2];
+      dataArr[0] = data0;
+      dataArr[1] = data1; 
       if(outputFile == NULL) {
         //printf("SendOutput Called, opening file\n");
         outputFile = fopen("out_hw.yuv","w");
@@ -92,7 +95,7 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data)
   
       // endianess issue?
      
-      fwrite(&data, 8,1 , outputFile);
+      fwrite(&dataArr, 16,1 , outputFile);
     break;
   }
   return 0;

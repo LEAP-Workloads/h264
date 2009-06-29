@@ -52,7 +52,7 @@ typedef enum {
   OutData = 4
 } FinalOutputControl deriving (Bits,Eq);
 
-typedef 2 WordsPerBurst;
+typedef 4 WordsPerBurst;
 
 
 module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
@@ -102,9 +102,13 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    endrule   
 
    rule finaloutData (infifo.first matches tagged YUV .xdata &&& (burstCount + 1 == fromInteger(valueof(WordsPerBurst)))); 
-      client_stub.makeRequest_SendControl(zeroExtend(pack(OutData)), 
-             pack(reverse(append(replicate(xdata),readVReg(dataBuffer)))));
-      $display("OUT: %h",xdata);
+      Vector#(TDiv#(WordsPerBurst,2),Bit#(64)) dataWords = 
+         unpack(pack(append(readVReg(dataBuffer),replicate(xdata)))); 
+      client_stub.makeRequest_SendControl(zeroExtend(pack(OutData)),
+                                          dataWords[0],
+                                          dataWords[1]); 
+      $display("OUT: %h",pack(dataWords));
+      $display("OUTBASE: %h%h", xdata,readVReg(dataBuffer));
       infifo.deq();
       rrrRespQ.enq(?); 
       burstCount <= 0;
@@ -113,7 +117,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    rule finaloutFile (infifo.first matches tagged EndOfFile); 
      $display($time,"FinalOutput: EndOfFile %h",OutEndOfFile); 
      infifo.deq;
-     client_stub.makeRequest_SendControl(zeroExtend(pack(OutEndOfFile)),zeroExtend(tickCounter));
+     client_stub.makeRequest_SendControl(zeroExtend(pack(OutEndOfFile)),zeroExtend(tickCounter),?);
      rrrRespQ.enq(?);
    endrule
 
@@ -121,7 +125,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
      $display($time,"FinalOutput: EndOfFrame #%d sending(%h) %h", frameNum,OutEndOfFrame);
      frameNum <= frameNum + 1; 
      infifo.deq;
-     client_stub.makeRequest_SendControl(zeroExtend(pack(OutEndOfFrame)),zeroExtend(tickCounter));
+     client_stub.makeRequest_SendControl(zeroExtend(pack(OutEndOfFrame)),zeroExtend(tickCounter),?);
      rrrRespQ.enq(?);
    endrule
 
@@ -129,20 +133,19 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
      $display($time,"FinalOutput: FrameWidth #%d sending %h", xdata,OutPicWidth);
      picWidth <= xdata;
      infifo.deq;
-     client_stub.makeRequest_SendControl(zeroExtend(pack(OutPicWidth)),zeroExtend(xdata));
+     client_stub.makeRequest_SendControl(zeroExtend(pack(OutPicWidth)),zeroExtend(xdata),?);
      rrrRespQ.enq(?);
    endrule
 
    rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata); 
      $display($time,"FinalOutput: FramHeight #%d sending %h", xdata,OutPicHeight);
      picHeight <= xdata;
-     client_stub.makeRequest_SendControl(zeroExtend(pack(OutPicHeight)),zeroExtend(xdata));
+     client_stub.makeRequest_SendControl(zeroExtend(pack(OutPicHeight)),zeroExtend(xdata),?);
      infifo.deq;
      rrrRespQ.enq(?);
    endrule
 
    rule eatCommandResp;
-     let resp <- client_stub.getResponse_SendControl;
      rrrRespQ.deq;
    endrule
 
