@@ -42,6 +42,10 @@ import ClientServer::*;
 //(* synthesize *)
 module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 
+   Connection_Receive#(MemResp#(20)) memRespQ <- mkConnection_Receive("mkCalc_nc_MemRespQ");
+  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,1),20)) memReqQ <- mkConnection_Send("mkCalc_nc_MemReqQ");
+
    Reg#(Bit#(PicWidthSz)) picWidth       <- mkReg(maxPicWidthInMB);
    Reg#(Bit#(PicAreaSz))  firstMb        <- mkReg(0);
    Reg#(Bit#(PicAreaSz))  currMb         <- mkReg(0);
@@ -57,8 +61,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
    Reg#(Bit#(10))         topValChroma0  <- mkReg(0);
    Reg#(Bit#(10))         leftValChroma1 <- mkReg(0);
    Reg#(Bit#(10))         topValChroma1  <- mkReg(0);
-   FIFO#(MemReq#(TAdd#(PicWidthSz,1),20)) memReqQ  <- mkFIFO;
-   FIFO#(MemResp#(20))                    memRespQ <- mkFIFO;
+
    Bit#(1) bit1 = 1;
    Bit#(1) bit0 = 0;
  
@@ -73,11 +76,11 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
    rule sendReq ( waiting == 1 && reqCount > 0 );
       Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
       Bit#(TAdd#(PicWidthSz,1)) temp  = {bit1,temp2};
-      memReqQ.enq(tagged LoadReq temp );
+      memReqQ.send(tagged LoadReq temp );
       reqCount <= reqCount-1;
    endrule
 
-   rule receiveResp ( waiting == 1 &&& respCount > 0 &&& memRespQ.first() matches tagged LoadResp .data );
+   rule receiveResp ( waiting == 1 &&& respCount > 0 &&& memRespQ.receive() matches tagged LoadResp .data );
       if( respCount == 2 )
 	 topVal <= data;
       else
@@ -95,7 +98,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
       currMbHor <= currMbHor+1;
       Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
       Bit#(TAdd#(PicWidthSz,1)) temp  = {bit1,temp2};
-      memReqQ.enq(StoreReq {addr:temp,data:20'b10000100001000010000} );
+      memReqQ.send(StoreReq {addr:temp,data:20'b10000100001000010000} );
       ipcmCount <= 0;
       waiting <= 0;
    endrule
@@ -107,7 +110,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 	    currMbHor <= currMbHor+1;
 	    Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 	    Bit#(TAdd#(PicWidthSz,1)) temp  = {bit1,temp2};
-	    memReqQ.enq(StoreReq {addr:temp,data:20'b00000000000000000000} );
+	    memReqQ.send(StoreReq {addr:temp,data:20'b00000000000000000000} );
 	    if(pskipCount == 1)
 	       waiting <= 0;
 	 end
@@ -115,17 +118,13 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 	 begin
 	    Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 	    Bit#(TAdd#(PicWidthSz,1)) temp  = {bit0,temp2};
-	    memReqQ.enq(StoreReq {addr:temp,data:20'b00000000000000000000} );
+	    memReqQ.send(StoreReq {addr:temp,data:20'b00000000000000000000} );
 	 end
       pskipCount <= pskipCount - 1;
    endrule
 
-   Connection_Receive#(MemResp#(20)) calcncMemRespQRX <- mkConnection_Receive("mkCalc_nc_MemRespQ");
-   mkConnection(connectionToGet(calcncMemRespQRX),fifoToPut(memRespQ));     
 
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,1),20)) calcncMemReqQTX <- mkConnection_Send("mkCalc_nc_MemReqQ");
-   mkConnection(fifoToGet(memReqQ),connectionToPut(calcncMemReqQTX));     
-
+ 
    method Action initialize_picWidth( Bit#(PicWidthSz) picWidthInMb ) if( waiting == 0 && currMbHor<zeroExtend(picWidth) );
       picWidth  <= picWidthInMb;
    endmethod
@@ -163,7 +162,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 		  respCount <= 2;
 		  Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 		  Bit#(TAdd#(PicWidthSz,1)) temp  = {bit0,temp2};
-		  memReqQ.enq(tagged LoadReq temp );
+		  memReqQ.send(tagged LoadReq temp );
 		  //$display( "ERROR EntropyDec: mkCalc_nC loadMb incomplete" );
 	       end
 	 end
@@ -256,7 +255,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 	 begin
 	    Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 	    Bit#(TAdd#(PicWidthSz,1)) temp  = {bit0,temp2};
-	    memReqQ.enq(StoreReq {addr:temp,data:topValTemp} );
+	    memReqQ.send(StoreReq {addr:temp,data:topValTemp} );
 	 end
       //$display( "TRACE nNupdate_luma old leftVal %b", leftVal );
       //$display( "TRACE nNupdate_luma old topVal %b", topVal );
@@ -297,7 +296,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 	    currMbHor <= currMbHor+1;
 	    Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 	    Bit#(TAdd#(PicWidthSz,1)) temp  = {bit1,temp2};
-	    memReqQ.enq(StoreReq {addr:temp,data:{topValChroma1Temp,topValChroma0Temp}} );
+	    memReqQ.send(StoreReq {addr:temp,data:{topValChroma1Temp,topValChroma0Temp}} );
 	 end
    endmethod
 
@@ -310,7 +309,7 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
 	    pskipCount <= (inmb_skip_run << 1)-1;
 	    Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
 	    Bit#(TAdd#(PicWidthSz,1)) temp  = {bit0,temp2};
-	    memReqQ.enq(StoreReq {addr:temp,data:20'b00000000000000000000} );
+	    memReqQ.send(StoreReq {addr:temp,data:20'b00000000000000000000} );
 	    leftVal <= 0;
 	    leftValChroma0 <= 10'b0000000000;
 	    leftValChroma1 <= 10'b0000000000;
@@ -327,16 +326,9 @@ module [HASIM_MODULE] mkCalc_nC( Calc_nC );
       ipcmCount <= 1;
       Bit#(PicWidthSz)          temp2 = truncate(currMbHor);
       Bit#(TAdd#(PicWidthSz,1)) temp  = {bit0,temp2};
-      memReqQ.enq(StoreReq {addr:temp,data:20'b10000100001000010000} );
+      memReqQ.send(StoreReq {addr:temp,data:20'b10000100001000010000} );
    endmethod
 
-
-
-
-//   interface Client mem_client;
-//      interface Get request  = fifoToGet(memReqQ);
-//      interface Put response = fifoToPut(memRespQ);
-//   endinterface
 
 
 endmodule

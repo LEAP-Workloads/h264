@@ -11,6 +11,6 @@
 %attributes h264
 
 * I get the feeling that I'll want to split some of this out eventually
-%public IMemED.bsv IMemEDDecoupled.bsv  IDecoupledClient.bsv mkMemED.bsv mkMemEDDecoupled.bsv 
+%public IMemED.bsv IMemEDDecoupled.bsv  IDecoupledClient.bsv mkMemED.bsv mkMemEDConnection.bsv mkMemEDDecoupled.bsv 
 
 %AWB_END

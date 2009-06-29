@@ -55,11 +55,20 @@ module [HASIM_MODULE] mkSystem ();
 
    IInputGen     inputgen    <- mkInputGen();
    IH264         h264        <- mkH264();
-   IMemED#(TAdd#(PicWidthSz,1),20) memED          <- mkMemED();
-   IMemED#(TAdd#(PicWidthSz,2),68) memP_intra     <- mkMemED();
-   IMemED#(TAdd#(PicWidthSz,2),32) memP_inter     <- mkMemED();
-   IMemEDDecoupled#(TAdd#(PicWidthSz,5),32) memD_data      <- mkMemEDDecoupled();
-   IMemED#(PicWidthSz,13)          memD_parameter <- mkMemED();
+   IMemEDConnection#(TAdd#(PicWidthSz,1),20) memED          
+                              <- mkMemEDConnection("mkCalc_nc_MemReqQ",
+                                                   "mkCalc_nc_MemRespQ");
+   IMemEDConnection#(TAdd#(PicWidthSz,2),68) memP_intra     
+                              <- mkMemEDConnection("mkPrediction_intraMemReqQ",
+                                                   "mkPrediction_intraMemRespQ");
+   IMemEDConnection#(TAdd#(PicWidthSz,2),32) memP_inter     
+                              <- mkMemEDConnection("mkPrediction_interMemReqQ",
+                                                   "mkPrediction_interMemRespQ");
+   IMemEDDecoupled#(TAdd#(PicWidthSz,5),32)  memD_data      <- mkMemEDDecoupled();
+   IMemEDConnection#(PicWidthSz,13)          memD_parameter 
+                              <- mkMemEDConnection("mkDeblocking_parameterMemReqQ",
+                                                   "mkDeblocking_parameterMemRespQ");
+
    Empty   framebuffer   <- mkFrameBuffer();
    IFinalOutput   finaloutput   <- mkFinalOutput();
 
@@ -87,18 +96,11 @@ module [HASIM_MODULE] mkSystem ();
    // Internal connections
    
    mkConnection( inputgen.ioout, h264.ioin );
-   mkConnection( h264.mem_clientED, memED.mem_server );
-   mkConnection( h264.mem_clientP_intra, memP_intra.mem_server );
-   mkConnection( h264.mem_clientP_inter, memP_inter.mem_server );
 
    mkConnection( memD_data.request_store, h264.mem_clientD_data.request_store );
    mkConnection( h264.mem_clientD_data.request_load, memD_data.request_load );
    mkConnection( h264.mem_clientD_data.response, memD_data.response);
 
-   mkConnection( h264.mem_clientD_parameter, memD_parameter.mem_server );
-//   mkConnection( h264.buffer_client_load1, framebuffer.server_load1 );
-//   mkConnection( h264.buffer_client_load2, framebuffer.server_load2 );
-//   mkConnection( h264.buffer_client_store, framebuffer.server_store );
    mkConnection( h264.ioout, finaloutput.ioin );
    
 endmodule

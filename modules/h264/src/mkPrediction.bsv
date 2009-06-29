@@ -165,10 +165,20 @@ endfunction
 //(* synthesize *)
 module [HASIM_MODULE] mkPrediction ();
 
+   Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkPrediction_infifo");
+   Connection_Receive#(InverseTransOT) infifo_ITB <- mkConnection_Receive("mkPrediction_infifo_ITB");
+   Connection_Send#(EntropyDecOT) outfifo <- mkConnection_Send("mkDeblocking_infifo");
+   Connection_Receive#(MemResp#(68)) intraMemRespQ <- mkConnection_Receive("mkPrediction_intraMemRespQ");
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQ <- mkConnection_Send("mkPrediction_intraMemReqQ");
+   Connection_Receive#(MemResp#(32)) interMemRespQ <- mkConnection_Receive("mkPrediction_interMemRespQ");
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkConnection_Send("mkPrediction_interMemReqQ");
+
+
+   
+
+
+
    //Common state
-   FIFO#(EntropyDecOT)   infifo     <- mkSizedFIFO(prediction_infifo_size);
-   FIFO#(InverseTransOT) infifo_ITB <- mkSizedFIFO(prediction_infifo_ITB_size);
-   FIFO#(EntropyDecOT)   outfifo    <- mkFIFO;
    Reg#(Bool)            passFlag   <- mkReg(True);
    Reg#(Bit#(4))         blockNum   <- mkReg(0);
    Reg#(Bit#(4))         pixelNum   <- mkReg(0);
@@ -199,9 +209,7 @@ module [HASIM_MODULE] mkPrediction ();
    Reg#(Vector#(5,InterBlockMv)) interTopVal <- mkRegU();
    Reg#(Vector#(4,InterBlockMv)) interLeftVal <- mkRegU();
    Reg#(Vector#(4,InterBlockMv)) interTopLeftVal <- mkRegU();
-   FIFO#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkFIFO;
    Reg#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQdelay <- mkRegU();
-   FIFO#(MemResp#(32))  interMemRespQ <- mkFIFO;
    Reg#(Bit#(3)) interReqCount <- mkReg(0);
    Reg#(Bit#(3)) interRespCount <- mkReg(0);
 
@@ -248,9 +256,7 @@ module [HASIM_MODULE] mkPrediction ();
    //Intra state
    Reg#(IntraState)     intrastate      <- mkReg(Start);
    Reg#(Bit#(1))        intraChromaFlag <- mkReg(0);
-   FIFO#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQ  <- mkFIFO;
    Reg#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQdelay <- mkRegU;
-   FIFO#(MemResp#(68))  intraMemRespQ <- mkFIFO;
    Reg#(Vector#(4,Bit#(4))) intra4x4typeLeft <- mkRegU();//15=unavailable, 14=inter-MB, 13=intra-non-4x4
    Reg#(Vector#(4,Bit#(4))) intra4x4typeTop  <- mkRegU();//15=unavailable, 14=inter-MB, 13=intra-non-4x4
    Reg#(Bit#(1)) ppsconstrained_intra_pred_flag <- mkReg(0);
@@ -284,18 +290,18 @@ module [HASIM_MODULE] mkPrediction ();
 //   rule stateMonitor ( True );
 //      if(predictedfifo.notEmpty())
 //	 $display( "TRACE Prediction: stateMonitor predictedfifo.first() %0d", predictedfifo.first());////////////////////
-//      if(infifo.first() matches tagged ITBresidual .xdata)
-//	 $display( "TRACE Prediction: stateMonitor infifo.first() %0d", xdata);////////////////////
-//      if(infifo.first() matches tagged ITBresidual .xdata)
+//      if(infifo.receive() matches tagged ITBresidual .xdata)
+//	 $display( "TRACE Prediction: stateMonitor infifo.receive() %0d", xdata);////////////////////
+//      if(infifo.receive() matches tagged ITBresidual .xdata)
 //	 $display( "TRACE Prediction: stateMonitor outBlockNum outPixelNum outChromaFlag %0d %0d", outBlockNum, outPixelNum, outChromaFlag);////////////////////
 //   endrule
    //////////////////////////////////////////////////////////////////////////////
 
    rule checkFIFO ( True );
-      $display( "Trace Prediction: checkFIFO %h", infifo.first() );
+      $display( "Trace Prediction: checkFIFO %h", infifo.receive() );
    endrule
    rule checkFIFO_ITB ( True );
-      $display( "Trace Prediction: checkFIFO_ITB %h", infifo_ITB.first() );
+      $display( "Trace Prediction: checkFIFO_ITB %h", infifo_ITB.receive() );
    endrule
    rule checkFIFO_predicted ( True );
       $display( "Trace Prediction: checkFIFO_predicted %h", predictedfifo.first() );
@@ -303,39 +309,39 @@ module [HASIM_MODULE] mkPrediction ();
 
    
    rule passing ( passFlag && !outstatefifo.notEmpty() && currMbHor<zeroExtend(picWidth) );
-      $display( "Trace Prediction: passing infifo packed %h", pack(infifo.first()));
-      case (infifo.first()) matches
+      $display( "Trace Prediction: passing infifo packed %h", pack(infifo.receive()));
+      case (infifo.receive()) matches
 	 tagged NewUnit . xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	       $display("ccl4newunit");
 	       $display("ccl4rbspbyte %h", xdata);
 	    end
 	 tagged SPSpic_width_in_mbs .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	       picWidth <= xdata;
 	       interpolator.setPicWidth(xdata);
 	    end
 	 tagged SPSpic_height_in_map_units .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	       picHeight <= xdata;
 	       interpolator.setPicHeight(xdata);
 	    end
 	 tagged PPSconstrained_intra_pred_flag .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       ppsconstrained_intra_pred_flag <= xdata;
 	    end
 	 tagged SHfirst_mb_in_slice .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	       firstMb   <= xdata;
 	       currMb    <= xdata;
 	       currMbHor <= xdata;
@@ -351,22 +357,22 @@ module [HASIM_MODULE] mkPrediction ();
 	 tagged EndOfFile :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	       $display( "INFO Prediction: EndOfFile reached" );
 	       //$finish(0);////////////////////////////////
 	    end
 	 default:
 	    begin
 	       infifo.deq();
-	       outfifo.enq(infifo.first());
+	       outfifo.send(infifo.receive());
 	    end
       endcase
    endrule
 
 
    rule inputing ( !passFlag );
-      $display( "Trace Prediction: inputing infifo packed %h", pack(infifo.first()));
-      case (infifo.first()) matches
+      $display( "Trace Prediction: inputing infifo packed %h", pack(infifo.receive()));
+      case (infifo.receive()) matches
 	 tagged SDmb_skip_run .xdata :
 	    begin
 	       if(interstate==Start && intrastate==Start)
@@ -487,19 +493,19 @@ module [HASIM_MODULE] mkPrediction ();
 	 tagged SDMMrem_intra4x4_pred_mode .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       rem_intra4x4_pred_mode.enq(xdata);
 	    end
 	 tagged SDMMintra_chroma_pred_mode .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       intra_chroma_pred_mode.enq(xdata);
 	    end
 	 tagged SDMMref_idx_l0 .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       interRefIdxVector <= update(interRefIdxVector,interPassingCount,xdata[3:0]);
 	       if(interstate==InterP16x16 || interPassingCount==1)
 		  interPassingCount <= 0;
@@ -509,7 +515,7 @@ module [HASIM_MODULE] mkPrediction ();
 	 tagged SDMMmvd_l0 .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       if(interPassingCount==1)
 		  begin
 		     Bit#(13) interMvDiffTemp2 = truncate(xdata);
@@ -525,21 +531,21 @@ module [HASIM_MODULE] mkPrediction ();
 	 tagged SDMSsub_mb_type .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       interSubMbTypeVector <= update(interSubMbTypeVector,interPassingCount,xdata);
 	       interPassingCount <= interPassingCount+1;
 	    end
 	 tagged SDMSref_idx_l0 .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       interRefIdxVector <= update(interRefIdxVector,interPassingCount,xdata[3:0]);
 	       interPassingCount <= interPassingCount+1;
 	    end
 	 tagged SDMSmvd_l0 .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.enq(infifo.first());
+	       ////outfifo.send(infifo.receive());
 	       if(interPassingCount==1)
 		  begin
 		     Bit#(13) interMvDiffTemp2 = truncate(xdata);
@@ -567,15 +573,15 @@ module [HASIM_MODULE] mkPrediction ();
       //$display( "Trace Prediction: outputing" );
       if(outFirstQPFlag)
 	 begin
-	    if(infifo_ITB.first() matches tagged IBTmb_qp .xdata)
+	    if(infifo_ITB.receive() matches tagged IBTmb_qp .xdata)
 	       begin
 		  infifo_ITB.deq();
-		  outfifo.enq(IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		  outfifo.send(IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		  outFirstQPFlag <= False;
 		  $display( "Trace Prediction: outputing outFirstQP %h %h %h", outBlockNum, outPixelNum, xdata);
 	       end
 	    else
-	       $display( "ERROR Prediction: outputing unexpected infifo_ITB.first()");
+	       $display( "ERROR Prediction: outputing unexpected infifo_ITB.receive()");
 	 end
       else if(nextoutputfifo.first() == SkipMB)
 	 begin
@@ -587,7 +593,7 @@ module [HASIM_MODULE] mkPrediction ();
 		  Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 		  Bit#(3) horBS = (tempHorBS==3 ? 4 : (interLeftNonZeroTransCoeff[blockVer] ? 2 : zeroExtend(tempHorBS)));
 		  Bit#(3) verBS = (tempVerBS==3 ? 4 : (interTopNonZeroTransCoeff[blockHor]&&blockVer!=0 ? 2 : zeroExtend(tempVerBS)));
-		  outfifo.enq(PBbS {bShor:horBS,bSver:verBS});
+		  outfifo.send(PBbS {bShor:horBS,bSver:verBS});
 		  interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 		  interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
 		  $display( "Trace Prediction: outputing SkipMB bS %h %h %h %h", outBlockNum, outPixelNum, currMbHor, currMbVer);
@@ -596,7 +602,7 @@ module [HASIM_MODULE] mkPrediction ();
 	       begin
 		  interBSoutput <= True;
 		  outputVector = predictedfifo.first();
-		  outfifo.enq(tagged PBoutput outputVector);
+		  outfifo.send(tagged PBoutput outputVector);
 		  outputFlag = 1;
 		  predictedfifo.deq();
 		  $display( "Trace Prediction: outputing SkipMB out %h %h %h", outBlockNum, outPixelNum, outputVector);
@@ -604,11 +610,11 @@ module [HASIM_MODULE] mkPrediction ();
 	 end
       else
 	 begin
-	    case ( infifo_ITB.first() ) matches
+	    case ( infifo_ITB.receive() ) matches
 	       tagged IBTmb_qp .xdata :
 		  begin
 		     infifo_ITB.deq();
-		     outfifo.enq( tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		     outfifo.send( tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		     outFirstQPFlag <= False;
 		     $display( "Trace Prediction: outputing ITBmb_qp %h %h %h", outBlockNum, outPixelNum, xdata);
 		  end
@@ -618,7 +624,7 @@ module [HASIM_MODULE] mkPrediction ();
 			begin
 			   interBSoutput <= False;
 			   if(outstatefifo.first() != Inter)
-			      outfifo.enq( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
+			      outfifo.send( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
 			   else
 			      begin
 				 interBSfifo.deq();
@@ -626,7 +632,7 @@ module [HASIM_MODULE] mkPrediction ();
 				 Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 				 Bit#(3) horBS = (tempHorBS==3 ? 4 : 2);
 				 Bit#(3) verBS = (tempVerBS==3 ? 4 : 2);
-				 outfifo.enq( tagged PBbS {bShor:horBS,bSver:verBS});
+				 outfifo.send( tagged PBbS {bShor:horBS,bSver:verBS});
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, True);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, True);
@@ -646,7 +652,7 @@ module [HASIM_MODULE] mkPrediction ();
 				 else
 				    outputVector[ii] = tempOutputValue[7:0];
 			      end
-			   outfifo.enq( tagged PBoutput outputVector);
+			   outfifo.send( tagged PBoutput outputVector);
 			   infifo_ITB.deq();
 			   predictedfifo.deq();
 			   outputFlag = 1;
@@ -659,7 +665,7 @@ module [HASIM_MODULE] mkPrediction ();
 			begin
 			   interBSoutput <= False;
 			   if(outstatefifo.first() != Inter)
-			      outfifo.enq( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
+			      outfifo.send( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
 			   else
 			      begin
 				 interBSfifo.deq();
@@ -667,7 +673,7 @@ module [HASIM_MODULE] mkPrediction ();
 				 Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 				 Bit#(3) horBS = (tempHorBS==3 ? 4 : (interLeftNonZeroTransCoeff[blockVer] ? 2 : zeroExtend(tempHorBS)));
 				 Bit#(3) verBS = (tempVerBS==3 ? 4 : (interTopNonZeroTransCoeff[blockHor]&&blockVer!=0 ? 2 : zeroExtend(tempVerBS)));
-				 outfifo.enq( tagged PBbS {bShor:horBS,bSver:verBS});
+				 outfifo.send( tagged PBbS {bShor:horBS,bSver:verBS});
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
@@ -679,7 +685,7 @@ module [HASIM_MODULE] mkPrediction ();
 			   if(outPixelNum == 12)
 			      infifo_ITB.deq();
 			   outputVector = predictedfifo.first();
-			   outfifo.enq( tagged PBoutput outputVector);
+			   outfifo.send( tagged PBoutput outputVector);
 			   outputFlag = 1;
 			   predictedfifo.deq();
 			   $display( "Trace Prediction: outputing ITBcoeffLevelZeros out %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), outputVector);
@@ -698,8 +704,8 @@ module [HASIM_MODULE] mkPrediction ();
 
 	    if(outBlockNum==0 && pixelVer==0 && outChromaFlag==0 && currMb!=firstMb && picWidth>1)
 	       begin
-		  intraMemReqQ.enq(intraMemReqQdelay);
-		  interMemReqQ.enq(interMemReqQdelay);
+		  intraMemReqQ.send(intraMemReqQdelay);
+		  interMemReqQ.send(interMemReqQdelay);
 		  //$display( "TRACE Prediction: passing storing addr data");//////////////////
 	       end
 	    
@@ -784,7 +790,7 @@ module [HASIM_MODULE] mkPrediction ();
 		  if(pixelVer==3 && picWidth>1)
 		     interMemReqQdelay <= StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)};
 		  else
-		     interMemReqQ.enq(StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)});
+		     interMemReqQ.send(StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)});
 		  if(pixelVer>0)
 		     begin
 			Bit#(4)  intra4x4typeTopStore = ((outstatefifo.first()==Inter) ? 14 : ((outstatefifo.first()!=Intra4x4) ? 13: intra4x4typeTop[(pixelVer-1)]));
@@ -792,7 +798,7 @@ module [HASIM_MODULE] mkPrediction ();
 			Bit#(16) intraTopValChroma0Store = intraTopValChroma0[(pixelVer-1)];
 			Bit#(16) intraTopValChroma1Store = (pixelVer<3 ? intraTopValChroma1[(pixelVer-1)] : {outputVector[1],outputVector[0]});
 			Bit#(68) intraStore = {intra4x4typeTopStore,intraTopValChroma1Store,intraTopValChroma0Store,intraTopValStore};
-			intraMemReqQ.enq(StoreReq {addr:{tempStoreAddr,(pixelVer-1)},data:intraStore});
+			intraMemReqQ.send(StoreReq {addr:{tempStoreAddr,(pixelVer-1)},data:intraStore});
 			if(pixelVer==3)
 			   begin
 			      intra4x4typeTopStore = ((outstatefifo.first()==Inter) ? 14 : ((outstatefifo.first()!=Intra4x4) ? 13: intra4x4typeTop[3]));
@@ -894,7 +900,7 @@ module [HASIM_MODULE] mkPrediction ();
 	 end
       if(!noMoreReq)
 	 begin
-      	    interMemReqQ.enq(tagged LoadReq temp);
+      	    interMemReqQ.send(tagged LoadReq temp);
 	    interReqCount <= interReqCount+1;
 	    //$display( "TRACE Prediction: interSendReq addr %0d",temp);///////////////////////
 	 end
@@ -920,7 +926,7 @@ module [HASIM_MODULE] mkPrediction ();
    endrule
 
    
-   rule interReceiveResp ( interRespCount>0 && interRespCount<7 && currMbHor<zeroExtend(picWidth) &&& interMemRespQ.first() matches tagged LoadResp .data);
+   rule interReceiveResp ( interRespCount>0 && interRespCount<7 && currMbHor<zeroExtend(picWidth) &&& interMemRespQ.receive() matches tagged LoadResp .data);
       Bit#(PicAreaSz) currMbHorTemp = currMbHor+zeroExtend(interCurrMbDiff)-1;
       Bit#(PicAreaSz) currMbTemp = currMb+zeroExtend(interCurrMbDiff)-1;
       if( currMbHorTemp >= zeroExtend(picWidth) )
@@ -1455,7 +1461,7 @@ module [HASIM_MODULE] mkPrediction ();
 	 end
       if(noMoreReq == 0)
 	 begin
-      	    intraMemReqQ.enq(tagged LoadReq temp);
+      	    intraMemReqQ.send(tagged LoadReq temp);
 	    intraReqCount <= intraReqCount+1;
 	    //$display( "TRACE Prediction: intraSendReq addr %0d",temp);///////////////////////
 	 end
@@ -1476,7 +1482,7 @@ module [HASIM_MODULE] mkPrediction ();
    endrule
 
    
-   rule intraReceiveResp ( intraRespCount>0 && intraRespCount<7 && currMbHor<zeroExtend(picWidth) &&& intraMemRespQ.first() matches tagged LoadResp .data);
+   rule intraReceiveResp ( intraRespCount>0 && intraRespCount<7 && currMbHor<zeroExtend(picWidth) &&& intraMemRespQ.receive() matches tagged LoadResp .data);
       Bit#(1) noMoreResp = 0;
       Bit#(2) temp2bit = 0;
       if(intraRespCount<5)
@@ -2265,27 +2271,6 @@ module [HASIM_MODULE] mkPrediction ();
       //$display( "Trace Prediction: intraProcessStep");
    endrule
 
-   Connection_Receive#(EntropyDecOT) infifoRX <- mkConnection_Receive("mkPrediction_infifo");
-   Connection_Receive#(InverseTransOT) infifo_ITBRX <- mkConnection_Receive("mkPrediction_infifo_ITB");
-   Connection_Send#(EntropyDecOT) outfifoTX <- mkConnection_Send("mkDeblocking_infifo");
-   Connection_Receive#(MemResp#(68)) intraMemRespQRx <- mkConnection_Receive("mkPrediction_intraMemRespQ");
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQTx <- mkConnection_Send("mkPrediction_intraMemReqQ");
-   Connection_Receive#(MemResp#(32)) interMemRespQRx <- mkConnection_Receive("mkPrediction_interMemRespQ");
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQTx <- mkConnection_Send("mkPrediction_interMemReqQ");
-   Connection_Receive#(InterpolatorLoadResp) interpolatorMemRespQRx <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
-   Connection_Send#(InterpolatorLoadReq) interpolatorMemReqQTx <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
-
-
-
-   mkConnection(connectionToGet(infifoRX), fifoToPut(infifo));
-   mkConnection(connectionToGet(infifo_ITBRX), fifoToPut(infifo_ITB));
-   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
-   mkConnection(connectionToGet(intraMemRespQRx), fifoToPut(intraMemRespQ));
-   mkConnection(fifoToGet(intraMemReqQ),connectionToPut(intraMemReqQTx));  
-   mkConnection(connectionToGet( interMemRespQRx), fifoToPut(interMemRespQ));
-   mkConnection(fifoToGet(interMemReqQ),connectionToPut(interMemReqQTx));  
-   mkConnection(connectionToGet(interpolatorMemRespQRx).get, interpolator.mem_client.response.put);
-   mkConnection(interpolator.mem_client.request.get,connectionToPut(interpolatorMemReqQTx).put);  
       
 endmodule
 

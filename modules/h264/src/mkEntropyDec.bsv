@@ -111,10 +111,14 @@ endfunction
 
 //(* synthesize *)
 module [HASIM_MODULE] mkEntropyDec();
-   
-   FIFO#(NalUnwrapOT)       infifo      <- mkSizedFIFO(entropyDec_infifo_size);
-   FIFO#(EntropyDecOT)      outfifo     <- mkFIFO;
-   FIFO#(EntropyDecOT_InverseTrans) outfifo_ITB <- mkFIFO;
+
+   Connection_Send#(EntropyDecOT) outfifo <- mkConnection_Send("mkPrediction_infifo");
+   Connection_Send#(EntropyDecOT_InverseTrans) outfifo_ITB <- mkConnection_Send("mkInverseTransform_infifo");
+   Connection_Receive#(NalUnwrapOT) infifo <- mkConnection_Receive("mkEntropyDec_infifo");
+
+//   FIFO#(NalUnwrapOT)       infifo      <- mkSizedFIFO(entropyDec_infifo_size);
+//   FIFO#(EntropyDecOT)      outfifo     <- mkFIFO;
+//   FIFO#(EntropyDecOT_InverseTrans) outfifo_ITB <- mkFIFO;
    Reg#(State)              state       <- mkReg(Start);   
    Reg#(Bit#(2))            nalrefidc   <- mkReg(0);
    Reg#(Bit#(5))            nalunittype <- mkReg(0);
@@ -170,7 +174,7 @@ module [HASIM_MODULE] mkEntropyDec();
    // Rules
 
    rule startup (state matches Start);
-      case (infifo.first()) matches
+      case (infifo.receive()) matches
 	 tagged NewUnit :
 	    begin
 	       infifo.deq();
@@ -189,7 +193,7 @@ module [HASIM_MODULE] mkEntropyDec();
 	 tagged EndOfFile :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EndOfFile);
+	       outfifo.send(EndOfFile);
 	       $display( "INFO EntropyDec: EndOfFile reached" );
 	    end
       endcase
@@ -197,7 +201,7 @@ module [HASIM_MODULE] mkEntropyDec();
 
    
    rule newunit (state matches NewUnit);
-      case (infifo.first()) matches
+      case (infifo.receive()) matches
 	 tagged NewUnit : state <= Start;
 	 tagged RbspByte .rdata :
 	    begin
@@ -222,8 +226,8 @@ module [HASIM_MODULE] mkEntropyDec();
 	       endcase
 	       $display("ccl2newunit");
 	       $display("ccl2rbspbyte %h", rdata);
-	       outfifo.enq(tagged NewUnit rdata);
-	       outfifo_ITB.enq(tagged NewUnit rdata);
+	       outfifo.send(tagged NewUnit rdata);
+	       outfifo_ITB.send(tagged NewUnit rdata);
 	    end
 	 tagged EndOfFile : state <= Start;
       endcase
@@ -234,7 +238,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			 && state != NewUnit
 			 && extrabufcount < 4
 			 && extraendnalflag == 0);
-      if(infifo.first() matches tagged RbspByte .dbyte)
+      if(infifo.receive() matches tagged RbspByte .dbyte)
 	 begin
 	    case ( extrabufcount )
 	       0: extrabuffer <= {dbyte, extrabuffer[23:0]};
@@ -273,7 +277,7 @@ module [HASIM_MODULE] mkEntropyDec();
       endcase
       extrabuffer <= 0;
       extrabufcount <= 0;
-      if(infifo.first()==NewUnit || infifo.first()==EndOfFile)
+      if(infifo.receive()==NewUnit || infifo.receive()==EndOfFile)
 	 endnalflag <= 1;
       //$display( "TRACE EntropyDec: fillbuffer RbspByte %h %h %h %h %h %h %h %h", extrabufcount, bufcount, extrabuffer, temp, temp2, (temp << zeroExtend(temp2)), buffer, (buffer | (temp << zeroExtend(temp2))));
    endrule
@@ -296,7 +300,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  0:
 		  begin
 		     $display( "ccl2SHfirst_mb_in_slice %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHfirst_mb_in_slice truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHfirst_mb_in_slice truncate(expgolomb_unsigned(buffer)));
 		     currMbAddr <= truncate(expgolomb_unsigned(buffer));
 		     calcnc.initialize(truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
@@ -305,7 +309,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  1:
 		  begin
 		     $display( "ccl2SHslice_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHslice_type truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHslice_type truncate(expgolomb_unsigned(buffer)));
 		     shslice_type <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 2;
@@ -313,7 +317,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  2:
 		  begin
 		     $display( "ccl2SHpic_parameter_set_id %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 3;
 		     if(ppspic_parameter_set_id != truncate(expgolomb_unsigned(buffer))) $display( "ERROR EntropyDec: pic_parameter_set_id don't match" );
@@ -323,7 +327,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
 		     tttt = tttt >> 16 - zeroExtend(spslog2_max_frame_num);
 		     $display( "ccl2SHframe_num %0d", tttt );
-		     outfifo.enq(tagged SHframe_num tttt);
+		     outfifo.send(tagged SHframe_num tttt);
 		     numbitsused = zeroExtend(spslog2_max_frame_num);
 		     nextstate = tagged CodedSlice 4;
 		  end
@@ -332,7 +336,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(nalunittype == 5)
 			begin
 			   $display( "ccl2SHidr_pic_id %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq(tagged SHidr_pic_id truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send(tagged SHidr_pic_id truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     nextstate = tagged CodedSlice 5;
@@ -344,7 +348,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			   Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
 			   tttt = tttt >> 16 - zeroExtend(spslog2_max_pic_order_cnt_lsb);
 			   $display( "ccl2SHpic_order_cnt_lsb %0d", tttt );
-			   outfifo.enq(tagged SHpic_order_cnt_lsb tttt);
+			   outfifo.send(tagged SHpic_order_cnt_lsb tttt);
 			   numbitsused = zeroExtend(spslog2_max_pic_order_cnt_lsb);
 			   nextstate = tagged CodedSlice 6;
 			end
@@ -366,7 +370,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 				 $display( "ccl2SHdelta_pic_order_cnt_bottom %0d", tempint32 );
-				 outfifo.enq(tagged SHdelta_pic_order_cnt_bottom truncate(expgolomb_signed32(buffer,egnumbits)));
+				 outfifo.send(tagged SHdelta_pic_order_cnt_bottom truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
 				 nextstate = tagged CodedSlice 7;
@@ -390,7 +394,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 				 $display( "ccl2SHdelta_pic_order_cnt0 %0d", tempint32 );
-				 outfifo.enq(tagged SHdelta_pic_order_cnt0 truncate(expgolomb_signed32(buffer,egnumbits)));
+				 outfifo.send(tagged SHdelta_pic_order_cnt0 truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
 				 nextstate = tagged CodedSlice 8;
@@ -414,7 +418,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 				 $display( "ccl2SHdelta_pic_order_cnt1 %0d", tempint32 );
-				 outfifo.enq(tagged SHdelta_pic_order_cnt1 truncate(expgolomb_signed32(buffer,egnumbits)));
+				 outfifo.send(tagged SHdelta_pic_order_cnt1 truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
 				 nextstate = tagged CodedSlice 9;
@@ -428,7 +432,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shslice_type == 0 || shslice_type == 5)
 			begin
 			   $display( "ccl2SHnum_ref_idx_active_override_flag %0d", buffer[buffersize-1] );
-			   outfifo.enq(tagged SHnum_ref_idx_active_override_flag buffer[buffersize-1]);
+			   outfifo.send(tagged SHnum_ref_idx_active_override_flag buffer[buffersize-1]);
 			   numbitsused = 1;
 			   if(buffer[buffersize-1] == 1)
 			      nextstate = tagged CodedSlice 10;
@@ -441,7 +445,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  10:
 		  begin
 		     $display( "ccl2SHnum_ref_idx_l0_active %0d", expgolomb_unsigned(buffer)+1 );
-		     outfifo.enq(tagged SHnum_ref_idx_l0_active truncate(expgolomb_unsigned(buffer)+1));
+		     outfifo.send(tagged SHnum_ref_idx_l0_active truncate(expgolomb_unsigned(buffer)+1));
 		     num_ref_idx_l0_active_minus1 <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 11;
@@ -451,7 +455,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shslice_type != 2 && shslice_type != 7)
 			begin
 			   $display( "ccl2SHRref_pic_list_reordering_flag_l0 %0d", buffer[buffersize-1] );
-			   outfifo.enq(tagged SHRref_pic_list_reordering_flag_l0 buffer[buffersize-1]);
+			   outfifo.send(tagged SHRref_pic_list_reordering_flag_l0 buffer[buffersize-1]);
 			   numbitsused = 1;
 			   if(buffer[buffersize-1] == 1)
 			      nextstate = tagged CodedSlice 12;
@@ -464,7 +468,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  12:
 		  begin 
 		     $display( "ccl2SHRreordering_of_pic_nums_idc %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHRreordering_of_pic_nums_idc truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHRreordering_of_pic_nums_idc truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(expgolomb_unsigned(buffer)==0 || expgolomb_unsigned(buffer)==1)
 			nextstate = tagged CodedSlice 13;
@@ -477,14 +481,14 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     Bit#(17) temp17 = zeroExtend(expgolomb_unsigned(buffer)) + 1;
 		     $display( "ccl2SHRabs_diff_pic_num %0d", temp17 );
-		     outfifo.enq(tagged SHRabs_diff_pic_num temp17);
+		     outfifo.send(tagged SHRabs_diff_pic_num temp17);
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 12;
 		  end
 		  14:
 		  begin
 		     $display( "ccl2SHRlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHRlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHRlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 12;
 		  end
@@ -497,7 +501,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			   if(nalunittype == 5)
 			      begin
 				 $display( "ccl2SHDno_output_of_prior_pics_flag %0d", buffer[buffersize-1] );
-				 outfifo.enq(tagged SHDno_output_of_prior_pics_flag buffer[buffersize-1]);
+				 outfifo.send(tagged SHDno_output_of_prior_pics_flag buffer[buffersize-1]);
 				 numbitsused = 1;
 				 nextstate = tagged CodedSlice 16;
 			      end
@@ -508,14 +512,14 @@ module [HASIM_MODULE] mkEntropyDec();
 		  16:
 		  begin
 		     $display( "ccl2SHDlong_term_reference_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SHDlong_term_reference_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SHDlong_term_reference_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged CodedSlice 23;
 		  end
 		  17:
 		  begin
 		     $display( "ccl2SHDadaptive_ref_pic_marking_mode_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SHDadaptive_ref_pic_marking_mode_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SHDadaptive_ref_pic_marking_mode_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     if(buffer[buffersize-1] == 1)
 			nextstate = tagged CodedSlice 18;
@@ -525,7 +529,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  18:
 		  begin
 		     $display( "ccl2SHDmemory_management_control_operation %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SHDmemory_management_control_operation truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SHDmemory_management_control_operation truncate(expgolomb_unsigned(buffer)));
 		     shdmemory_management_control_operation <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(expgolomb_unsigned(buffer)!=0)
@@ -539,7 +543,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		       	begin
 			   Bit#(17) temp17 = zeroExtend(expgolomb_unsigned(buffer)) + 1;
 			   $display( "ccl2SHDdifference_of_pic_nums %0d", temp17 );
-			   outfifo.enq(tagged SHDdifference_of_pic_nums temp17);
+			   outfifo.send(tagged SHDdifference_of_pic_nums temp17);
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 20;
 			end
@@ -551,7 +555,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shdmemory_management_control_operation==2)
 		       	begin
 			   $display( "ccl2SHDlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq(tagged SHDlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send(tagged SHDlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 21;
 			end
@@ -563,7 +567,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shdmemory_management_control_operation==3 || shdmemory_management_control_operation==6)
 		       	begin
 			   $display( "ccl2SHDlong_term_frame_idx %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq(tagged SHDlong_term_frame_idx truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send(tagged SHDlong_term_frame_idx truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 22;
 			end
@@ -575,7 +579,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shdmemory_management_control_operation==4)
 		       	begin
 			   $display( "ccl2SHDmax_long_term_frame_idx_plus1 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq(tagged SHDmax_long_term_frame_idx_plus1 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send(tagged SHDmax_long_term_frame_idx_plus1 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 18;
 			end
@@ -586,7 +590,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SHslice_qp_delta %0d", tempint );
-		     outfifo_ITB.enq(tagged SHslice_qp_delta truncate(expgolomb_signed(buffer)));
+		     outfifo_ITB.send(tagged SHslice_qp_delta truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 24;
 		  end
@@ -595,7 +599,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(ppsdeblocking_filter_control_present_flag==1)
 			begin
 			   $display( "ccl2SHdisable_deblocking_filter_idc %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq(tagged SHdisable_deblocking_filter_idc truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send(tagged SHdisable_deblocking_filter_idc truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   if(expgolomb_unsigned(buffer)!=1)
 			      nextstate = tagged CodedSlice 25;
@@ -609,7 +613,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer) << 1);
 		     $display( "ccl2SHslice_alpha_c0_offset %0d", tempint );
-		     outfifo.enq(tagged SHslice_alpha_c0_offset truncate(expgolomb_signed(buffer) << 1));
+		     outfifo.send(tagged SHslice_alpha_c0_offset truncate(expgolomb_signed(buffer) << 1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 26;
 		  end
@@ -617,7 +621,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer) << 1);
 		     $display( "ccl2SHslice_beta_offset %0d", tempint );
-		     outfifo.enq(tagged SHslice_beta_offset truncate(expgolomb_signed(buffer) << 1));
+		     outfifo.send(tagged SHslice_beta_offset truncate(expgolomb_signed(buffer) << 1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 27;
 		  end
@@ -650,7 +654,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  1:
 		  begin
 		     $display( "ccl2SPSseq_parameter_set_id %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSseq_parameter_set_id truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSseq_parameter_set_id truncate(expgolomb_unsigned(buffer)));
 		     spsseq_parameter_set_id <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 2;
@@ -658,7 +662,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  2:
 		  begin
 		     $display( "ccl2SPSlog2_max_frame_num %0d", expgolomb_unsigned(buffer)+4 );
-		     outfifo.enq(tagged SPSlog2_max_frame_num truncate(expgolomb_unsigned(buffer)+4));
+		     outfifo.send(tagged SPSlog2_max_frame_num truncate(expgolomb_unsigned(buffer)+4));
 		     spslog2_max_frame_num <= truncate(expgolomb_unsigned(buffer)+4);
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 3;
@@ -667,7 +671,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     let tttt = expgolomb_unsigned(buffer);
 		     $display( "ccl2SPSpic_order_cnt_type %0d", tttt );
-		     outfifo.enq(tagged SPSpic_order_cnt_type truncate(tttt));
+		     outfifo.send(tagged SPSpic_order_cnt_type truncate(tttt));
 		     spspic_order_cnt_type <= truncate(tttt);
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(tttt == 0) 
@@ -680,7 +684,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  4:
 		  begin
 		     $display( "ccl2SPSlog2_max_pic_order_cnt_lsb %0d", expgolomb_unsigned(buffer)+4 );
-		     outfifo.enq(tagged SPSlog2_max_pic_order_cnt_lsb truncate(expgolomb_unsigned(buffer)+4));
+		     outfifo.send(tagged SPSlog2_max_pic_order_cnt_lsb truncate(expgolomb_unsigned(buffer)+4));
 		     spslog2_max_pic_order_cnt_lsb <= truncate(expgolomb_unsigned(buffer)+4);
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 10;
@@ -688,7 +692,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  5:
 		  begin
 		     $display( "ccl2SPSdelta_pic_order_always_zero_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SPSdelta_pic_order_always_zero_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SPSdelta_pic_order_always_zero_flag buffer[buffersize-1]);
 		     spsdelta_pic_order_always_zero_flag <= buffer[buffersize-1];
 		     numbitsused = 1;
 		     nextstate = tagged SPS 6;
@@ -706,7 +710,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 			   $display( "ccl2SPSoffset_for_non_ref_pic %0d", tempint32 );
-			   outfifo.enq(tagged SPSoffset_for_non_ref_pic truncate(expgolomb_signed32(buffer,egnumbits)));
+			   outfifo.send(tagged SPSoffset_for_non_ref_pic truncate(expgolomb_signed32(buffer,egnumbits)));
 			   egnumbits <= 0;
 			   numbitsused = egnumbits;
 			   nextstate = tagged SPS 7;
@@ -725,7 +729,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 			   $display( "ccl2SPSoffset_for_top_to_bottom_field %0d", tempint32 );
-			   outfifo.enq(tagged SPSoffset_for_top_to_bottom_field truncate(expgolomb_signed32(buffer,egnumbits)));
+			   outfifo.send(tagged SPSoffset_for_top_to_bottom_field truncate(expgolomb_signed32(buffer,egnumbits)));
 			   egnumbits <= 0;
 			   numbitsused = egnumbits;
 			   nextstate = tagged SPS 8;
@@ -734,7 +738,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  8:
 		  begin
 		     $display( "ccl2SPSnum_ref_frames_in_pic_order_cnt_cycle %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSnum_ref_frames_in_pic_order_cnt_cycle truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSnum_ref_frames_in_pic_order_cnt_cycle truncate(expgolomb_unsigned(buffer)));
 		     spsnum_ref_frames_in_pic_order_cnt_cycle <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 9;
@@ -756,7 +760,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
 				 $display( "ccl2SPSoffset_for_ref_frame %0d", tempint32 );
-				 outfifo.enq(tagged SPSoffset_for_ref_frame truncate(expgolomb_signed32(buffer,egnumbits)));
+				 outfifo.send(tagged SPSoffset_for_ref_frame truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 spsnum_ref_frames_in_pic_order_cnt_cycle <= spsnum_ref_frames_in_pic_order_cnt_cycle - 1;
 				 numbitsused = egnumbits;
@@ -767,21 +771,21 @@ module [HASIM_MODULE] mkEntropyDec();
 		  10:
 		  begin
 		     $display( "ccl2SPSnum_ref_frames %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSnum_ref_frames truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSnum_ref_frames truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 11;
 		  end
 		  11:
 		  begin
 		     $display( "ccl2SPSgaps_in_frame_num_allowed_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SPSgaps_in_frame_num_allowed_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SPSgaps_in_frame_num_allowed_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged SPS 12;
 		  end
 		  12:
 		  begin
 		     $display( "ccl2SPSpic_width_in_mbs %0d", expgolomb_unsigned(buffer)+1 );
-		     outfifo.enq(tagged SPSpic_width_in_mbs truncate(expgolomb_unsigned(buffer)+1));
+		     outfifo.send(tagged SPSpic_width_in_mbs truncate(expgolomb_unsigned(buffer)+1));
 		     calcnc.initialize_picWidth(truncate(expgolomb_unsigned(buffer)+1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 13;
@@ -789,7 +793,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  13:
 		  begin
 		     $display( "ccl2SPSpic_height_in_map_units %0d", expgolomb_unsigned(buffer)+1 );
-		     outfifo.enq(tagged SPSpic_height_in_map_units truncate(expgolomb_unsigned(buffer)+1));
+		     outfifo.send(tagged SPSpic_height_in_map_units truncate(expgolomb_unsigned(buffer)+1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 14;
 		  end
@@ -802,14 +806,14 @@ module [HASIM_MODULE] mkEntropyDec();
 		  15:
 		  begin
 		     $display( "ccl2SPSdirect_8x8_inference_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SPSdirect_8x8_inference_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SPSdirect_8x8_inference_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged SPS 16;
 		  end
 		  16:
 		  begin
 		     $display( "ccl2SPSframe_cropping_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged SPSframe_cropping_flag buffer[buffersize-1]);
+		     outfifo.send(tagged SPSframe_cropping_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     if(buffer[buffersize-1] == 1) 
 			nextstate = tagged SPS 17;
@@ -819,28 +823,28 @@ module [HASIM_MODULE] mkEntropyDec();
 		  17:
 		  begin
 		     $display( "ccl2SPSframe_crop_left_offset %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSframe_crop_left_offset truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSframe_crop_left_offset truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 18;
 		  end
 		  18:
 		  begin
 		     $display( "ccl2SPSframe_crop_right_offset %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSframe_crop_right_offset truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSframe_crop_right_offset truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 19;
 		  end
 		  19:
 		  begin
 		     $display( "ccl2SPSframe_crop_top_offset %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSframe_crop_top_offset truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSframe_crop_top_offset truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 20;
 		  end
 		  20:
 		  begin
 		     $display( "ccl2SPSframe_crop_bottom_offset %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged SPSframe_crop_bottom_offset truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged SPSframe_crop_bottom_offset truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SPS 21;
 		  end
@@ -859,15 +863,15 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     ppspic_parameter_set_id <= truncate(expgolomb_unsigned(buffer));
 		     $display( "ccl2PPSpic_parameter_set_id %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged PPSpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
-		     outfifo_ITB.enq(tagged PPSpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged PPSpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
+		     outfifo_ITB.send(tagged PPSpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 1;
 		  end
 		  1:
 		  begin
 		     $display( "ccl2PPSseq_parameter_set_id %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq(tagged PPSseq_parameter_set_id truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send(tagged PPSseq_parameter_set_id truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 2;
 		     if(spsseq_parameter_set_id != truncate(expgolomb_unsigned(buffer))) 
@@ -883,7 +887,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     ppspic_order_present_flag <= buffer[buffersize-1];
 		     $display( "ccl2PPSpic_order_present_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq(tagged PPSpic_order_present_flag buffer[buffersize-1]);
+		     outfifo.send(tagged PPSpic_order_present_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged PPS 4;
 		  end
@@ -897,7 +901,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  5:
 		  begin
 		     $display( "ccl2PPSnum_ref_idx_l0_active %0d", expgolomb_unsigned(buffer)+1 );
-		     outfifo.enq(tagged PPSnum_ref_idx_l0_active truncate(expgolomb_unsigned(buffer)+1));
+		     outfifo.send(tagged PPSnum_ref_idx_l0_active truncate(expgolomb_unsigned(buffer)+1));
 		     num_ref_idx_l0_active_minus1 <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 6;
@@ -905,7 +909,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  6:
 		  begin
 		     $display( "ccl2PPSnum_ref_idx_l1_active %0d", expgolomb_unsigned(buffer)+1 );
-		     outfifo.enq( tagged PPSnum_ref_idx_l1_active truncate(expgolomb_unsigned(buffer)+1));
+		     outfifo.send( tagged PPSnum_ref_idx_l1_active truncate(expgolomb_unsigned(buffer)+1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 7;
 		  end
@@ -918,7 +922,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  8:
 		  begin
 		     $display( "ccl2PPSpic_init_qp %0d", expgolomb_signed(buffer)+26 );
-		     outfifo_ITB.enq(tagged PPSpic_init_qp truncate(expgolomb_signed(buffer)+26));
+		     outfifo_ITB.send(tagged PPSpic_init_qp truncate(expgolomb_signed(buffer)+26));
 		     numbitsused = expgolomb_numbits(buffer);
 
 		     nextstate = tagged PPS 9;
@@ -926,7 +930,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  9:
 		  begin
 		     $display( "ccl2PPSpic_init_qs %0d", expgolomb_signed(buffer)+26 );
-		     outfifo_ITB.enq(tagged PPSpic_init_qs truncate(expgolomb_signed(buffer)+26));
+		     outfifo_ITB.send(tagged PPSpic_init_qs truncate(expgolomb_signed(buffer)+26));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 10;
 		  end
@@ -934,7 +938,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2PPSchroma_qp_index_offset %0d", tempint );
-		     outfifo_ITB.enq(tagged PPSchroma_qp_index_offset truncate(expgolomb_signed(buffer)));
+		     outfifo_ITB.send(tagged PPSchroma_qp_index_offset truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged PPS 11;
 		  end
@@ -942,14 +946,14 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     ppsdeblocking_filter_control_present_flag <= buffer[buffersize-1];
 		     $display( "ccl2PPSdeblocking_filter_control_present_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq( tagged PPSdeblocking_filter_control_present_flag buffer[buffersize-1]);
+		     outfifo.send( tagged PPSdeblocking_filter_control_present_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged PPS 12;
 		  end
 		  12:
 		  begin
 		     $display( "ccl2PPSconstrained_intra_pred_flag %0d", buffer[buffersize-1] );
-		     outfifo.enq( tagged PPSconstrained_intra_pred_flag buffer[buffersize-1]);
+		     outfifo.send( tagged PPSconstrained_intra_pred_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged PPS 13;
 		  end
@@ -970,18 +974,18 @@ module [HASIM_MODULE] mkEntropyDec();
 	    end
 	 tagged AUD .step : 
 	    begin
-	       outfifo.enq( tagged AUDPrimaryPicType buffer[buffersize-1:buffersize-3]);
+	       outfifo.send( tagged AUDPrimaryPicType buffer[buffersize-1:buffersize-3]);
 	       numbitsused = 3;
 	       nextstate = Start;
 	    end
 	 tagged EndSequence : 
 	    begin
-	       outfifo.enq( tagged EndOfSequence);
+	       outfifo.send( tagged EndOfSequence);
 	       nextstate = Start;
 	    end
 	 tagged EndStream : 
 	    begin
-	       outfifo.enq( tagged EndOfStream);
+	       outfifo.send( tagged EndOfStream);
 	       nextstate = Start;
 	    end
 	 tagged Filler : 
@@ -996,7 +1000,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if( shslice_type!=2 && shslice_type!=7 )
 			begin
 			   $display( "ccl2SDmb_skip_run %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDmb_skip_run truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDmb_skip_run truncate(expgolomb_unsigned(buffer)));
 			   tempreg <= truncate(expgolomb_unsigned(buffer));
 			   calcnc.nNupdate_pskip( truncate(expgolomb_unsigned(buffer)) );
 			   numbitsused = expgolomb_numbits(buffer);
@@ -1016,7 +1020,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     else
 			begin
 			   ////$display( "ccl2SDcurrMbAddr %0d", currMbAddr );
-			   ////outfifo.enq( tagged SDcurrMbAddr currMbAddr);
+			   ////outfifo.send( tagged SDcurrMbAddr currMbAddr);
 			   nextstate = tagged SliceData 2;
 			end
 		  end
@@ -1047,8 +1051,8 @@ module [HASIM_MODULE] mkEntropyDec();
 		  0:
 		  begin
 		     $display( "ccl2SDMmb_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq( tagged SDMmbtype mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type) );
-		     outfifo_ITB.enq(tagged SDMmbtype mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type) );
+		     outfifo.send( tagged SDMmbtype mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type) );
+		     outfifo_ITB.send(tagged SDMmbtype mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type) );
 		     sdmmbtype <= mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type);
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(mbtype_convert(truncate(expgolomb_unsigned(buffer)), shslice_type) == I_PCM)
@@ -1071,7 +1075,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   Bit#(8) outputdata = buffer[buffersize-1:buffersize-8];
 			   $display( "ccl2SDMpcm_sample_luma %0d", outputdata );
-			   outfifo.enq( tagged SDMpcm_sample_luma outputdata);
+			   outfifo.send( tagged SDMpcm_sample_luma outputdata);
 			   tempreg <= tempreg-1;
 			   numbitsused = 8;
 			   nextstate = tagged MacroblockLayer 2;
@@ -1088,7 +1092,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   Bit#(8) outputdata = buffer[buffersize-1:buffersize-8];
 			   $display( "ccl2SDMpcm_sample_chroma %0d", outputdata );
-			   outfifo.enq( tagged SDMpcm_sample_chroma outputdata);
+			   outfifo.send( tagged SDMpcm_sample_chroma outputdata);
 			   tempreg <= tempreg-1;
 			   numbitsused = 8;
 			   nextstate = tagged MacroblockLayer 3;
@@ -1110,7 +1114,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(mbPartPredMode(sdmmbtype,0) != Intra_16x16)
 			begin
 			   $display( "ccl2SDMcoded_block_pattern %0d", expgolomb_coded_block_pattern(buffer,sdmmbtype) );
-			   ////outfifo.enq( tagged SDMcoded_block_pattern expgolomb_coded_block_pattern(buffer,sdmmbtype));
+			   ////outfifo.send( tagged SDMcoded_block_pattern expgolomb_coded_block_pattern(buffer,sdmmbtype));
 			   sdmcodedBlockPatternLuma <= expgolomb_coded_block_pattern(buffer,sdmmbtype)[3:0];
 			   sdmcodedBlockPatternChroma <= expgolomb_coded_block_pattern(buffer,sdmmbtype)[5:4];
 			   numbitsused = expgolomb_numbits(buffer);
@@ -1135,7 +1139,7 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   tempint = unpack(expgolomb_signed(buffer));
 			   $display( "ccl2SDMmb_qp_delta %0d", tempint );
-			   outfifo_ITB.enq(tagged SDMmb_qp_delta truncate(expgolomb_signed(buffer)));
+			   outfifo_ITB.send(tagged SDMmb_qp_delta truncate(expgolomb_signed(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     residualChroma <= 0;
@@ -1154,7 +1158,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(mbPartPredMode(sdmmbtype,0) == Intra_16x16)
 			begin
 			   $display( "ccl2SDMMintra_chroma_pred_mode %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMMintra_chroma_pred_mode truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMMintra_chroma_pred_mode truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged MacroblockLayer 5;
 			end
@@ -1179,7 +1183,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(temp5bit == 0)
 			begin
 			   $display( "ccl2SDMMintra_chroma_pred_mode %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMMintra_chroma_pred_mode truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMMintra_chroma_pred_mode truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged MacroblockLayer 5;
 			end
@@ -1190,12 +1194,12 @@ module [HASIM_MODULE] mkEntropyDec();
 			      begin
 				 Bit#(4) tttt = buffer[buffersize-1:buffersize-4];
 				 $display( "ccl2SDMMrem_intra4x4_pred_mode %0d", tttt );
-				 outfifo.enq( tagged SDMMrem_intra4x4_pred_mode tttt);
+				 outfifo.send( tagged SDMMrem_intra4x4_pred_mode tttt);
 				 numbitsused = 4;
 			      end
 			   else
 			      begin
-				 outfifo.enq( tagged SDMMrem_intra4x4_pred_mode 4'b1000);
+				 outfifo.send( tagged SDMMrem_intra4x4_pred_mode 4'b1000);
 				 numbitsused = 1;
 			      end
 			   temp5bit <= temp5bit-1;
@@ -1207,13 +1211,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(num_ref_idx_l0_active_minus1 == 1)
 			begin
 			   $display( "ccl2SDMMref_idx_l0 %0d", 1-buffer[buffersize-1] );
-			   outfifo.enq( tagged SDMMref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
+			   outfifo.send( tagged SDMMref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
 			   numbitsused = 1;
 			end
 		     else
 			begin
 			   $display( "ccl2SDMMref_idx_l0 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMMref_idx_l0 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMMref_idx_l0 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     if(temp3bit0 == 1)
@@ -1231,7 +1235,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMMmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMMmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMMmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged MbPrediction 4;
 		  end
@@ -1239,7 +1243,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMMmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMMmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMMmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     temp3bit0 <= temp3bit0-1;
 		     if(temp3bit0 == 1)
@@ -1256,7 +1260,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  0:
 		  begin
 		     $display( "ccl2SDMSsub_mb_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
 		     temp3bit0 <= numSubMbPart(truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 1;
@@ -1264,7 +1268,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  1:
 		  begin
 		     $display( "ccl2SDMSsub_mb_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
 		     temp3bit1 <= numSubMbPart(truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 2;
@@ -1272,7 +1276,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  2:
 		  begin
 		     $display( "ccl2SDMSsub_mb_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
 		     temp3bit2 <= numSubMbPart(truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 3;
@@ -1280,7 +1284,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  3:
 		  begin
 		     $display( "ccl2SDMSsub_mb_type %0d", expgolomb_unsigned(buffer) );
-		     outfifo.enq( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
+		     outfifo.send( tagged SDMSsub_mb_type truncate(expgolomb_unsigned(buffer)));
 		     temp3bit3 <= numSubMbPart(truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(num_ref_idx_l0_active_minus1 > 0
@@ -1294,13 +1298,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(num_ref_idx_l0_active_minus1 == 1)
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", 1-buffer[buffersize-1] );
-			   outfifo.enq( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
+			   outfifo.send( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
 			   numbitsused = 1;
 			end
 		     else
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     nextstate = tagged SubMbPrediction 5;
@@ -1310,13 +1314,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(num_ref_idx_l0_active_minus1 == 1)
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", 1-buffer[buffersize-1] );
-			   outfifo.enq( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
+			   outfifo.send( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
 			   numbitsused = 1;
 			end
 		     else
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     nextstate = tagged SubMbPrediction 6;
@@ -1326,13 +1330,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(num_ref_idx_l0_active_minus1 == 1)
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", 1-buffer[buffersize-1] );
-			   outfifo.enq( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
+			   outfifo.send( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
 			   numbitsused = 1;
 			end
 		     else
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     nextstate = tagged SubMbPrediction 7;
@@ -1342,13 +1346,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(num_ref_idx_l0_active_minus1 == 1)
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", 1-buffer[buffersize-1] );
-			   outfifo.enq( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
+			   outfifo.send( tagged SDMSref_idx_l0 zeroExtend(1-buffer[buffersize-1]));
 			   numbitsused = 1;
 			end
 		     else
 			begin
 			   $display( "ccl2SDMSref_idx_l0 %0d", expgolomb_unsigned(buffer) );
-			   outfifo.enq( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
+			   outfifo.send( tagged SDMSref_idx_l0 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
 		     nextstate = tagged SubMbPrediction 8;
@@ -1357,7 +1361,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 9;
 		  end
@@ -1365,7 +1369,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     temp3bit0 <= temp3bit0-1;
 		     if(temp3bit0 == 1)
@@ -1377,7 +1381,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 11;
 		  end
@@ -1385,7 +1389,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     temp3bit1 <= temp3bit1-1;
 		     if(temp3bit1 == 1)
@@ -1397,7 +1401,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 13;
 		  end
@@ -1405,7 +1409,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     temp3bit2 <= temp3bit2-1;
 		     if(temp3bit2 == 1)
@@ -1417,7 +1421,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged SubMbPrediction 15;
 		  end
@@ -1425,7 +1429,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
 		     $display( "ccl2SDMSmvd_l0 %0d", tempint );
-		     outfifo.enq( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
+		     outfifo.send( tagged SDMSmvd_l0 truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     temp3bit3 <= temp3bit3-1;
 		     if(temp3bit3 == 1)
@@ -1456,18 +1460,18 @@ module [HASIM_MODULE] mkEntropyDec();
 		     else if(residualChroma==0 && (sdmcodedBlockPatternLuma & (1 << zeroExtend(temp5bit[3:2])))==0)
 			begin
 			   calcnc.nNupdate_luma(truncate(temp5bit),0);
-			   outfifo_ITB.enq(tagged SDMRcoeffLevelZeros maxNumCoeff);
+			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros maxNumCoeff);
 			   nextstate = tagged ResidualBlock 5;
 			end
 		     else if(residualChroma==1 && maxNumCoeff==4 && (sdmcodedBlockPatternChroma & 3)==0)
 			begin
-			   outfifo_ITB.enq(tagged SDMRcoeffLevelZeros 4);
+			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros 4);
 			   nextstate = tagged ResidualBlock 5;
 			end
 		     else if(residualChroma==1 && maxNumCoeff!=4 && (sdmcodedBlockPatternChroma & 2)==0)
 			begin
 			   calcnc.nNupdate_chroma(truncate(temp5bit),0);
-			   outfifo_ITB.enq(tagged SDMRcoeffLevelZeros 15);
+			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros 15);
 			   nextstate = tagged ResidualBlock 5;
 			end
 		     else
@@ -1578,7 +1582,7 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft) > 0)
 			begin
 			   $display( "ccl2SDMRcoeffLevelZeros %0d", maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft) );
-			   outfifo_ITB.enq(tagged SDMRcoeffLevelZeros (maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft)));
+			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros (maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft)));
 			end
 		     nextstate = tagged ResidualBlock 5;
 		  end
@@ -1596,12 +1600,12 @@ module [HASIM_MODULE] mkEntropyDec();
 				 else
 				    run_before = zerosLeft;
 				 zerosLeft <= zerosLeft - run_before;
-				 outfifo_ITB.enq(tagged SDMRcoeffLevelPlusZeros {level:cavlcFIFO.first(),zeros:zeroExtend(run_before)});
+				 outfifo_ITB.send(tagged SDMRcoeffLevelPlusZeros {level:cavlcFIFO.first(),zeros:zeroExtend(run_before)});
 				 if( run_before > 0 )
 				    $display( "ccl2SDMRcoeffLevelZeros %0d", run_before );
 			      end
 			   else
-			      outfifo_ITB.enq(tagged SDMRcoeffLevelPlusZeros {level:cavlcFIFO.first(),zeros:0});
+			      outfifo_ITB.send(tagged SDMRcoeffLevelPlusZeros {level:cavlcFIFO.first(),zeros:0});
 			   cavlcFIFO.deq();
 			   totalCoeff <= totalCoeff-1;
 			end
@@ -1665,24 +1669,6 @@ module [HASIM_MODULE] mkEntropyDec();
       
    endrule
    
-   Connection_Send#(EntropyDecOT) outfifoTX <- mkConnection_Send("mkPrediction_infifo");
-   
-   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));     
-
-
-   Connection_Send#(EntropyDecOT_InverseTrans) outfifo_ITBTX <- mkConnection_Send("mkInverseTransform_infifo");
- 
-   mkConnection(fifoToGet(outfifo_ITB),connectionToPut(outfifo_ITBTX));     
-  
-   Connection_Receive#(NalUnwrapOT) infifoRX <- mkConnection_Receive("mkEntropyDec_infifo");
-
-   mkConnection(connectionToGet(infifoRX),fifoToPut(infifo));
-
-   //interface Put ioin  = fifoToPut(infifo);
-   //interface Get ioout = fifoToGet(outfifo);
-   //interface Get ioout_InverseTrans = fifoToGet(outfifo_ITB);
-
-   //interface mem_client = calcnc.mem_client; 
       
 endmodule
 

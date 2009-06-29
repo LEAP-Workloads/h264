@@ -308,23 +308,25 @@ endmodule
 //(* synthesize *)
 module [HASIM_MODULE] mkDeblockFilter( );
 
-   FIFOF#(EntropyDecOT) infifo     <- mkSizedFIFOF(deblockFilter_infifo_size);
-   FIFO#(DeblockFilterOT) outfifo <- mkFIFO();
+
+   Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkDeblocking_infifo");
+   Connection_Receive#(MemResp#(13)) parameterMemRespQ <- mkConnection_Receive("mkDeblocking_parameterMemRespQ");
+   Connection_Receive#(MemResp#(32)) dataMemRespQ <- mkConnection_Receive("mkDeblocking_dataMemRespQ");
+   Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifo");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQ <- mkConnection_Send("mkDeblocking_dataMemStoreReqQ");  
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQ <- mkConnection_Send("mkDeblocking_dataMemLoadReqQ");
+   Connection_Send#(MemReq#(PicWidthSz,13)) parameterMemReqQ <- mkConnection_Send("mkDeblocking_parameterMemReqQ");
+  
+
+
    FIFO#(DeblockFilterOT) outfifoVertical <- mkSizedFIFO(5);
 
-   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQ       <- mkFIFO;
-   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQ       <- mkFIFO;   
 
    FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) memReqRowToColumnConversion <- mkFIFO();
                                                                                          
                             
    FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) memReqVertical              <- mkFIFO();
  
-
-   FIFO#(MemReq#(PicWidthSz,13))          parameterMemReqQ  <- mkFIFO;
-   FIFOF#(MemResp#(32))                    dataMemRespQ      <- mkFIFOF;
-   FIFOF#(MemResp#(13))                    parameterMemRespQ <- mkFIFOF;
-
    Reg#(Process) process       <- mkReg(Passing);
    Reg#(VerticalState) verticalState <- mkReg(NormalOperation);
    Reg#(Bit#(1)) chromaFlagHor <- mkReg(0);
@@ -425,8 +427,8 @@ module [HASIM_MODULE] mkDeblockFilter( );
    endrule
 
    rule checkFIFO ( True );
-      $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.first(), total_cycles );
-      $display( "TRACE DeblockFilter: checkFIFO %h", infifo.first() );
+      $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.receive(), total_cycles );
+      $display( "TRACE DeblockFilter: checkFIFO %h", infifo.receive() );
       if(!infifo.notFull)
         begin
           fifo_full_count <= fifo_full_count + 1;
@@ -436,38 +438,38 @@ module [HASIM_MODULE] mkDeblockFilter( );
 
    rule memReqMergeRowToColumnConversion;
      memReqRowToColumnConversion.deq();
-     dataMemStoreReqQ.enq(memReqRowToColumnConversion.first());
+     dataMemStoreReqQ.send(memReqRowToColumnConversion.first());
    endrule
  
    rule memReqMergeVertical;
      memReqVertical.deq();
-     dataMemStoreReqQ.enq(memReqVertical.first());
+     dataMemStoreReqQ.send(memReqVertical.first());
    endrule
  
    rule outfifoVerticalSplit;
      outfifoVertical.deq();
-     outfifo.enq(outfifoVertical.first());
+     outfifo.send(outfifoVertical.first());
    endrule
 
    rule passing ( process matches Passing );
-      case (infifo.first()) matches
+      case (infifo.receive()) matches
 	 tagged NewUnit . xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	       $display("ccl5newunit");
 	       $display("ccl5rbspbyte %h", xdata);
 	    end
 	 tagged SPSpic_width_in_mbs .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	       picWidth <= xdata;
 	    end
 	 tagged SPSpic_height_in_map_units .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	       picHeight <= xdata; 
 	    end
 	 tagged PPSdeblocking_filter_control_present_flag .xdata :
@@ -483,7 +485,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	 tagged SHfirst_mb_in_slice .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	       firstMb   <= xdata;
 	       currMb    <= xdata;
 	       currMbHor <= xdata;
@@ -526,14 +528,14 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	 tagged EndOfFile :
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	       $display( "ccl5: EndOfFile reached");
 	       //$finish(0);
 	    end
 	 default:
 	    begin
 	       infifo.deq();
-	       outfifo.enq(EDOT (infifo.first()));
+	       outfifo.send(EDOT (infifo.receive()));
 	    end
       endcase
    endrule
@@ -569,10 +571,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
       $display( "TRACE Deblocking Filter: dataSendReq %0d", dataReqCount);
       Bit#(PicWidthSz) temp = truncate(currMbHor);
 	    if(dataReqCount==1)
-	       parameterMemReqQ.enq(tagged LoadReq (temp));
+	       parameterMemReqQ.send(tagged LoadReq (temp));
 	    Bit#(4) temp2 = truncate(dataReqCount-1);
 	    let temp3 = {temp,chromaFlagHor,temp2}; // here the troubles begin
-            dataMemLoadReqQ.enq(tagged LoadReq (temp3));
+            dataMemLoadReqQ.send(tagged LoadReq (temp3));
 	    if(dataReqCount==16)
 	       dataReqCount <= 0;
 	    else
@@ -686,14 +688,14 @@ module [HASIM_MODULE] mkDeblockFilter( );
          if(chromaFlag==0)
            begin
              $display("TRACE mkDeblockFilter: Outputting Luma ver{mbVer, blockVer(2), state}: %h, hor{mbHor, blockHor(2)}: %b, data: %h", {currMbVer,blockVer}, {currMbHorT,blockHor}, data_out); 
-             outfifo.enq(DFBLuma {ver:{currMbVer,blockVer,columnToRowState},
+             outfifo.send(DFBLuma {ver:{currMbVer,blockVer,columnToRowState},
                                   hor:{currMbHorT,blockHor},
                                   data:data_out});
            end
          else
            begin
  $display("TRACE mkDeblockFilter: Outputting Chroma %d ver{mbVer, blockVer(1), state(2)}: %b, hor{mbHor, blockHor(1)}: %b, data: %h",blockHor[1],{currMbVer,blockVer[0],columnToRowState},{currMbHorT,blockHor[0]},data_out); 
-             outfifo.enq(DFBChroma {uv:blockHor[1],
+             outfifo.send(DFBChroma {uv:blockHor[1],
                                     ver:{currMbVer,blockVer[0],columnToRowState},
                                     hor:{currMbHorT,blockHor[0]},
                                     data:data_out});
@@ -707,14 +709,14 @@ module [HASIM_MODULE] mkDeblockFilter( );
          if(chromaFlag==0)
            begin 
              $display("TRACE mkDeblockFilter: (Top Value) Outputting Luma ver{mbVer, blockVer(2), state(2)}: %b, hor{mbHor, blockHor(2)}: %h, data: %h",{currMbVer-1,2'b11,columnToRowState}, {currMbHorT,blockHor}, data_out); 
-             outfifo.enq(DFBLuma {ver:{currMbVer-1,2'b11,columnToRowState},
+             outfifo.send(DFBLuma {ver:{currMbVer-1,2'b11,columnToRowState},
                                   hor:{currMbHorT,blockHor},
                                   data:data_out});
            end
          else
            begin                
              $display("TRACE mkDeblockFilter: (Top Value) Outputting Chroma %d ver{mbVer, blockVer(1), state(2)}: %b, hor{mbHor, blockHor(1)}: %b, data: %h",blockHor[1],{currMbVer-1,1'b1,columnToRowState},{currMbHorT,blockHor[0]},data_out);              
-             outfifo.enq(DFBChroma {uv:blockHor[1],
+             outfifo.send(DFBChroma {uv:blockHor[1],
                                     ver:{currMbVer-1,1'b1,columnToRowState},
                                     hor:{currMbHorT,blockHor[0]},
                                     data:data_out});
@@ -742,7 +744,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
                begin
                  $display( "TRACE Deblocking Filter: horizontal bsFIFO chroma completed");
                  Bit#(PicWidthSz) temp = truncate(currMbHor);
-                 parameterMemReqQ.enq(StoreReq {addr:temp,data:{curr_intra,curr_qpc,curr_qpy}});
+                 parameterMemReqQ.send(StoreReq {addr:temp,data:{curr_intra,curr_qpc,curr_qpy}});
                  currMb <= currMb+1;
                  currMbHor <= currMbHor+1;
                  if(currMbVer==picHeight-1 && currMbHor==zeroExtend(picWidth-1))
@@ -779,13 +781,13 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	    Vector#(3,Bit#(5)) tc0temp = arrayToVector(tc0_table[indexA]);
 	    tc0Internal <= tc0temp;
 	 end
-      case (infifo.first()) matches
+      case (infifo.receive()) matches
 	 tagged PBbS .xdata :
 	    begin
 	       infifo.deq();	       
                bSfileHor.upd(blockNum, xdata.bShor);
                bSfileVer.upd(blockNum, xdata.bSver);
-               $display( "TRACE Deblocking Filter: horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",infifo.first(), blockHor, blockVer, pixelNum);
+               $display( "TRACE Deblocking Filter: horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",infifo.receive(), blockHor, blockVer, pixelNum);
 	    end
 	 tagged PBoutput .xdata :
 	    begin
@@ -1019,8 +1021,8 @@ module [HASIM_MODULE] mkDeblockFilter( );
       verticalFilterBlock.deq();
       if(topEdge)
         begin
-          if((dataMemRespQ.first()) matches tagged LoadResp .xdata &&&
-             (parameterMemRespQ.first()) matches tagged LoadResp .xparam)
+          if((dataMemRespQ.receive()) matches tagged LoadResp .xdata &&&
+             (parameterMemRespQ.receive()) matches tagged LoadResp .xparam)
 	       begin 
                  if((blockHor == 3) && (columnNumber + 1 == 0))
                    begin
@@ -1168,27 +1170,9 @@ end
 
   rule cleanup ( process==Cleanup && currMbHor<zeroExtend(picWidth) ); //XXX
     $display( "TRACE Deblocking Filter: cleanup %0d", currMb);
-    outfifo.enq(EndOfFrame);
+    outfifo.send(EndOfFrame);
     process <= Passing;
   endrule
-
-
-   Connection_Receive#(EntropyDecOT) infifoRX <- mkConnection_Receive("mkDeblocking_infifo");
-   Connection_Receive#(MemResp#(13)) parameterMemRespQRX <- mkConnection_Receive("mkDeblocking_parameterMemRespQ");
-   Connection_Receive#(MemResp#(32)) dataMemRespQRX <- mkConnection_Receive("mkDeblocking_dataMemRespQ");
-   Connection_Send#(DeblockFilterOT) outfifoTX <- mkConnection_Send("mkDeblocking_outfifo");  
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQTX <- mkConnection_Send("mkDeblocking_dataMemStoreReqQ");  
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQTX <- mkConnection_Send("mkDeblocking_dataMemLoadReqQ");
-   Connection_Send#(MemReq#(PicWidthSz,13)) parameterMemReqQTX <- mkConnection_Send("mkDeblocking_parameterMemReqQ");
-  
-   mkConnection(connectionToGet(infifoRX), fifoToPut(guardedfifofToFifo(infifo)));
-   mkConnection(connectionToGet(parameterMemRespQRX), fifoToPut(guardedfifofToFifo(parameterMemRespQ)));
-   mkConnection(connectionToGet(dataMemRespQRX), fifoToPut(guardedfifofToFifo(dataMemRespQ)));
-   mkConnection(fifoToGet(outfifo),connectionToPut(outfifoTX));  
-   mkConnection(fifoToGet(dataMemStoreReqQ),connectionToPut(dataMemStoreReqQTX));  
-   mkConnection(fifoToGet(dataMemLoadReqQ),connectionToPut(dataMemLoadReqQTX));  
-   mkConnection(fifoToGet(parameterMemReqQ),connectionToPut(parameterMemReqQTX));  
-
 
 endmodule
 

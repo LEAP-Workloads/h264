@@ -27,7 +27,8 @@
 //
 //
 
-
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
 `include "h264_types.bsh"
 
 import FIFO::*;
@@ -94,7 +95,7 @@ endmodule
 
 
 //(* synthesize *)
-module mkInterpolator( Interpolator );
+module [HASIM_MODULE] mkInterpolator( Interpolator );
    
    FIFO#(InterpolatorIT) reqfifoLoad <- mkSizedFIFO(interpolator_reqfifoLoad_size);  // This fifo takes in motion vector
                                                                                      // pixel requests.
@@ -106,8 +107,9 @@ module mkInterpolator( Interpolator );
    Reg#(Maybe#(InterpolatorWT)) reqregWork2 <- mkReg(Invalid);
    FIFO#(Vector#(4,Bit#(8))) outfifo <- mkFIFO;
    Reg#(Bool) endOfFrameFlag <- mkReg(False);
-   FIFO#(InterpolatorLoadReq)  memReqQ  <- mkFIFO;
-   FIFO#(InterpolatorLoadResp) memRespQ <- mkSizedFIFO(interpolator_memRespQ_size);
+
+   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
 
    Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
    Reg#(Bit#(PicHeightSz)) picHeight <- mkReg(0);
@@ -145,7 +147,7 @@ module mkInterpolator( Interpolator );
 
    rule sendEndOfFrameReq( endOfFrameFlag );
       endOfFrameFlag <= False;
-      memReqQ.enq(IPLoadEndFrame);
+      memReqQ.send(IPLoadEndFrame);
    endrule
    
    
@@ -190,7 +192,7 @@ module mkInterpolator( Interpolator );
 	    else
 	       verAddr = truncate(verTemp);
 	 end
-      memReqQ.enq(IPLoadLuma {refIdx:reqdata.refIdx,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
+      memReqQ.send(IPLoadLuma {refIdx:reqdata.refIdx,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
       Bool verFirst = twoStage || (yfracl==2&&(xfracl==1||xfracl==3));
       Bit#(2) loadHorNumMax = (reqdata.bt==IP8x8||reqdata.bt==IP8x4 ? 1 : 0) + (horInter ? 2 : (offset2==0 ? 0 : 1));
       Bit#(4) loadVerNumMax = (reqdata.bt==IP8x8||reqdata.bt==IP4x8 ? 7 : 3) + (verInter ? 5 : 0);
@@ -299,7 +301,7 @@ module mkInterpolator( Interpolator );
 	       verAddr = truncate(verTemp);
 	 end
 
-      memReqQ.enq(IPLoadChroma {refIdx:reqdata.refIdx,uv:reqdata.uv,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
+      memReqQ.send(IPLoadChroma {refIdx:reqdata.refIdx,uv:reqdata.uv,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
       Bit#(2) loadHorNumMax = (reqdata.bt==IP4x8||reqdata.bt==IP4x4 ? (offset[1]==0||(xfracc==0&&offset!=3) ? 0 : 1) : ((reqdata.bt==IP16x16||reqdata.bt==IP16x8 ? 1 : 0) + (xfracc==0&&offset==0 ? 0 : 1)));
       Bit#(4) loadVerNumMax = (reqdata.bt==IP16x16||reqdata.bt==IP8x16 ? 7 : (reqdata.bt==IP16x8||reqdata.bt==IP8x8||reqdata.bt==IP4x8 ? 3 : 1)) + (yfracc==0 ? 0 : 1);
       if(loadHorNum < loadHorNumMax)
@@ -326,7 +328,7 @@ module mkInterpolator( Interpolator );
       let blockT = reqdata.bt;
       Bool twoStage = (xfracl==1||xfracl==3) && (yfracl==1||yfracl==3); // are we dealing with a quarter sample
       Vector#(20,Bit#(8)) work1Vector8Next = work1Vector8; // This must die.
-      if(memRespQ.first() matches tagged IPLoadResp .tempreaddata)
+      if(memRespQ.receive() matches tagged IPLoadResp .tempreaddata)
 	 begin
 	    memRespQ.deq();
 	    Vector#(4,Bit#(8)) readdata = replicate(0);
@@ -672,7 +674,7 @@ module mkInterpolator( Interpolator );
       let offset = reqdata.offset;
       let blockT = reqdata.bt;
       Vector#(20,Bit#(8)) work1Vector8Next = work1Vector8;
-      if(memRespQ.first() matches tagged IPLoadResp .tempreaddata)
+      if(memRespQ.receive() matches tagged IPLoadResp .tempreaddata)
 	 begin
 	    memRespQ.deq();
 	    Vector#(4,Bit#(8)) readdata = replicate(0);
@@ -901,11 +903,6 @@ module mkInterpolator( Interpolator );
       endOfFrameFlag <= True;
    endmethod
    
-   interface Client mem_client;
-      interface Get request  = fifoToGet(memReqQ);
-      interface Put response = fifoToPut(memRespQ);
-   endinterface
-
 
 endmodule
 

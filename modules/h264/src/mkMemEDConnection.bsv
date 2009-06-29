@@ -1,3 +1,4 @@
+
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -21,56 +22,52 @@
 // THE SOFTWARE.
 
 //**********************************************************************
-// H264 Main Module
+// Memory for Entropy Decoder
 //----------------------------------------------------------------------
 //
 //
+//
 
-
-
+`include "platform_interface.bsh"
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
-
 `include "h264_types.bsh"
-`include "h264_nal_unwrap.bsh"
- 
-import Connectable::*;
+
+import RegFile::*;
 import GetPut::*;
 import ClientServer::*;
-
-//(* synthesize *)
-module [HASIM_MODULE] mkH264( IH264 );
-
-   // Instantiate the modules
-
-   INalUnwrap     nalunwrap     <- mkNalUnwrap();
-
-   // Soft Connection to Deblock 
-   Connection_Send#(MemResp#(32)) dataMemRespQTX <- mkConnection_Send("mkDeblocking_dataMemRespQ");
-   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQRX <- mkConnection_Receive("mkDeblocking_dataMemStoreReqQ");  
-   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQRX <- mkConnection_Receive("mkDeblocking_dataMemLoadReqQ");
-  
-
-   //Soft Connection to Entropy
-   Connection_Receive#(BufferControlOT) outfifoRX <- mkConnection_Receive("bufferControl_outfifo");
-
-   // Interface to input generator
-   interface ioin = nalunwrap.ioin;
+import FIFO::*;
 
 
-   // Memory interfaces
+//----------------------------------------------------------------------
+// Main module
+//----------------------------------------------------------------------
 
- 
+typedef Empty IMemEDConnection#(numeric type index_size, numeric type data_size);
 
-   interface mem_clientD_data      = interface IDecoupledClient#(MemReq#(TAdd#(PicWidthSz,5),32),MemResp#(32));
-                                       interface request_load = connectionToGet(dataMemLoadReqQRX);
-                                       interface request_store = connectionToGet(dataMemStoreReqQRX);
-                                       interface response = connectionToPut(dataMemRespQTX);
-                                     endinterface;
- 
+module [HASIM_MODULE] mkMemEDConnection#(String reqQName, String respQName) (IMemEDConnection#(index_size,data_size))
+   provisos (Bits#(MemReq#(index_size,data_size),mReqLen),
+	     Bits#(MemResp#(data_size),mRespLen),
+             Transmittable#(MemResp#(data_size)),
+             Transmittable#(MemReq#(index_size,data_size)));
 
-   interface ioout =  connectionToGet(outfifoRX);
-      
+  //-----------------------------------------------------------
+  // State
+
+   RegFile#(Bit#(index_size),Bit#(data_size)) rfile <- mkRegFileFull();
+   
+   Connection_Send#(MemResp#(data_size)) respQ <- mkConnection_Send(respQName);
+   Connection_Receive#(MemReq#(index_size,data_size)) reqQ <- mkConnection_Receive(reqQName);
+
+   rule storing ( reqQ.receive() matches tagged StoreReq { addr:.addrt,data:.datat} );
+      rfile.upd(addrt,datat);
+      reqQ.deq(); 
+   endrule
+
+   rule reading ( reqQ.receive() matches tagged LoadReq .addrt );
+      respQ.send( tagged LoadResp (rfile.sub(addrt)) );
+      reqQ.deq();
+   endrule
+   
 endmodule
-
 

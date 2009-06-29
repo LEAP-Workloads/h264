@@ -42,6 +42,5 @@ interface Interpolator;
    method Vector#(4,Bit#(8)) first();
    method Action   deq();
    method Action   endOfFrame();
-   interface Client#(InterpolatorLoadReq,InterpolatorLoadResp) mem_client;
 endinterface
 
