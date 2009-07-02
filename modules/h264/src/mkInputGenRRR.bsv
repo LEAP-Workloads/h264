@@ -75,7 +75,7 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    
    rule count;
      cycles <= cycles + 1;
-     if(truncate(cycles) == 10'h0) 
+     if(truncate(cycles) == 18'h0) 
        begin
          $display("mkInputGenRRR ",fshow(outfifo));
        end
@@ -88,7 +88,6 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
 
    rule getInitResp(state == WaitForInit);
      let lengthIn <- client_stub.getResponse_Initialize;
-     $display("InputGen FileSize: %d", lengthIn);
      length <= lengthIn;
      state <= DataReq;
      reqs <= 0;
@@ -96,7 +95,6 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    endrule
 
    rule fetchData(reqs < length && state == DataReq); 
-     $display("InputGen FileSize: %d, Reqs: %d", length, reqs);
      client_stub.makeRequest_GetInputData(reqs);
      reqs <= reqs + 1;
      state <= DataResp;
@@ -105,7 +103,6 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    rule getData(resps < length && state == DataResp); 
       Bit#(64) data <- client_stub.getResponse_GetInputData();      
       resps <= resps + 1;
-      $display( "ccl0inputbyte[%d] %h", resps, data );
       outfifo.enq(tagged DataByte (truncate(data)));
       if(resps + 1 == length)
         begin 

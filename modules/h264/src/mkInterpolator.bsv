@@ -260,7 +260,11 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 	 end
       if(reqdata.bt==IP16x16 || reqdata.bt==IP16x8 || reqdata.bt==IP8x16)
 	 $display( "ERROR Interpolation: loadLuma block sizes > 8x8 not supported");
-      $display( "Trace interpolator: loadLuma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h HorAddr:%h VerAddr%h", xfracl, yfracl, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: loadLuma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h HorAddr:%h VerAddr%h", xfracl, yfracl, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+      end
    endrule   
 
 
@@ -317,7 +321,10 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 		  reqfifoLoad.deq();
 	       end
 	 end
-      $display( "Trace interpolator: loadChroma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h horAddr: %h verAddr: %h", xfracc, yfracc, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: loadChroma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h horAddr: %h verAddr: %h", xfracc, yfracc, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+      end
    endrule
    
 
@@ -481,7 +488,10 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 	       end		 
 	 end
       work1Vector8 <= work1Vector8Next;
-      $display( "Trace interpolator: work1Luma xfrac: %h yfrac: %h horNum: %h verNum: %h offset: %h workStage: %h", xfracl, yfracl, work1HorNum, work1VerNum, offset, work1Stage);
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: work1Luma xfrac: %h yfrac: %h horNum: %h verNum: %h offset: %h workStage: %h", xfracl, yfracl, work1HorNum, work1VerNum, offset, work1Stage);
+      end
    endrule
 
 
@@ -664,7 +674,10 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
       work2Vector8 <= work2Vector8Next;
       work2Vector15 <= work2Vector15Next;
       resultReady <= resultReadyNext;
-      $display( "Trace interpolator: work2Luma xfrac: %h yfrac: %h horNum: %h verNum: %h offset: %h", xfracl, yfracl, work2HorNum, work2VerNum, offset);
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: work2Luma xfrac: %h yfrac: %h horNum: %h verNum: %h offset: %h", xfracl, yfracl, work2HorNum, work2VerNum, offset);
+      end
    endrule
 
 
@@ -724,12 +737,16 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
             // Apply filter?
 	    for(Integer ii=0; ii<4; ii=ii+1)
 	       begin
-                  $display("Trace interpolator: Applying filter");
-		  Bit#(14) tempVal = zeroExtend((8-xfracc))*zeroExtend((8-yfracc))*zeroExtend(tempPrev8[ii]);
-		  tempVal = tempVal + zeroExtend(xfracc)*zeroExtend((8-yfracc))*zeroExtend(tempPrev8[ii+1]);
-		  tempVal = tempVal + zeroExtend((8-xfracc))*zeroExtend(yfracc)*zeroExtend(tempWork8[ii]);
-		  tempVal = tempVal + zeroExtend(xfracc)*zeroExtend(yfracc)*zeroExtend(tempWork8[ii+1]);
-		  tempResult8[ii] = truncate((tempVal+32)>>6);
+                 if(`INTERPOLATOR_DEBUG == 1)
+                   begin
+                     $display("Trace interpolator: Applying filter");
+                   end
+	  	     Bit#(14) tempVal = zeroExtend((8-xfracc))*zeroExtend((8-yfracc))*zeroExtend(tempPrev8[ii]);
+		     tempVal = tempVal + zeroExtend(xfracc)*zeroExtend((8-yfracc))*zeroExtend(tempPrev8[ii+1]);
+		     tempVal = tempVal + zeroExtend((8-xfracc))*zeroExtend(yfracc)*zeroExtend(tempWork8[ii]);
+		     tempVal = tempVal + zeroExtend(xfracc)*zeroExtend(yfracc)*zeroExtend(tempWork8[ii+1]);
+		     tempResult8[ii] = truncate((tempVal+32)>>6);
+                
 	       end
 
 	    if(work1VerNum > 0 || yfracc==0)
@@ -797,19 +814,22 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 	       end
 	 end
       work1Vector8 <= work1Vector8Next;
-
-      case (blockT) 
-         IP16x16: $display("Trace Interpolator: chroma 16x16");
-         IP16x8:  $display("Trace Interpolator: chroma 16x8");
-         IP8x16:  $display("Trace Interpolator: chroma 8x16");
-         IP8x8:   $display("Trace Interpolator: chroma 8x8");
-         IP8x4:   $display("Trace Interpolator: chroma 8x4");
-         IP4x8:   $display("Trace Interpolator: chroma 4x8");
-         IP4x4:   $display("Trace Interpolator: chroma 4x4");
-      endcase
+ 
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        case (blockT) 
+          IP16x16: $display("Trace Interpolator: chroma 16x16");
+          IP16x8:  $display("Trace Interpolator: chroma 16x8");
+          IP8x16:  $display("Trace Interpolator: chroma 8x16");
+          IP8x8:   $display("Trace Interpolator: chroma 8x8");
+          IP8x4:   $display("Trace Interpolator: chroma 8x4");
+          IP4x8:   $display("Trace Interpolator: chroma 4x8");
+          IP4x4:   $display("Trace Interpolator: chroma 4x4");
+        endcase
        
-      $display( "Trace interpolator: work1Chroma xfracc: %h yfracc: %h Hor: %h Ver: %h offset: %h", 
+        $display( "Trace interpolator: work1Chroma xfracc: %h yfracc: %h Hor: %h Ver: %h offset: %h", 
                 xfracc, yfracc, work1HorNum, work1VerNum, offset);
+     end
    endrule
 
 
@@ -830,7 +850,11 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 	       work2VerNum <= work2VerNum+1;
 	 end
       resultReady <= resultReadyNext;
-      $display( "Trace interpolator: work2Chroma Hor: %h Ver: %h", work2HorNum, work2VerNum);
+
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: work2Chroma Hor: %h Ver: %h", work2HorNum, work2VerNum);
+      end
    endrule
 
 
@@ -843,7 +867,11 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
 	    if(outBlockNum == 3)
 	       outDone <= True;
 	 end
-      $display( "Trace interpolator: outputing BlockNum: %h pixelNum: %h", outBlockNum, outPixelNum);
+
+    if(`INTERPOLATOR_DEBUG == 1)
+      begin
+        $display( "Trace interpolator: outputing BlockNum: %h pixelNum: %h", outBlockNum, outPixelNum);
+      end
    endrule
 
 

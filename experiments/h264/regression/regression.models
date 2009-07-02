@@ -1,0 +1,8 @@
+# ***************
+#
+# H264 models
+#
+# ***************
+
+h264_fast   config/pm/h264/h264_fast.apm      --bluesim="-m 1000000000"
+h264_decoder config/pm/h264/h264_decoder.apm      --bluesim="-m 1000000000"

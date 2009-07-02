@@ -427,8 +427,17 @@ module [HASIM_MODULE] mkDeblockFilter( );
    endrule
 
    rule checkFIFO ( True );
-      $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.receive(), total_cycles );
-      $display( "TRACE DeblockFilter: checkFIFO %h", infifo.receive() );
+     let cycle <- $time;
+     if(cycle[16:0] == 0) 
+       begin
+         $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.receive(), total_cycles );
+         $display( "TRACE DeblockFilter: checkFIFO %h", infifo.receive() );
+         if(!infifo.notFull)
+           begin
+             fifo_full_count <= fifo_full_count + 1;
+             $display("DEBLOCK FIFO(%d) FULL: %d of %d",deblockFilter_infifo_size, fifo_full_count, total_cycles); 
+           end
+       end       
    endrule
 
    rule memReqMergeRowToColumnConversion;
@@ -440,7 +449,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
      memReqVertical.deq();
      dataMemStoreReqQ.send(memReqVertical.first());
    endrule
- 
+   
    rule outfifoVerticalSplit;
      outfifoVertical.deq();
      outfifo.send(outfifoVertical.first());

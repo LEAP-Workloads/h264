@@ -83,7 +83,7 @@ module [HASIM_MODULE] mkSystem ();
    Reg#(Bit#(40)) cyclecount <- mkReg(0);
 
    rule countCycles ( True );
-      if(cyclecount[4:0]==0) $display( "CCLCycleCount %0d", cyclecount );
+      if(cyclecount[14:0]==0) $display( "CCLCycleCount %0d", cyclecount );
       let bscTime <- $time;
       cyclecount <= cyclecount+1; 
       if(bscTime > 6000000000)

@@ -53,13 +53,11 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
 
    rule init (!initialized); 
       file_size <= truncate(rfile2.sub(0));
-      $display("File Size: %h", rfile2.sub(0));
       initialized <= True;
       startFileTX.deq;
    endrule
 
    rule output_byte ((index < file_size) && initialized);
-      $display( "ccl0inputbyte %h", rfile.sub(index) );
       outfifo.enq(DataByte (rfile.sub(index)));
       index <= index+1;
    endrule

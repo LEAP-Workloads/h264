@@ -101,8 +101,8 @@ module [HASIM_MODULE] mkDeblockFilter ();
 	    begin
 	       infifo.deq();
 	       outfifo.enq(tagged EDOT infifo.first());
-	       $display("ccl5newunit");
-	       $display("ccl5rbspbyte %h", xdata);
+	       //$display("ccl5newunit");
+	       //$display("ccl5rbspbyte %h", xdata);
 	    end
 	 tagged SPSpic_width_in_mbs .xdata :
 	    begin

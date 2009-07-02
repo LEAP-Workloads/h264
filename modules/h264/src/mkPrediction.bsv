@@ -1,5 +1,5 @@
 
-// The MIT License
+// The MIT License 
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
 
@@ -298,18 +298,29 @@ module [HASIM_MODULE] mkPrediction ();
    //////////////////////////////////////////////////////////////////////////////
 
    rule checkFIFO ( True );
-      $display( "Trace Prediction: checkFIFO %h", infifo.receive() );
+      let cycle <- $time;
+      if(cycle[18:0] == 0) 
+        $display( "Trace Prediction: checkFIFO %h", infifo.receive() );
    endrule
+
    rule checkFIFO_ITB ( True );
+      let cycle <- $time;
+      if(cycle[18:0] == 0) 
       $display( "Trace Prediction: checkFIFO_ITB %h", infifo_ITB.receive() );
    endrule
+
    rule checkFIFO_predicted ( True );
+    let cycle <- $time;
+    if(cycle[18:0] == 0) 
       $display( "Trace Prediction: checkFIFO_predicted %h", predictedfifo.first() );
    endrule
 
    
    rule passing ( passFlag && !outstatefifo.notEmpty() && currMbHor<zeroExtend(picWidth) );
-      $display( "Trace Prediction: passing infifo packed %h", pack(infifo.receive()));
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "Trace Prediction: passing infifo packed %h", pack(infifo.receive()));
+        end
       case (infifo.receive()) matches
 	 tagged NewUnit . xdata :
 	    begin
@@ -578,7 +589,10 @@ module [HASIM_MODULE] mkPrediction ();
 		  infifo_ITB.deq();
 		  outfifo.send(IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		  outFirstQPFlag <= False;
-		  $display( "Trace Prediction: outputing outFirstQP %h %h %h", outBlockNum, outPixelNum, xdata);
+                  if(`PREDICTION_DEBUG == 1)
+                    begin
+		      $display( "Trace Prediction: outputing outFirstQP %h %h %h", outBlockNum, outPixelNum, xdata);
+                    end
 	       end
 	    else
 	       $display( "ERROR Prediction: outputing unexpected infifo_ITB.receive()");
@@ -596,7 +610,10 @@ module [HASIM_MODULE] mkPrediction ();
 		  outfifo.send(PBbS {bShor:horBS,bSver:verBS});
 		  interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 		  interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
-		  $display( "Trace Prediction: outputing SkipMB bS %h %h %h %h", outBlockNum, outPixelNum, currMbHor, currMbVer);
+                  if(`PREDICTION_DEBUG == 1)
+                    begin
+		      $display( "Trace Prediction: outputing SkipMB bS %h %h %h %h", outBlockNum, outPixelNum, currMbHor, currMbVer);
+                    end
 	       end
 	    else
 	       begin
@@ -605,7 +622,10 @@ module [HASIM_MODULE] mkPrediction ();
 		  outfifo.send(tagged PBoutput outputVector);
 		  outputFlag = 1;
 		  predictedfifo.deq();
-		  $display( "Trace Prediction: outputing SkipMB out %h %h %h", outBlockNum, outPixelNum, outputVector);
+                  if(`PREDICTION_DEBUG == 1)
+                    begin
+		      $display( "Trace Prediction: outputing SkipMB out %h %h %h", outBlockNum, outPixelNum, outputVector);
+                    end
 	       end
 	 end
       else
@@ -616,7 +636,10 @@ module [HASIM_MODULE] mkPrediction ();
 		     infifo_ITB.deq();
 		     outfifo.send( tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		     outFirstQPFlag <= False;
-		     $display( "Trace Prediction: outputing ITBmb_qp %h %h %h", outBlockNum, outPixelNum, xdata);
+                     if(`PREDICTION_DEBUG == 1)
+                       begin
+		         $display( "Trace Prediction: outputing ITBmb_qp %h %h %h", outBlockNum, outPixelNum, xdata);
+                       end
 		  end
 	       tagged ITBresidual .xdata :
 		  begin
@@ -636,7 +659,10 @@ module [HASIM_MODULE] mkPrediction ();
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, True);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, True);
-			   $display( "Trace Prediction: outputing ITBresidual bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+                           if(`PREDICTION_DEBUG == 1)
+                             begin
+			       $display( "Trace Prediction: outputing ITBresidual bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+                             end
 			end
 		     else
 			begin
@@ -656,7 +682,10 @@ module [HASIM_MODULE] mkPrediction ();
 			   infifo_ITB.deq();
 			   predictedfifo.deq();
 			   outputFlag = 1;
-			   $display( "Trace Prediction: outputing ITBresidual out %h %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), xdata, outputVector);
+                           if(`PREDICTION_DEBUG == 1)
+                             begin
+			       $display( "Trace Prediction: outputing ITBresidual out %h %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), xdata, outputVector);
+                             end
 			end
 		  end
 	       tagged ITBcoeffLevelZeros :
@@ -677,7 +706,10 @@ module [HASIM_MODULE] mkPrediction ();
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
-			   $display( "Trace Prediction: outputing ITBcoeffLevelZeros bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+                           if(`PREDICTION_DEBUG == 1)
+                             begin
+			       $display( "Trace Prediction: outputing ITBcoeffLevelZeros bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+                             end
 			end
 		     else
 			begin
@@ -688,7 +720,10 @@ module [HASIM_MODULE] mkPrediction ();
 			   outfifo.send( tagged PBoutput outputVector);
 			   outputFlag = 1;
 			   predictedfifo.deq();
-			   $display( "Trace Prediction: outputing ITBcoeffLevelZeros out %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), outputVector);
+                           if(`PREDICTION_DEBUG == 1)
+                             begin
+			       $display( "Trace Prediction: outputing ITBcoeffLevelZeros out %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), outputVector);
+                             end
 			end
 		  end
 	       default: $display( "ERROR Prediction: outputing unknown infifo_ITB input" );
@@ -697,11 +732,14 @@ module [HASIM_MODULE] mkPrediction ();
  
       if(outputFlag == 1)
 	 begin
-	    $display("ccl4PBoutput %0d", outputVector[0]);
-	    $display("ccl4PBoutput %0d", outputVector[1]);
-	    $display("ccl4PBoutput %0d", outputVector[2]);
-	    $display("ccl4PBoutput %0d", outputVector[3]);
-
+            if(`PREDICTION_DEBUG == 1)
+              begin
+                $display("ccl4PBoutput %0d", outputVector[0]);
+                $display("ccl4PBoutput %0d", outputVector[1]);
+                $display("ccl4PBoutput %0d", outputVector[2]);
+                $display("ccl4PBoutput %0d", outputVector[3]);
+              end
+             
 	    if(outBlockNum==0 && pixelVer==0 && outChromaFlag==0 && currMb!=firstMb && picWidth>1)
 	       begin
 		  intraMemReqQ.send(intraMemReqQdelay);
@@ -1605,7 +1643,7 @@ module [HASIM_MODULE] mkPrediction ();
 	       nextoutputfifo.enq(Intra4x4PlusChroma);
 	    else
 	       nextoutputfifo.enq(Intra4x4);
-	    $display( "TRACE Prediction: intraPredTypeStep currMbHor currMbVer blockNum topType leftType predType remType curType %0d %0d %0d %0d %0d %0d %0d %0d",currMbHor,currMbVer,blockNum,topType,leftType,predType,remType,curType);//////////////////
+	   // $display( "TRACE Prediction: intraPredTypeStep currMbHor currMbVer blockNum topType leftType predType remType curType %0d %0d %0d %0d %0d %0d %0d %0d",currMbHor,currMbVer,blockNum,topType,leftType,predType,remType,curType);//////////////////
 	 end
       //$display( "Trace Prediction: intraPredTypeStep");
    endrule

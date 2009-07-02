@@ -113,7 +113,7 @@ module [HASIM_MODULE] mkFrameBuffer ();
 	 begin
 	    rfile2.store(addrt,datat);
 	    storeReqQ.deq();
-            $display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
+            //$display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
 	 end
       else
 	 $display( "ERROR FrameBuffer: storing outside range" );

@@ -96,7 +96,6 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
 
    rule finaloutDataChunk (infifo.first matches tagged YUV .xdata &&& (burstCount + 1 < fromInteger(valueof(WordsPerBurst)))); 
       infifo.deq();
-      $display("OUT: %h",xdata);
       dataBuffer[burstCount] <= xdata;
       burstCount <= burstCount + 1;
    endrule   
@@ -107,8 +106,6 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
       client_stub.makeRequest_SendControl(zeroExtend(pack(OutData)),
                                           dataWords[0],
                                           dataWords[1]); 
-      $display("OUT: %h",pack(dataWords));
-      $display("OUTBASE: %h%h", xdata,readVReg(dataBuffer));
       infifo.deq();
       rrrRespQ.enq(?); 
       burstCount <= 0;

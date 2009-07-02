@@ -12,6 +12,8 @@
 
 %public mkInterpolator.bsv IInterpolator.bsv
 
+%param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
+
 %AWB_END
 
 
