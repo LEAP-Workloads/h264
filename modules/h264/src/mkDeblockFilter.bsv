@@ -429,11 +429,6 @@ module [HASIM_MODULE] mkDeblockFilter( );
    rule checkFIFO ( True );
       $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.receive(), total_cycles );
       $display( "TRACE DeblockFilter: checkFIFO %h", infifo.receive() );
-      if(!infifo.notFull)
-        begin
-          fifo_full_count <= fifo_full_count + 1;
-          $display("DEBLOCK FIFO(%d) FULL: %d of %d",deblockFilter_infifo_size, fifo_full_count, total_cycles); 
-        end       
    endrule
 
    rule memReqMergeRowToColumnConversion;
