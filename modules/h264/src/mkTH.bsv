@@ -1,4 +1,5 @@
 
+
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -30,30 +31,22 @@
 `include "low_level_platform_interface.bsh"
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
-
-`include "h264_entropy_decoder.bsh"
-`include "h264_inverse_transform.bsh"
-`include "h264_prediction.bsh"
-`include "h264_deblocking.bsh"
-`include "h264_buffer_control.bsh"
-`include "h264_frame_buffer.bsh"
-`include "h264_decoder.bsh"
-`include "h264_memory_unit.bsh"
-`include "h264_types.bsh"
-`include "h264_input.bsh"
-`include "h264_output.bsh"
-`include "h264_control.bsh"
-
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
 
+`include "h264_types.bsh"
+`include "h264_input.bsh"
+`include "h264_output.bsh"
+`include "h264_memory_unit.bsh"
+`include "h264_decoder.bsh"
 
 module [HASIM_MODULE] mkSystem ();
 
    // Instantiate the modules
 
    IInputGen     inputgen    <- mkInputGen();
+   IFinalOutput   finaloutput   <- mkFinalOutput();
    IH264         h264        <- mkH264();
    IMemEDConnection#(TAdd#(PicWidthSz,1),20) memED          
                               <- mkMemEDConnection("mkCalc_nc_MemReqQ",
@@ -69,15 +62,8 @@ module [HASIM_MODULE] mkSystem ();
                               <- mkMemEDConnection("mkDeblocking_parameterMemReqQ",
                                                    "mkDeblocking_parameterMemRespQ");
 
-   Empty   framebuffer   <- mkFrameBuffer();
-   IFinalOutput   finaloutput   <- mkFinalOutput();
 
-   Empty    control       <- mkControl();
-   Empty    entropydec    <- mkEntropyDec();
-   Empty    inversetrans  <- mkInverseTrans();
-   Empty    prediction    <- mkPrediction();
-   Empty    deblockfilter <- mkDeblockFilter();
-   Empty    buffercontrol <- mkBufferControl();
+
  
    // Cycle counter
    Reg#(Bit#(40)) cyclecount <- mkReg(0);

@@ -10,6 +10,9 @@
 
 %requires h264_decoder
 %requires h264_types
+%requires h264_input
+%requires h264_output
+%requires h264_memory_unit
 
 %attributes h264
 

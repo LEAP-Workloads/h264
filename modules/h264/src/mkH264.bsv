@@ -31,7 +31,15 @@
 `include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
+// Include all of the decoder modules here
 `include "h264_types.bsh"
+`include "h264_entropy_decoder.bsh"
+`include "h264_inverse_transform.bsh"
+`include "h264_prediction.bsh"
+`include "h264_deblocking.bsh"
+`include "h264_buffer_control.bsh"
+`include "h264_frame_buffer.bsh"
+`include "h264_control.bsh"
 `include "h264_nal_unwrap.bsh"
  
 import Connectable::*;
@@ -44,6 +52,13 @@ module [HASIM_MODULE] mkH264( IH264 );
    // Instantiate the modules
 
    INalUnwrap     nalunwrap     <- mkNalUnwrap();
+   Empty   framebuffer   <- mkFrameBuffer();
+   Empty    control       <- mkControl();
+   Empty    entropydec    <- mkEntropyDec();
+   Empty    inversetrans  <- mkInverseTrans();
+   Empty    prediction    <- mkPrediction();
+   Empty    deblockfilter <- mkDeblockFilter();
+   Empty    buffercontrol <- mkBufferControl();
 
    // Soft Connection to Deblock 
    Connection_Send#(MemResp#(32)) dataMemRespQTX <- mkConnection_Send("mkDeblocking_dataMemRespQ");
