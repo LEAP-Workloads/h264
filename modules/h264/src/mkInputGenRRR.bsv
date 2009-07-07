@@ -70,7 +70,7 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    Reg#(Bit#(64)) reqs   <- mkReg(0);
    Reg#(Bit#(64)) resps  <- mkReg(0);
    Reg#(Bit#(64)) cycles <- mkReg(0);
-
+   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(50);
    FIFOF#(InputGenOT) outfifo <- mkFIFOF;
    
    rule count;
@@ -97,21 +97,20 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    rule fetchData(reqs < length && state == DataReq); 
      client_stub.makeRequest_GetInputData(reqs);
      reqs <= reqs + 1;
-     state <= DataResp;
+     outstandingReqs.enq(?);
    endrule
 
-   rule getData(resps < length && state == DataResp); 
+   // are we done?
+   rule fetchDataDone(reqs == length && state == DataReq && 
+                      !outstandingReqs.notEmpty); 
+     reqs <= 0;
+     state <= EndOfFile;
+   endrule
+
+   rule getData; 
       Bit#(64) data <- client_stub.getResponse_GetInputData();      
-      resps <= resps + 1;
+      outstandingReqs.deq;
       outfifo.enq(tagged DataByte (truncate(data)));
-      if(resps + 1 == length)
-        begin 
-          state <= EndOfFile;
-        end
-      else
-        begin 
-          state <= DataReq;
-        end
    endrule 
 
    rule endOfFile(state == EndOfFile);     
