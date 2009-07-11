@@ -70,7 +70,8 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
    Reg#(Bit#(64)) reqs   <- mkReg(0);
    Reg#(Bit#(64)) resps  <- mkReg(0);
    Reg#(Bit#(64)) cycles <- mkReg(0);
-   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(50);
+   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(8);
+   FIFOF#(InputGenOT) buffer <- mkSizedFIFOF(8);
    FIFOF#(InputGenOT) outfifo <- mkFIFOF;
    
    rule count;
@@ -109,14 +110,19 @@ module [HASIM_MODULE] mkInputGen( IInputGen );
 
    rule getData; 
       Bit#(64) data <- client_stub.getResponse_GetInputData();      
-      outstandingReqs.deq;
-      outfifo.enq(tagged DataByte (truncate(data)));
+      buffer.enq(tagged DataByte (truncate(data)));
    endrule 
 
    rule endOfFile(state == EndOfFile);     
      $display("InputGen: EndOfFile %d", length);
      outfifo.enq(tagged EndOfFile);
      state <= IssueInit;          
+   endrule
+
+   rule feedOutfifo;
+     outfifo.enq(buffer.first);
+     outstandingReqs.deq;
+     buffer.deq;
    endrule
 
    interface Get ioout = fifoToGet(fifofToFifo(outfifo));
