@@ -1,4 +1,5 @@
 // The MIT License
+
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,19 +19,19 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 //**********************************************************************
 // Buffer Controller
 //----------------------------------------------------------------------
 //
 //
 
+
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
 
 `include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
+`include "h264_decoder_types_parallel.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -316,7 +317,7 @@ module mkLongTermPicList( LongTermPicList );
 	 end
       else
 	 begin
-	    returnList.enq(tagged Invalid);
+	    returnList.enq(Invalid);
 	    state <= Idle;
 	 end
       //$display( "TRACE BufferControl: LongTermPicList listingAll %h %h", picCount, tempPic);
@@ -437,23 +438,34 @@ endmodule
 //-----------------------------------------------------------
 
 
-//(* synthesize *)
-module [HASIM_MODULE] mkBufferControl();
 
-   // Mass of soft connections
-   Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
-   Connection_Send#(InterpolatorLoadResp) inLoadRespQ <- mkConnection_Send("mkPrediction_interpolatorMemRespQ");
-   Connection_Receive#(InterpolatorLoadReq) inLoadReqQ <- mkConnection_Receive("mkPrediction_interpolatorMemReqQ");
+module [HASIM_MODULE] mkBufferControl ();
+
+  Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
+
+   Connection_Send#(InterpolatorLoadResp) inLoadRespQLuma <- mkConnection_Send("mkPrediction_interpolatorLumaMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) inLoadReqQLuma <- mkConnection_Receive("mkPrediction_interpolatorLumaMemReqQ");
+   Connection_Send#(InterpolatorLoadResp) inLoadRespQChroma <- mkConnection_Send("mkPrediction_interpolatorChromaMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) inLoadReqQChroma <- mkConnection_Receive("mkPrediction_interpolatorChromaMemReqQ");
+
+
+
+  // Connections to Frame Buffer
    Connection_Send#(FrameBufferLoadReq) loadReqQ1 <- mkConnection_Send("frameBuffer_LoadReqQ1");
    Connection_Receive#(FrameBufferLoadResp) loadRespQ1 <- mkConnection_Receive("frameBuffer_LoadRespQ1");
-   Connection_Send#(FrameBufferLoadReq) loadReqQ2 <- mkConnection_Send("frameBuffer_LoadReqQ2");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQ2 <- mkConnection_Receive("frameBuffer_LoadRespQ2");
+   Connection_Send#(FrameBufferLoadReq) loadReqQInLuma <- mkConnection_Send("frameBuffer_LoadReqQLuma");
+   Connection_Receive#(FrameBufferLoadResp) loadRespQInLuma <- mkConnection_Receive("frameBuffer_LoadRespQLuma");
+ Connection_Send#(FrameBufferLoadReq) loadReqQInChroma <- mkConnection_Send("frameBuffer_LoadReqQChroma");
+   Connection_Receive#(FrameBufferLoadResp) loadRespQInChroma <- mkConnection_Receive("frameBuffer_LoadRespQChroma");
    Connection_Send#(FrameBufferStoreReq) storeReqQ <- mkConnection_Send("frameBuffer_StoreReqQ");
+
+
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
 
+   FIFO#(Bit#(2)) inLoadOutOfBoundsLuma <- mkSizedFIFO(64); // What is this doing?
 
+   FIFO#(Bit#(2)) inLoadOutOfBoundsChroma <- mkSizedFIFO(64);
 
-   FIFO#(Bit#(2)) inLoadOutOfBounds <- mkSizedFIFO(64);
 
    Reg#(Bit#(5)) log2_max_frame_num <- mkReg(0);
    Reg#(Bit#(5)) num_ref_frames <- mkReg(0);
@@ -536,14 +548,12 @@ module [HASIM_MODULE] mkBufferControl();
 		     begin
 			infifo.deq();
 			picWidth <= xdata;
-                        outfifo.send(tagged SPSpic_width_in_mbs xdata);
 		     end
 		  tagged SPSpic_height_in_map_units .xdata :
 		     begin
 			infifo.deq();
 			picHeight <= xdata;
 			frameinmb <= zeroExtend(picWidth)*zeroExtend(xdata);
-                        outfifo.send(tagged SPSpic_height_in_map_units xdata);
 		     end
 		  tagged PPSnum_ref_idx_l0_active .xdata :
 		     begin
@@ -736,10 +746,10 @@ module [HASIM_MODULE] mkBufferControl();
 		  tagged EndOfFile :
 		     begin
 			infifo.deq();
-			$display( "INFO BufferControl: EndOfFile reached");
+			$display( "INFO Buffer Control: EndOfFile reached");
 			noMoreInput <= True;
 			//$finish(0);
-			//outfifo.send(EndOfFile); 
+			//outfifo.enq(EndOfFile); 
 		     end
 		  default: 
                      begin
@@ -907,16 +917,16 @@ module [HASIM_MODULE] mkBufferControl();
 	    loadRespQ1.deq();
 	    outfifo.send(tagged YUV xdata);
 	    if(outRespCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-               begin 
-	         outputframedone <= True;
-                 $display("EndOfFrame total data: %d", outRespCount);
-               end
+	       outputframedone <= True;
 	    outRespCount <= outRespCount+1;
 	 end
    endrule
 
 
-   rule goToNextFrame ( outputframedone && inputframedone && inLoadReqQ.receive()==IPLoadEndFrame );
+   // XXX need to handle the double EOF deq here XXX
+   rule goToNextFrame ( outputframedone && inputframedone && 
+                       (inLoadReqQLuma.receive()==IPLoadEndFrame) && 
+                       (inLoadReqQChroma.receive()==IPLoadEndFrame));
       inputframedone <= False;
       outprocess <= Y;
       outputframedone <= False;
@@ -925,11 +935,13 @@ module [HASIM_MODULE] mkBufferControl();
       outReqCount <= 0;
       outRespCount <= 0;
       loadReqQ1.send(FBEndFrameSync);
-      loadReqQ2.send(FBEndFrameSync);
+      loadReqQInLuma.send(FBEndFrameSync);
+      loadReqQInChroma.send(FBEndFrameSync);
       storeReqQ.send(FBEndFrameSync);
-      inLoadReqQ.deq();
+      inLoadReqQLuma.deq();
+      inLoadReqQChroma.deq();
       lockInterLoads <= True;
-      $display("BufferControl Sending EndOfFrame");
+      $display(" Buffer Control: going to next frame ");
       outfifo.send(EndOfFrame);
    endrule
 
@@ -940,24 +952,23 @@ module [HASIM_MODULE] mkBufferControl();
 
 
    rule theEndOfFile ( outputframedone && noMoreInput );
-     $display("BufferControl Sending EndOfFile");
-      outfifo.send(EndOfFile);
+      outfifo.send(tagged EndOfFile);
    endrule
 
 
-   rule interLumaReq ( inLoadReqQ.receive() matches tagged IPLoadLuma .reqdata &&& !lockInterLoads );
-      inLoadReqQ.deq();
+   rule interLumaReq ( inLoadReqQLuma.receive() matches tagged IPLoadLuma .reqdata &&& !lockInterLoads );
+      inLoadReqQLuma.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
-      inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
-      loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(addr)));
-      //$display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(addr));
+      inLoadOutOfBoundsLuma.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
+      loadReqQInLuma.send(FBLoadReq (addrBase+zeroExtend(addr)));
+      $display( "PARDEBLOCK Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(addr));
    endrule
 
 
-   rule interChromaReq ( inLoadReqQ.receive() matches tagged IPLoadChroma .reqdata &&& !lockInterLoads );
-      inLoadReqQ.deq();
+   rule interChromaReq ( inLoadReqQChroma.receive() matches tagged IPLoadChroma .reqdata &&& !lockInterLoads );
+      inLoadReqQChroma.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
       Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
@@ -965,23 +976,43 @@ module [HASIM_MODULE] mkBufferControl();
       if(reqdata.uv == 1)
 	 vOffset = {frameinmb,4'b0000};
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(reqdata.hor);
-      inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
-      loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
-      //$display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr));
+      inLoadOutOfBoundsChroma.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
+      loadReqQInChroma.send(FBLoadReq (addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
+      $display( "PARDEBLOCK Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr));
    endrule
     
+   rule monitorRespLuma;
+     $display("Trace BufferControl check loadRespQInLuma %h", loadRespQInLuma.receive());
+   endrule 
 
-   rule interResp ( loadRespQ2.receive() matches tagged FBLoadResp .data );
-      loadRespQ2.deq();
-      if(inLoadOutOfBounds.first() == 2'b10)
-	 inLoadRespQ.send(tagged IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
-      else if(inLoadOutOfBounds.first() == 2'b11)
-	 inLoadRespQ.send(tagged IPLoadResp ({data[31:24],data[31:24],data[31:24],data[31:24]}));
-      else
-	 inLoadRespQ.send(tagged IPLoadResp data);
-      inLoadOutOfBounds.deq();
-      //$display( "Trace BufferControl: interResp %h %h", inLoadOutOfBounds.first(), data);
+   rule monitorRespChroma;
+     $display("Trace BufferControl check loadRespQInChroma", loadRespQInChroma.receive());
    endrule
 
+   rule interRespLuma ( loadRespQInLuma.receive() matches tagged FBLoadResp .data );
+      loadRespQInLuma.deq();
+      if(inLoadOutOfBoundsLuma.first() == 2'b10)
+	 inLoadRespQLuma.send(IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
+      else if(inLoadOutOfBoundsLuma.first() == 2'b11)
+	 inLoadRespQLuma.send(IPLoadResp ({data[31:24],data[31:24],data[31:24],data[31:24]}));
+      else
+	 inLoadRespQLuma.send(tagged IPLoadResp data);
+      inLoadOutOfBoundsLuma.deq();
+      $display( " PARDEBLOCK Trace BufferControl: interRespLuma %h %h", inLoadOutOfBoundsLuma.first(), data);
+   endrule
+
+   rule interRespChroma ( loadRespQInChroma.receive() matches tagged FBLoadResp .data );
+      loadRespQInChroma.deq();
+      if(inLoadOutOfBoundsChroma.first() == 2'b10)
+	 inLoadRespQChroma.send(IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
+      else if(inLoadOutOfBoundsChroma.first() == 2'b11)
+	 inLoadRespQChroma.send(IPLoadResp ({data[31:24],data[31:24],data[31:24],data[31:24]}));
+      else
+	 inLoadRespQChroma.send(tagged IPLoadResp data);
+      inLoadOutOfBoundsChroma.deq();
+      $display(" PARDEBLOCK Trace BufferControl: interRespChroma %h %h", inLoadOutOfBoundsChroma.first(), data);
+   endrule   
+	 
 endmodule
+
 

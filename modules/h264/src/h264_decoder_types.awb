@@ -4,13 +4,12 @@
 
 %AWB_START
 
-%name H264 types
-%desc H264 types
-%provides h264_types
+%name H264 Decoder Types
+%desc H264 Decoder Types
+%provides h264_decoder_types
 
 %attributes h264
 
-%public H264SystemTypes.bsv 
-%param --global DEBLOCKING_DEBUG  0 "Enable Deblocking Debug"
+%public H264DecoderTypes.bsv 
 
 %AWB_END

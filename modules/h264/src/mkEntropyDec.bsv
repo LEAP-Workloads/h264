@@ -224,8 +224,13 @@ module [HASIM_MODULE] mkEntropyDec();
 		     state <= Start;
 		  end
 	       endcase
-	       $display("ccl2newunit");
-	       $display("ccl2rbspbyte %h", rdata);
+
+               if(`ENTROPY_DEBUG == 1) 
+                 begin
+                   $display("ccl2newunit");
+                   $display("ccl2rbspbyte %h", rdata);
+                 end
+
 	       outfifo.send(tagged NewUnit rdata);
 	       outfifo_ITB.send(tagged NewUnit rdata);
 	    end
@@ -299,7 +304,10 @@ module [HASIM_MODULE] mkEntropyDec();
 	       case ( step )
 		  0:
 		  begin
-		     $display( "ccl2SHfirst_mb_in_slice %0d", expgolomb_unsigned(buffer) );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHfirst_mb_in_slice %0d", expgolomb_unsigned(buffer) );
+                        end
 		     outfifo.send(tagged SHfirst_mb_in_slice truncate(expgolomb_unsigned(buffer)));
 		     currMbAddr <= truncate(expgolomb_unsigned(buffer));
 		     calcnc.initialize(truncate(expgolomb_unsigned(buffer)));
@@ -308,7 +316,10 @@ module [HASIM_MODULE] mkEntropyDec();
 		  end
 		  1:
 		  begin
-		     $display( "ccl2SHslice_type %0d", expgolomb_unsigned(buffer) );
+                    if(`ENTROPY_DEBUG == 1) 
+                     begin
+		       $display( "ccl2SHslice_type %0d", expgolomb_unsigned(buffer) );
+                     end
 		     outfifo.send(tagged SHslice_type truncate(expgolomb_unsigned(buffer)));
 		     shslice_type <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
@@ -316,7 +327,10 @@ module [HASIM_MODULE] mkEntropyDec();
 		  end
 		  2:
 		  begin
-		     $display( "ccl2SHpic_parameter_set_id %0d", expgolomb_unsigned(buffer) );
+                    if(`ENTROPY_DEBUG == 1) 
+                      begin
+		        $display( "ccl2SHpic_parameter_set_id %0d", expgolomb_unsigned(buffer) );
+                      end
 		     outfifo.send(tagged SHpic_parameter_set_id truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 3;
@@ -326,7 +340,10 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
 		     tttt = tttt >> 16 - zeroExtend(spslog2_max_frame_num);
-		     $display( "ccl2SHframe_num %0d", tttt );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHframe_num %0d", tttt );
+                       end
 		     outfifo.send(tagged SHframe_num tttt);
 		     numbitsused = zeroExtend(spslog2_max_frame_num);
 		     nextstate = tagged CodedSlice 4;
@@ -335,7 +352,10 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(nalunittype == 5)
 			begin
-			   $display( "ccl2SHidr_pic_id %0d", expgolomb_unsigned(buffer) );
+                          if(`ENTROPY_DEBUG == 1) 
+                            begin
+			      $display( "ccl2SHidr_pic_id %0d", expgolomb_unsigned(buffer) );                          
+                            end
 			   outfifo.send(tagged SHidr_pic_id truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			end
@@ -347,7 +367,11 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
 			   tttt = tttt >> 16 - zeroExtend(spslog2_max_pic_order_cnt_lsb);
-			   $display( "ccl2SHpic_order_cnt_lsb %0d", tttt );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHpic_order_cnt_lsb %0d", tttt );
+                             end
+
 			   outfifo.send(tagged SHpic_order_cnt_lsb tttt);
 			   numbitsused = zeroExtend(spslog2_max_pic_order_cnt_lsb);
 			   nextstate = tagged CodedSlice 6;
@@ -369,7 +393,11 @@ module [HASIM_MODULE] mkEntropyDec();
 			   else
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
-				 $display( "ccl2SHdelta_pic_order_cnt_bottom %0d", tempint32 );
+                                 if(`ENTROPY_DEBUG == 1) 
+                                   begin
+				     $display( "ccl2SHdelta_pic_order_cnt_bottom %0d", tempint32 );
+                                   end
+
 				 outfifo.send(tagged SHdelta_pic_order_cnt_bottom truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
@@ -393,7 +421,10 @@ module [HASIM_MODULE] mkEntropyDec();
 			   else
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
-				 $display( "ccl2SHdelta_pic_order_cnt0 %0d", tempint32 );
+                                 if(`ENTROPY_DEBUG == 1) 
+                                   begin
+                                     $display( "ccl2SHdelta_pic_order_cnt0 %0d", tempint32 );
+                                   end
 				 outfifo.send(tagged SHdelta_pic_order_cnt0 truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
@@ -417,7 +448,10 @@ module [HASIM_MODULE] mkEntropyDec();
 			   else
 			      begin
 				 tempint32 = unpack(expgolomb_signed32(buffer,egnumbits));
-				 $display( "ccl2SHdelta_pic_order_cnt1 %0d", tempint32 );
+                                 if(`ENTROPY_DEBUG == 1) 
+                                   begin
+				     $display( "ccl2SHdelta_pic_order_cnt1 %0d", tempint32 );
+                                   end
 				 outfifo.send(tagged SHdelta_pic_order_cnt1 truncate(expgolomb_signed32(buffer,egnumbits)));
 				 egnumbits <= 0;
 				 numbitsused = egnumbits;
@@ -431,7 +465,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(shslice_type == 0 || shslice_type == 5)
 			begin
-			   $display( "ccl2SHnum_ref_idx_active_override_flag %0d", buffer[buffersize-1] );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHnum_ref_idx_active_override_flag %0d", buffer[buffersize-1] );
+                             end
+
 			   outfifo.send(tagged SHnum_ref_idx_active_override_flag buffer[buffersize-1]);
 			   numbitsused = 1;
 			   if(buffer[buffersize-1] == 1)
@@ -444,7 +482,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  end
 		  10:
 		  begin
-		     $display( "ccl2SHnum_ref_idx_l0_active %0d", expgolomb_unsigned(buffer)+1 );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHnum_ref_idx_l0_active %0d", expgolomb_unsigned(buffer)+1 );
+                       end
+
 		     outfifo.send(tagged SHnum_ref_idx_l0_active truncate(expgolomb_unsigned(buffer)+1));
 		     num_ref_idx_l0_active_minus1 <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
@@ -454,7 +496,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(shslice_type != 2 && shslice_type != 7)
 			begin
-			   $display( "ccl2SHRref_pic_list_reordering_flag_l0 %0d", buffer[buffersize-1] );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHRref_pic_list_reordering_flag_l0 %0d", buffer[buffersize-1] );
+                             end
+
 			   outfifo.send(tagged SHRref_pic_list_reordering_flag_l0 buffer[buffersize-1]);
 			   numbitsused = 1;
 			   if(buffer[buffersize-1] == 1)
@@ -466,8 +512,12 @@ module [HASIM_MODULE] mkEntropyDec();
 			nextstate = tagged CodedSlice 15;
 		  end
 		  12:
-		  begin 
-		     $display( "ccl2SHRreordering_of_pic_nums_idc %0d", expgolomb_unsigned(buffer) );
+		  begin
+                    if(`ENTROPY_DEBUG == 1) 
+                      begin 
+                        $display( "ccl2SHRreordering_of_pic_nums_idc %0d", expgolomb_unsigned(buffer) );
+                      end
+
 		     outfifo.send(tagged SHRreordering_of_pic_nums_idc truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     if(expgolomb_unsigned(buffer)==0 || expgolomb_unsigned(buffer)==1)
@@ -480,14 +530,22 @@ module [HASIM_MODULE] mkEntropyDec();
 		  13:
 		  begin
 		     Bit#(17) temp17 = zeroExtend(expgolomb_unsigned(buffer)) + 1;
-		     $display( "ccl2SHRabs_diff_pic_num %0d", temp17 );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHRabs_diff_pic_num %0d", temp17 );
+                       end
+
 		     outfifo.send(tagged SHRabs_diff_pic_num temp17);
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 12;
 		  end
 		  14:
 		  begin
-		     $display( "ccl2SHRlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHRlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
+                       end
+
 		     outfifo.send(tagged SHRlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 12;
@@ -500,7 +558,11 @@ module [HASIM_MODULE] mkEntropyDec();
 			begin
 			   if(nalunittype == 5)
 			      begin
-				 $display( "ccl2SHDno_output_of_prior_pics_flag %0d", buffer[buffersize-1] );
+                                 if(`ENTROPY_DEBUG == 1) 
+                                   begin
+                                     $display( "ccl2SHDno_output_of_prior_pics_flag %0d", buffer[buffersize-1] );
+                                   end
+
 				 outfifo.send(tagged SHDno_output_of_prior_pics_flag buffer[buffersize-1]);
 				 numbitsused = 1;
 				 nextstate = tagged CodedSlice 16;
@@ -511,14 +573,22 @@ module [HASIM_MODULE] mkEntropyDec();
 		  end
 		  16:
 		  begin
-		     $display( "ccl2SHDlong_term_reference_flag %0d", buffer[buffersize-1] );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHDlong_term_reference_flag %0d", buffer[buffersize-1] );
+                       end
+
 		     outfifo.send(tagged SHDlong_term_reference_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     nextstate = tagged CodedSlice 23;
 		  end
 		  17:
 		  begin
-		     $display( "ccl2SHDadaptive_ref_pic_marking_mode_flag %0d", buffer[buffersize-1] );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHDadaptive_ref_pic_marking_mode_flag %0d", buffer[buffersize-1] );
+                       end
+
 		     outfifo.send(tagged SHDadaptive_ref_pic_marking_mode_flag buffer[buffersize-1]);
 		     numbitsused = 1;
 		     if(buffer[buffersize-1] == 1)
@@ -528,7 +598,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  end
 		  18:
 		  begin
-		     $display( "ccl2SHDmemory_management_control_operation %0d", expgolomb_unsigned(buffer) );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		        $display( "ccl2SHDmemory_management_control_operation %0d", expgolomb_unsigned(buffer) );
+                       end
+
 		     outfifo.send(tagged SHDmemory_management_control_operation truncate(expgolomb_unsigned(buffer)));
 		     shdmemory_management_control_operation <= truncate(expgolomb_unsigned(buffer));
 		     numbitsused = expgolomb_numbits(buffer);
@@ -542,7 +616,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(shdmemory_management_control_operation==1 || shdmemory_management_control_operation==3)
 		       	begin
 			   Bit#(17) temp17 = zeroExtend(expgolomb_unsigned(buffer)) + 1;
-			   $display( "ccl2SHDdifference_of_pic_nums %0d", temp17 );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHDdifference_of_pic_nums %0d", temp17 );
+                             end
+
 			   outfifo.send(tagged SHDdifference_of_pic_nums temp17);
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 20;
@@ -554,7 +632,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(shdmemory_management_control_operation==2)
 		       	begin
-			   $display( "ccl2SHDlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHDlong_term_pic_num %0d", expgolomb_unsigned(buffer) );
+                             end
+
 			   outfifo.send(tagged SHDlong_term_pic_num truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 21;
@@ -566,7 +648,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(shdmemory_management_control_operation==3 || shdmemory_management_control_operation==6)
 		       	begin
-			   $display( "ccl2SHDlong_term_frame_idx %0d", expgolomb_unsigned(buffer) );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHDlong_term_frame_idx %0d", expgolomb_unsigned(buffer) );
+                             end
+
 			   outfifo.send(tagged SHDlong_term_frame_idx truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 22;
@@ -578,7 +664,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(shdmemory_management_control_operation==4)
 		       	begin
-			   $display( "ccl2SHDmax_long_term_frame_idx_plus1 %0d", expgolomb_unsigned(buffer) );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHDmax_long_term_frame_idx_plus1 %0d", expgolomb_unsigned(buffer) );
+                             end
+
 			   outfifo.send(tagged SHDmax_long_term_frame_idx_plus1 truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   nextstate = tagged CodedSlice 18;
@@ -589,7 +679,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  23:
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer));
-		     $display( "ccl2SHslice_qp_delta %0d", tempint );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHslice_qp_delta %0d", tempint );
+                       end
+
 		     outfifo_ITB.send(tagged SHslice_qp_delta truncate(expgolomb_signed(buffer)));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 24;
@@ -598,7 +692,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  begin
 		     if(ppsdeblocking_filter_control_present_flag==1)
 			begin
-			   $display( "ccl2SHdisable_deblocking_filter_idc %0d", expgolomb_unsigned(buffer) );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SHdisable_deblocking_filter_idc %0d", expgolomb_unsigned(buffer) );
+                             end
+
 			   outfifo.send(tagged SHdisable_deblocking_filter_idc truncate(expgolomb_unsigned(buffer)));
 			   numbitsused = expgolomb_numbits(buffer);
 			   if(expgolomb_unsigned(buffer)!=1)
@@ -612,7 +710,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		  25:
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer) << 1);
-		     $display( "ccl2SHslice_alpha_c0_offset %0d", tempint );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHslice_alpha_c0_offset %0d", tempint );
+                       end
+
 		     outfifo.send(tagged SHslice_alpha_c0_offset truncate(expgolomb_signed(buffer) << 1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 26;
@@ -620,7 +722,10 @@ module [HASIM_MODULE] mkEntropyDec();
 		  26:
 		  begin
 		     tempint = unpack(expgolomb_signed(buffer) << 1);
-		     $display( "ccl2SHslice_beta_offset %0d", tempint );
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SHslice_beta_offset %0d", tempint );
+                       end
 		     outfifo.send(tagged SHslice_beta_offset truncate(expgolomb_signed(buffer) << 1));
 		     numbitsused = expgolomb_numbits(buffer);
 		     nextstate = tagged CodedSlice 27;

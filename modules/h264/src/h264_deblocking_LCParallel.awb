@@ -4,14 +4,17 @@
 
 %AWB_START
 
-%name H264 deblocking filter module
-%desc H264 deblocking filter module
-%provides h264_deblocking
+%name H264 Luma-Chroma Parallel
+%desc H264 Luma-Chroma Parallel
+%provides h264_deblocking_parallel
+
+%requires h264_deblocking_luma
+%requires h264_deblocking_chroma
 
 %attributes h264
 
 
-%public mkDeblockFilter.bsv  FIFOUtility.bsv
+%public  mkDeblockParallel.bsv IDeblockFilter.bsv FIFOUtility.bsv
 
 %param SYNTH_BOUNDARY mkDeblockFilter "synth boundary"
 

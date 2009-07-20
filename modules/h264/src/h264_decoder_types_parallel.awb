@@ -4,13 +4,12 @@
 
 %AWB_START
 
-%name H264 types
-%desc H264 types
-%provides h264_types
+%name H264 Decoder Types Parallel
+%desc H264 Decoder Types Parallel
+%provides h264_decoder_types_parallel
 
 %attributes h264
 
-%public H264SystemTypes.bsv 
-%param --global DEBLOCKING_DEBUG  0 "Enable Deblocking Debug"
+%public H264ParallelDecoderTypes.bsv 
 
 %AWB_END

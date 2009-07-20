@@ -61,10 +61,6 @@ module [HASIM_MODULE] mkH264( IH264 );
    Empty    buffercontrol <- mkBufferControl();
 
    // Soft Connection to Deblock 
-   Connection_Send#(MemResp#(32)) dataMemRespQTX <- mkConnection_Send("mkDeblocking_dataMemRespQ");
-   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemStoreReqQRX <- mkConnection_Receive("mkDeblocking_dataMemStoreReqQ");  
-   Connection_Receive#(MemReq#(TAdd#(PicWidthSz,5),32)) dataMemLoadReqQRX <- mkConnection_Receive("mkDeblocking_dataMemLoadReqQ");
-  
 
    //Soft Connection to Entropy
    Connection_Receive#(BufferControlOT) outfifoRX <- mkConnection_Receive("bufferControl_outfifo");
@@ -73,16 +69,6 @@ module [HASIM_MODULE] mkH264( IH264 );
    interface ioin = nalunwrap.ioin;
 
 
-   // Memory interfaces
-
- 
-
-   interface mem_clientD_data      = interface IDecoupledClient#(MemReq#(TAdd#(PicWidthSz,5),32),MemResp#(32));
-                                       interface request_load = connectionToGet(dataMemLoadReqQRX);
-                                       interface request_store = connectionToGet(dataMemStoreReqQRX);
-                                       interface response = connectionToPut(dataMemRespQTX);
-                                     endinterface;
- 
 
    interface ioout =  connectionToGet(outfifoRX);
       

@@ -1,0 +1,18 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 buffer control module parallel
+%desc H264 buffer control module parallel
+%provides h264_buffer_control_parallel
+
+%attributes h264
+
+%public mkBufferControlParallel.bsv IBufferControl.bsv
+
+%param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
+
+%AWB_END
+

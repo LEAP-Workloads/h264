@@ -22,24 +22,29 @@
 // THE SOFTWARE.
 
 //**********************************************************************
-// Interface for H264 Main Module
+// Deblocking Filter
 //----------------------------------------------------------------------
-//
-//
+//     
 //
 
+
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+`include "asim/provides/fpga_components.bsh"
 
 `include "h264_types.bsh"
+`include "h264_decoder_types_parallel.bsh"
 `include "h264_memory_unit.bsh"
 
-import GetPut::*;
-import ClientServer::*;
 
-interface IH264;
+module [HASIM_MODULE] mkDeblockFilterChroma( );
 
-   // Interface for memory, input generator
-   interface Put#(InputGenOT)                    ioin;
-   interface Get#(BufferControlOT) ioout;
+   Connection_Receive#(PredictionOT) infifo <- mkConnection_Receive("mkDeblocking_infifoChroma");
+   Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifoChroma"); 
 
-endinterface
+   IDeblockFilter deblockFilterChroma <- mkDeblockFilterChromatic(Chroma);
+ 
+   mkConnection(connectionToGet(infifo),deblockFilterChroma.ioin);  
+   mkConnection(deblockFilterChroma.ioout,connectionToPut(outfifo));
 
+endmodule

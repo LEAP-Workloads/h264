@@ -46,10 +46,10 @@ h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module
-h264_frame_buffer=H264 scratchpad frame buffer
+h264_frame_buffer=H264 multi scratchpad frame buffer
 h264_control=H264 default control module
 h264_input=H264 RRR input module
-h264_output=H264 output RRR
+h264_output=H264 output RRR Wide
 
 [H264 buffer control module]
 File=modules/h264/src/h264_buffer_control.awb
@@ -96,7 +96,7 @@ Packagehint=h264
 
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
-MODEL_CLOCK_DIVIDER=6
+MODEL_CLOCK_DIVIDER=3
 
 [HAsim Hybrid Model Foundation/Params]
 MAKE_ALL_TARGET=bit
@@ -113,10 +113,11 @@ Packagehint=h264
 File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
 
-[H264 scratchpad frame buffer]
-File=modules/h264/src/h264_scratchpad_frame_buffer.awb
+
+[H264 output RRR Wide]
+File=modules/h264/src/h264_output_rrr_wide.awb
 Packagehint=h264
 
-[H264 output RRR]
-File=modules/h264/src/h264_output_rrr.awb
+[H264 multi scratchpad frame buffer]
+File=modules/h264/src/h264_multi_scratchpad_frame_buffer.awb
 Packagehint=h264

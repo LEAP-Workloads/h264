@@ -30,7 +30,7 @@
 
 
 `include "h264_types.bsh"
-`include "h264_memory_unit.bsh"
+`include "h264_decoder_types_parallel.bsh"
 
 import GetPut::*;
 import ClientServer::*;
@@ -38,11 +38,7 @@ import ClientServer::*;
 interface IDeblockFilter;
 
    // Interface for inter-module io
-   interface Put#(EntropyDecOT) ioin;
+   interface Put#(PredictionOT) ioin;
    interface Get#(DeblockFilterOT) ioout;
 	 
-   // Interface for module to memory
-   interface IDecoupledClient#(MemReq#(TAdd#(PicWidthSz,5),32),MemResp#(32)) mem_client_data;
-   interface Client#(MemReq#(PicWidthSz,13),MemResp#(13)) mem_client_parameter;
-     
 endinterface

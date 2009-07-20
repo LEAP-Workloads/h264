@@ -13,6 +13,6 @@
 %public mkInverseTrans.bsv IInverseTrans.bsv
 
 %param SYNTH_BOUNDARY mkInverseTrans "synth boundary names"
-
+%param --global IT_DEBUG  0 "Enable Inverse Transform Debug"
 
 %AWB_END

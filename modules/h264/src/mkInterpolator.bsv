@@ -95,11 +95,11 @@ endmodule
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkInterpolator( Interpolator );
+module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
    
-   FIFO#(InterpolatorIT) reqfifoLoad <- mkSizedFIFO(interpolator_reqfifoLoad_size);  // This fifo takes in motion vector
+   FIFO#(InterpolatorIT) reqfifoLoad <- mkSizedFIFO(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
                                                                                      // pixel requests.
-   FIFO#(InterpolatorWT) reqfifoWork1 <- mkSizedFIFO(interpolator_reqfifoWork_size); // This is where the memory responses
+   FIFO#(InterpolatorWT) reqfifoWork1 <- mkSizedFIFO(`REQFIFO_WORK_SIZE); // This is where the memory responses
                                                                                      // come from
 
    Interpolate15to8 interpolate15to8 <- mkInterpolate15to8();
@@ -108,8 +108,13 @@ module [HASIM_MODULE] mkInterpolator( Interpolator );
    FIFO#(Vector#(4,Bit#(8))) outfifo <- mkFIFO;
    Reg#(Bool) endOfFrameFlag <- mkReg(False);
 
-   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
-   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
+
+/*   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");*/
+
+   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive(respQ);
+   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send(reqQ);
+
 
    Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
    Reg#(Bit#(PicHeightSz)) picHeight <- mkReg(0);

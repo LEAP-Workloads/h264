@@ -222,7 +222,10 @@ module [HASIM_MODULE] mkInverseTrans();
 	 tagged SDMmbtype .xdata :
 	    begin
 	       infifo.deq();
-	       $display( "INFO InverseTrans: SDMmbtype %0d", xdata);
+               if(`IT_DEBUG == 1)
+                 begin
+                   $display( "INFO InverseTrans: SDMmbtype %0d", xdata);
+                 end
 	       if(mbPartPredMode(xdata,0) == Intra_16x16)
 		  state <= Intra16x16DC;
 	       else
@@ -697,13 +700,16 @@ module [HASIM_MODULE] mkInverseTrans();
 	       outputVector[ii] = truncate((xdata[{stage3Step,2'b00}+fromInteger(ii)]+32) >> 6);
 	    outfifo.enq(tagged ITBresidual outputVector);
 	    Int#(10) tempint = unpack(outputVector[0]);
-	    $display("ccl3IBTresidual %0d", tempint);
-	    tempint = unpack(outputVector[1]);
-	    $display("ccl3IBTresidual %0d", tempint);
-	    tempint = unpack(outputVector[2]);
-	    $display("ccl3IBTresidual %0d", tempint);
-	    tempint = unpack(outputVector[3]);
-	    $display("ccl3IBTresidual %0d", tempint);
+            if(`IT_DEBUG == 1)
+               begin
+                 $display("ccl3IBTresidual %0d", tempint);
+                 tempint = unpack(outputVector[1]);
+                 $display("ccl3IBTresidual %0d", tempint);
+                 tempint = unpack(outputVector[2]);
+                 $display("ccl3IBTresidual %0d", tempint);
+                 tempint = unpack(outputVector[3]);
+                 $display("ccl3IBTresidual %0d", tempint);
+               end
 	    if(stage3Step == 3)
 	       stage3Done <= True;
 	    stage3Step <= stage3Step+1;

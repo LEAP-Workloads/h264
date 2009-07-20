@@ -1,4 +1,3 @@
-
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -22,24 +21,59 @@
 // THE SOFTWARE.
 
 //**********************************************************************
-// Interface for H264 Main Module
+// H264 Main Module
 //----------------------------------------------------------------------
 //
 //
-//
 
 
+
+`include "hasim_common.bsh"
+`include "soft_connections.bsh"
+
+// Include all of the decoder modules here
 `include "h264_types.bsh"
-`include "h264_memory_unit.bsh"
-
+`include "h264_entropy_decoder.bsh"
+`include "h264_inverse_transform.bsh"
+`include "h264_prediction_parallel.bsh"
+`include "h264_deblocking_parallel.bsh"
+`include "h264_buffer_control_parallel.bsh"
+`include "h264_frame_buffer_parallel.bsh"
+`include "h264_control.bsh"
+`include "h264_nal_unwrap.bsh"
+ 
+import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
 
-interface IH264;
+//(* synthesize *)
+module [HASIM_MODULE] mkH264( IH264 );
 
-   // Interface for memory, input generator
-   interface Put#(InputGenOT)                    ioin;
-   interface Get#(BufferControlOT) ioout;
+   // Instantiate the modules
 
-endinterface
+   INalUnwrap     nalunwrap     <- mkNalUnwrap();
+   Empty   framebuffer   <- mkFrameBuffer();
+   Empty    control       <- mkControl();
+   Empty    entropydec    <- mkEntropyDec();
+   Empty    inversetrans  <- mkInverseTrans();
+   Empty    prediction    <- mkPrediction();
+   Empty    deblockfilter <- mkDeblockFilter();
+   Empty    buffercontrol <- mkBufferControl();
+
+   //Soft Connection to Entropy
+   Connection_Receive#(BufferControlOT) outfifoRX <- mkConnection_Receive("bufferControl_outfifo");
+
+   // Interface to input generator
+   interface ioin = nalunwrap.ioin;
+
+
+   // Memory interfaces
+
+ 
+ 
+
+   interface ioout =  connectionToGet(outfifoRX);
+      
+endmodule
+
 

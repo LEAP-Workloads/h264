@@ -1,0 +1,22 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 Inter/Intra prediction module Luma Chroma Parallel
+%desc H264 Inter/Intra prediction module
+%provides h264_prediction_parallel
+
+
+
+%attributes h264
+
+%requires h264_interpolator_parallel
+
+%public mkPredictionLumaChroma.bsv IPrediction.bsv
+
+%param SYNTH_BOUNDARY mkPrediction "synth boundary"
+%param --global PREDICTION_DEBUG  0 "Enable Predicition Debug"
+
+%AWB_END

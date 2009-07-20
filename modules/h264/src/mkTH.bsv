@@ -57,13 +57,6 @@ module [HASIM_MODULE] mkSystem ();
    IMemEDConnection#(TAdd#(PicWidthSz,2),32) memP_inter     
                               <- mkMemEDConnection("mkPrediction_interMemReqQ",
                                                    "mkPrediction_interMemRespQ");
-   IMemEDDecoupled#(TAdd#(PicWidthSz,5),32)  memD_data      <- mkMemEDDecoupled();
-   IMemEDConnection#(PicWidthSz,13)          memD_parameter 
-                              <- mkMemEDConnection("mkDeblocking_parameterMemReqQ",
-                                                   "mkDeblocking_parameterMemRespQ");
-
-
-
  
    // Cycle counter
    Reg#(Bit#(40)) cyclecount <- mkReg(0);
@@ -82,10 +75,6 @@ module [HASIM_MODULE] mkSystem ();
    // Internal connections
    
    mkConnection( inputgen.ioout, h264.ioin );
-
-   mkConnection( memD_data.request_store, h264.mem_clientD_data.request_store );
-   mkConnection( h264.mem_clientD_data.request_load, memD_data.request_load );
-   mkConnection( h264.mem_clientD_data.response, memD_data.response);
 
    mkConnection( h264.ioout, finaloutput.ioin );
    

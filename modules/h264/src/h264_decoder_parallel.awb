@@ -4,22 +4,22 @@
 
 %AWB_START
 
-%name H264 decoder module
-%desc H264 decoder module
+%name H264 decoder module with parallel backend
+%desc H264 decoder module with parallel backend
 %provides h264_decoder
 
 %requires h264_control
-%requires h264_deblocking
-%requires h264_prediction
+%requires h264_deblocking_parallel
+%requires h264_prediction_parallel
 %requires h264_nal_unwrap
 %requires h264_inverse_transform
-%requires h264_buffer_control
+%requires h264_buffer_control_parallel
 %requires h264_entropy_decoder
-%requires h264_frame_buffer
-%requires h264_decoder_types
+%requires h264_frame_buffer_parallel
+%requires h264_decoder_types_parallel
 
 %attributes h264
 
-%public mkH264.bsv IH264.bsv
+%public mkH264Parallel.bsv IH264.bsv
 
 %AWB_END

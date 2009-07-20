@@ -1,5 +1,4 @@
-
-// The MIT License 
+// The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
 
@@ -20,7 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 //**********************************************************************
 // Prediction
 //----------------------------------------------------------------------
@@ -28,12 +26,13 @@
 //
 
 
+
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 
 `include "h264_interpolator.bsh"
 `include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
+`include "h264_decoder_types_parallel.bsh"
 
 import FIFO::*;
 import FIFOF::*;
@@ -161,22 +160,18 @@ endfunction
 // Prediction Module
 //-----------------------------------------------------------
 
+ 
 
-//(* synthesize *)
-module [HASIM_MODULE] mkPrediction ();
+module [HASIM_MODULE] mkPrediction(  );
 
    Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkPrediction_infifo");
    Connection_Receive#(InverseTransOT) infifo_ITB <- mkConnection_Receive("mkPrediction_infifo_ITB");
-   Connection_Send#(PredictionOT) outfifo <- mkConnection_Send("mkDeblocking_infifo");
+   Connection_Send#(PredictionOT) outfifoluma <- mkConnection_Send("mkDeblocking_infifoLuma");
+   Connection_Send#(PredictionOT) outfifochroma <- mkConnection_Send("mkDeblocking_infifoChroma");
    Connection_Receive#(MemResp#(68)) intraMemRespQ <- mkConnection_Receive("mkPrediction_intraMemRespQ");
    Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQ <- mkConnection_Send("mkPrediction_intraMemReqQ");
    Connection_Receive#(MemResp#(32)) interMemRespQ <- mkConnection_Receive("mkPrediction_interMemRespQ");
    Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkConnection_Send("mkPrediction_interMemReqQ");
-
-
-   
-
-
 
    //Common state
    Reg#(Bool)            passFlag   <- mkReg(True);
@@ -194,22 +189,27 @@ module [HASIM_MODULE] mkPrediction ();
    FIFOF#(NextOutput) nextoutputfifo <- mkFIFOF;
    Reg#(Bit#(4))   outBlockNum    <- mkReg(0);
    Reg#(Bit#(4))   outPixelNum    <- mkReg(0);
-   FIFO#(Vector#(4,Bit#(8))) predictedfifo  <- mkSizedFIFO(prediction_predictedfifo_size);
-   Reg#(Bit#(1))   outChromaFlag  <- mkReg(0);
+   FIFO#(Tuple3#(ChromaFlag,OutState,Vector#(4,Bit#(8)))) predictedfifoluma  <- mkSizedFIFO(prediction_predictedfifo_size);
+   FIFO#(Tuple3#(ChromaFlag,OutState,Vector#(4,Bit#(8)))) predictedfifochroma  <- mkSizedFIFO(prediction_predictedfifo_size);
+   Reg#(ChromaFlag)   outChromaFlag  <- mkReg(Luma);
    Reg#(Bool)      outFirstQPFlag <- mkReg(False);
 
+   
    DoNotFire donotfire <- mkDoNotFire();
    
    //Reg#(Vector#(16,Bit#(8))) workVector       <- mkRegU();
    
    //Inter state
-   Interpolator interpolator <- mkInterpolator("mkPrediction_interpolatorMemReqQ",
-                                               "mkPrediction_interpolatorMemRespQ");
+   Interpolator interpolator_luma <- mkInterpolator("mkPrediction_interpolatorLumaMemReqQ",
+                                                    "mkPrediction_interpolatorLumaMemRespQ");
+   Interpolator interpolator_chroma <- mkInterpolator("mkPrediction_interpolatorChromaMemReqQ",
+                                                      "mkPrediction_interpolatorChromaMemRespQ");
    Reg#(InterState) interstate <- mkReg(Start);
    Reg#(Bit#(PicAreaSz)) interPskipCount <- mkReg(0);
    Reg#(Vector#(5,InterBlockMv)) interTopVal <- mkRegU();
    Reg#(Vector#(4,InterBlockMv)) interLeftVal <- mkRegU();
    Reg#(Vector#(4,InterBlockMv)) interTopLeftVal <- mkRegU();
+   
    Reg#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQdelay <- mkRegU();
    Reg#(Bit#(3)) interReqCount <- mkReg(0);
    Reg#(Bit#(3)) interRespCount <- mkReg(0);
@@ -224,7 +224,8 @@ module [HASIM_MODULE] mkPrediction ();
    Reg#(Bit#(15)) interMvDiffTemp <- mkReg(0);
    FIFO#(Tuple2#(Bit#(15),Bit#(13))) interMvDiff <- mkFIFO;
    Reg#(Bit#(5)) interNewestMv <- mkReg(0);
-
+   
+   
    // Registers for pipelining the interStage rule
 
    Reg#(Bit#(3)) partWidthR <- mkRegU();
@@ -252,11 +253,12 @@ module [HASIM_MODULE] mkPrediction ();
    FIFO#(Tuple2#(Bit#(2),Bit#(2))) interBSfifo <- mkSizedFIFO(32);
    Reg#(Bool) interBSoutput <- mkReg(True);
    FIFO#(InterBlockMv) interOutBlockMvfifo <- mkSizedFIFO(8);
+   FIFO#(InterpolatorLoadReq) interpolatorLoadReqQ <- mkFIFO;
    
    
    //Intra state
    Reg#(IntraState)     intrastate      <- mkReg(Start);
-   Reg#(Bit#(1))        intraChromaFlag <- mkReg(0);
+   Reg#(ChromaFlag)        intraChromaFlag <- mkReg(Luma);
    Reg#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQdelay <- mkRegU;
    Reg#(Vector#(4,Bit#(4))) intra4x4typeLeft <- mkRegU();//15=unavailable, 14=inter-MB, 13=intra-non-4x4
    Reg#(Vector#(4,Bit#(4))) intra4x4typeTop  <- mkRegU();//15=unavailable, 14=inter-MB, 13=intra-non-4x4
@@ -298,62 +300,72 @@ module [HASIM_MODULE] mkPrediction ();
 //   endrule
    //////////////////////////////////////////////////////////////////////////////
 
-   rule checkFIFO ( True );
-      let cycle <- $time;
-      if(cycle[18:0] == 0) 
-        $display( "Trace Prediction: checkFIFO %h", infifo.receive() );
+   Reg#(Bit#(64)) total_cycles <- mkReg(0);
+
+
+   rule incr;
+     total_cycles <= total_cycles + 1;
    endrule
 
-   rule checkFIFO_ITB ( True );
-      let cycle <- $time;
-      if(cycle[18:0] == 0) 
+   rule checkFIFO ( total_cycles[15:0] == 0 );
+      $display( "Trace Prediction: checkFIFO %h", infifo.receive() );
+   endrule
+   rule checkFIFO_ITB ( total_cycles[15:0] == 0 );
       $display( "Trace Prediction: checkFIFO_ITB %h", infifo_ITB.receive() );
+       case ( infifo_ITB.receive()) matches
+         tagged ITBcoeffLevelZeros:  $display("Caused by ITBcoeffLevelZeros"); 
+         tagged ITBresidual .data:   $display("Caused by ITBresidual"); 
+         tagged IBTmb_qp .data:  $display("Caused by ITBmb_qp"); 
+       endcase
+   endrule
+   rule checkFIFO_predictedluma ( total_cycles[15:0] == 0 );
+      $display( "Trace Prediction: checkFIFO_predictedluma %h", predictedfifoluma.first() );
+   endrule
+   rule checkFIFO_predictedchroma ( total_cycles[15:0] == 0 );
+      $display( "Trace Prediction: checkFIFO_predictedchroma %h", predictedfifochroma.first() );
    endrule
 
-   rule checkFIFO_predicted ( True );
-    let cycle <- $time;
-    if(cycle[18:0] == 0) 
-      $display( "Trace Prediction: checkFIFO_predicted %h", predictedfifo.first() );
-   endrule
+
 
    
    rule passing ( passFlag && !outstatefifo.notEmpty() && currMbHor<zeroExtend(picWidth) );
-      if(`PREDICTION_DEBUG == 1)
-        begin
-          $display( "Trace Prediction: passing infifo packed %h", pack(infifo.receive()));
-        end
       case (infifo.receive()) matches
 	 tagged NewUnit . xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+	       outfifoluma.send(tagged EDOT infifo.receive());
+	       outfifochroma.send(tagged EDOT infifo.receive());
 	       $display("ccl4newunit");
 	       $display("ccl4rbspbyte %h", xdata);
 	    end
 	 tagged SPSpic_width_in_mbs .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+	       outfifoluma.send(tagged EDOT infifo.receive());
+	       outfifochroma.send(tagged EDOT infifo.receive());	       
 	       picWidth <= xdata;
-	       interpolator.setPicWidth(xdata);
+	       interpolator_luma.setPicWidth(xdata);
+ 	       interpolator_chroma.setPicWidth(xdata);
 	    end
 	 tagged SPSpic_height_in_map_units .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+	       outfifoluma.send(tagged EDOT infifo.receive());
+	       outfifochroma.send(tagged EDOT infifo.receive());
 	       picHeight <= xdata;
-	       interpolator.setPicHeight(xdata);
+	       interpolator_luma.setPicHeight(xdata);
+	       interpolator_chroma.setPicHeight(xdata);
 	    end
 	 tagged PPSconstrained_intra_pred_flag .xdata :
 	    begin
 	       infifo.deq();
-	       ////outfifo.send(infifo.receive());
 	       ppsconstrained_intra_pred_flag <= xdata;
 	    end
 	 tagged SHfirst_mb_in_slice .xdata :
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+	       outfifoluma.send(tagged EDOT infifo.receive());
+	       outfifochroma.send(tagged EDOT infifo.receive());
 	       firstMb   <= xdata;
 	       currMb    <= xdata;
 	       currMbHor <= xdata;
@@ -369,21 +381,23 @@ module [HASIM_MODULE] mkPrediction ();
 	 tagged EndOfFile :
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+	       outfifochroma.send(tagged EDOT infifo.receive());
+	       outfifoluma.send(tagged EDOT infifo.receive());
 	       $display( "INFO Prediction: EndOfFile reached" );
-	       //$finish(0);////////////////////////////////
+	       
 	    end
-	 default:
+	 default:  // Fix these types at some point... 
 	    begin
 	       infifo.deq();
-	       outfifo.send(tagged EDOT infifo.receive());
+               let entropyToken = infifo.receive();
+	       outfifoluma.send(tagged EDOT entropyToken);
+	       outfifochroma.send(tagged EDOT entropyToken);
 	    end
       endcase
    endrule
 
 
    rule inputing ( !passFlag );
-      $display( "Trace Prediction: inputing infifo packed %h", pack(infifo.receive()));
       case (infifo.receive()) matches
 	 tagged SDmb_skip_run .xdata :
 	    begin
@@ -574,33 +588,37 @@ module [HASIM_MODULE] mkPrediction ();
       endcase
    endrule
 
-   
+   // only 8 filter components for 
+   // for bshor, chroma always ends in zero 
+   // for bsver,  bSfileVer.sub((chromaFlag==Luma?blockNumCols:{blockVer[0],blockHor[0],1'b0,columnNumber[1]}));
    rule outputing ( currMbHor<zeroExtend(picWidth) );
+      match{.predictedfifo, .outfifo} = (outChromaFlag==Luma)?tuple2(predictedfifoluma, outfifoluma):
+                                                              tuple2(predictedfifochroma, outfifochroma); 
       Bit#(1) outputFlag = 0;
       Vector#(4,Bit#(8)) outputVector = replicate(0);
       Bit#(2) blockHor = {outBlockNum[2],outBlockNum[0]};
       Bit#(2) blockVer = {outBlockNum[3],outBlockNum[1]};
       Bit#(2) pixelVer = {outPixelNum[3],outPixelNum[2]};
       Bit#(4) totalVer = {blockVer,pixelVer};
-      //$display( "Trace Prediction: outputing" );
+
+      $display( "bsFIFO Trace Prediction: outputing (%d,%d)", blockVer,blockHor );
       if(outFirstQPFlag)
 	 begin
 	    if(infifo_ITB.receive() matches tagged IBTmb_qp .xdata)
 	       begin
 		  infifo_ITB.deq();
-		  outfifo.send(IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		  outfifoluma.send(tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		  outfifochroma.send(tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		  outFirstQPFlag <= False;
-                  if(`PREDICTION_DEBUG == 1)
-                    begin
-		      $display( "Trace Prediction: outputing outFirstQP %h %h %h", outBlockNum, outPixelNum, xdata);
-                    end
+		  $display( "Trace Prediction: outputing outFirstQP %h %h %h", outBlockNum, outPixelNum, xdata);
 	       end
 	    else
-	       $display( "ERROR Prediction: outputing unexpected infifo_ITB.receive()");
+	       $display( "ERROR Prediction: outputing unexpected infifo_ITB.first()");
 	 end
-      else if(nextoutputfifo.first() == SkipMB)
+      else if(nextoutputfifo.first() == SkipMB) // if(!outFirstQPFlag)
+	 // It's clear that we will first process either the nextoutputfifo or something similar
 	 begin
-	    if(interBSoutput && outChromaFlag==0 && outPixelNum==0)
+	    if(interBSoutput && outChromaFlag==Luma && outPixelNum==0)
 	       begin
 		  interBSoutput <= False;
 		  interBSfifo.deq();
@@ -608,34 +626,47 @@ module [HASIM_MODULE] mkPrediction ();
 		  Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 		  Bit#(3) horBS = (tempHorBS==3 ? 4 : (interLeftNonZeroTransCoeff[blockVer] ? 2 : zeroExtend(tempHorBS)));
 		  Bit#(3) verBS = (tempVerBS==3 ? 4 : (interTopNonZeroTransCoeff[blockHor]&&blockVer!=0 ? 2 : zeroExtend(tempVerBS)));
-		  outfifo.send(PBbS {bShor:horBS,bSver:verBS});
+		  outfifoluma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
+		  outfifochroma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
 		  interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 		  interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
                   if(`PREDICTION_DEBUG == 1)
                     begin
-		      $display( "Trace Prediction: outputing SkipMB bS %h %h %h %h", outBlockNum, outPixelNum, currMbHor, currMbVer);
+                      $display( "Trace Prediction: outputing SkipMB bS %h %h %h %h", outBlockNum, outPixelNum, currMbHor, currMbVer);
                     end
 	       end
-	    else
+	    else  // normally outputing
 	       begin
 		  interBSoutput <= True;
-		  outputVector = predictedfifo.first();
-		  outfifo.send(tagged PBoutput outputVector);
+                  match {.chromaFlag, .decodeType, .outputVectorTyped} = predictedfifo.first;
+                  outputVector = outputVectorTyped;
+                  outfifo.send(tagged PBoutput tuple2(chromaFlag, outputVector));
+                  predictedfifo.deq;
+
+                  if(decodeType != outstatefifo.first)
+                    begin
+                      $display("Trace Prediction: ERROR! decode type is not the same as outfifo");
+                    end
+		   if(chromaFlag != outChromaFlag)
+                    begin
+                      $display("Trace Predicition ERROR! stream chroma flag not equal to outChromaFlag");
+		    end
+                 
 		  outputFlag = 1;
-		  predictedfifo.deq();
                   if(`PREDICTION_DEBUG == 1)
                     begin
-		      $display( "Trace Prediction: outputing SkipMB out %h %h %h", outBlockNum, outPixelNum, outputVector);
+                      $display( "Trace Prediction: outputing SkipMB out %h %h %h", (outChromaFlag==Luma)?"Luma":"Chroma",outBlockNum, outPixelNum, outputVector);
                     end
 	       end
 	 end
-      else
+      else // if(!(outFirstQPFlag || nextoutputfifo.first() == SkipMB))
 	 begin
-	    case ( infifo_ITB.receive() ) matches
+	    case ( infifo_ITB.receive() ) matches // Perhaps this has some latency
 	       tagged IBTmb_qp .xdata :
 		  begin
 		     infifo_ITB.deq();
-		     outfifo.send( tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		     outfifoluma.send(tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
+		     outfifochroma.send(tagged IBTmb_qp {qpy:xdata.qpy,qpc:xdata.qpc});
 		     outFirstQPFlag <= False;
                      if(`PREDICTION_DEBUG == 1)
                        begin
@@ -644,11 +675,14 @@ module [HASIM_MODULE] mkPrediction ();
 		  end
 	       tagged ITBresidual .xdata :
 		  begin
-		     if(interBSoutput && outChromaFlag==0 && outPixelNum==0)
+		     if(interBSoutput && outChromaFlag==Luma && outPixelNum==0)
 			begin
 			   interBSoutput <= False;
 			   if(outstatefifo.first() != Inter)
-			      outfifo.send( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
+			      begin
+			         outfifoluma.send(tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3),blockNum: outBlockNum});
+				 outfifochroma.send(tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3),blockNum: outBlockNum});
+			      end
 			   else
 			      begin
 				 interBSfifo.deq();
@@ -656,22 +690,34 @@ module [HASIM_MODULE] mkPrediction ();
 				 Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 				 Bit#(3) horBS = (tempHorBS==3 ? 4 : 2);
 				 Bit#(3) verBS = (tempVerBS==3 ? 4 : 2);
-				 outfifo.send( tagged PBbS {bShor:horBS,bSver:verBS});
+				 outfifoluma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
+				 outfifochroma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, True);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, True);
                            if(`PREDICTION_DEBUG == 1)
                              begin
-			       $display( "Trace Prediction: outputing ITBresidual bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+                               $display( "Trace Prediction: outputing ITBresidual bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
                              end
 			end
-		     else
+		     else // Normally we'd be outputing here too.
 			begin
 			   interBSoutput <= True;
 			   Bit#(11) tempOutputValue = 0;
+                           
+                           match {.chromaFlag, .decodeType, .outputVectorTyped} = predictedfifo.first;
+                           
+                           predictedfifo.deq;
+ 
+                           if(decodeType != outstatefifo.first)
+                             begin
+                               $display("Trace Prediction: ERROR! decode type is not the same as outfifo");
+                             end 
+                           
+                           
 			   for(Integer ii=0; ii<4; ii=ii+1)
 			      begin
-				 tempOutputValue = signExtend(xdata[ii]) + zeroExtend((predictedfifo.first())[ii]);
+				 tempOutputValue = signExtend(xdata[ii]) + zeroExtend((outputVectorTyped)[ii]);
 				 if(tempOutputValue[10]==1)
 				    outputVector[ii] = 0;
 				 else if(tempOutputValue[9:0] > 255)
@@ -679,23 +725,32 @@ module [HASIM_MODULE] mkPrediction ();
 				 else
 				    outputVector[ii] = tempOutputValue[7:0];
 			      end
-			   outfifo.send( tagged PBoutput outputVector);
-			   infifo_ITB.deq();
-			   predictedfifo.deq();
+                           
+		           outfifo.send(tagged PBoutput tuple2(chromaFlag,outputVector));
+                           
+			   if(chromaFlag != outChromaFlag)
+                              begin
+                                $display("Trace Predicition ERROR! stream chroma flag not equal to outChromaFlag");
+			      end
+			   
 			   outputFlag = 1;
+			   infifo_ITB.deq();
                            if(`PREDICTION_DEBUG == 1)
                              begin
-			       $display( "Trace Prediction: outputing ITBresidual out %h %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), xdata, outputVector);
+			      $display( "Trace Prediction: outputing ITBresidual %s %h %h %h", (chromaFlag == Luma)?"Luma":"Chroma",outChromaFlag, outBlockNum, outPixelNum);
                              end
 			end
 		  end
 	       tagged ITBcoeffLevelZeros :
 		  begin
-		     if(interBSoutput && outChromaFlag==0 && outPixelNum==0)
+		     if(interBSoutput && outChromaFlag==Luma && outPixelNum==0) // Appears to be an initialization thing
 			begin
 			   interBSoutput <= False;
 			   if(outstatefifo.first() != Inter)
-			      outfifo.send( tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3)});
+			      begin
+			         outfifoluma.send(tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3),blockNum: outBlockNum});
+				 outfifochroma.send(tagged PBbS {bShor:(blockHor==0 ? 4 : 3),bSver:(blockVer==0 ? 4 : 3),blockNum: outBlockNum});
+			      end
 			   else
 			      begin
 				 interBSfifo.deq();
@@ -703,27 +758,41 @@ module [HASIM_MODULE] mkPrediction ();
 				 Bit#(2) tempVerBS = tpl_2(interBSfifo.first());
 				 Bit#(3) horBS = (tempHorBS==3 ? 4 : (interLeftNonZeroTransCoeff[blockVer] ? 2 : zeroExtend(tempHorBS)));
 				 Bit#(3) verBS = (tempVerBS==3 ? 4 : (interTopNonZeroTransCoeff[blockHor]&&blockVer!=0 ? 2 : zeroExtend(tempVerBS)));
-				 outfifo.send( tagged PBbS {bShor:horBS,bSver:verBS});
+				 outfifoluma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
+				 outfifochroma.send(tagged PBbS {bShor:horBS,bSver:verBS,blockNum: outBlockNum});
 			      end
 			   interLeftNonZeroTransCoeff <= update(interLeftNonZeroTransCoeff, blockVer, False);
 			   interTopNonZeroTransCoeff <= update(interTopNonZeroTransCoeff, blockHor, False);
                            if(`PREDICTION_DEBUG == 1)
                              begin
-			       $display( "Trace Prediction: outputing ITBcoeffLevelZeros bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
+   	                       $display( "Trace Prediction: outputing ITBcoeffLevelZeros bS %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, currMbHor, currMbVer);
                              end
 			end
-		     else
+		     else // Normally, we'd be outputing here
 			begin
 			   interBSoutput <= True;
 			   if(outPixelNum == 12)
+                             begin
 			      infifo_ITB.deq();
-			   outputVector = predictedfifo.first();
-			   outfifo.send( tagged PBoutput outputVector);
+                             end
+                           match {.chromaFlag, .decodeType, .outputVectorTyped} = predictedfifo.first;
+                           outputVector = outputVectorTyped;
+                           outfifo.send(tagged PBoutput tuple2(chromaFlag, outputVector));
+                           predictedfifo.deq;
+                           if(chromaFlag != outChromaFlag)
+                              begin
+                                $display("Trace Predicition ERROR! stream chroma flag not equal to outChromaFlag");
+			      end
+
+                           if(decodeType != outstatefifo.first)
+                             begin
+                               $display("Trace Prediction: ERROR! decode type is not the same as outfifo");
+                             end
+
 			   outputFlag = 1;
-			   predictedfifo.deq();
                            if(`PREDICTION_DEBUG == 1)
                              begin
-			       $display( "Trace Prediction: outputing ITBcoeffLevelZeros out %h %h %h %h %h", outChromaFlag, outBlockNum, outPixelNum, predictedfifo.first(), outputVector);
+                               $display( "Trace Prediction: outputing ITBcoeffLevelZeros %s  %h %h %h", (outChromaFlag == Luma)?"Luma":"Chroma",outChromaFlag, outBlockNum, outPixelNum);
                              end
 			end
 		  end
@@ -733,24 +802,17 @@ module [HASIM_MODULE] mkPrediction ();
  
       if(outputFlag == 1)
 	 begin
-            if(`PREDICTION_DEBUG == 1)
-              begin
-                $display("ccl4PBoutput %0d", outputVector[0]);
-                $display("ccl4PBoutput %0d", outputVector[1]);
-                $display("ccl4PBoutput %0d", outputVector[2]);
-                $display("ccl4PBoutput %0d", outputVector[3]);
-              end
-             
-	    if(outBlockNum==0 && pixelVer==0 && outChromaFlag==0 && currMb!=firstMb && picWidth>1)
+
+	    if(outBlockNum==0 && pixelVer==0 && outChromaFlag==Luma && currMb!=firstMb && picWidth>1)
 	       begin
 		  intraMemReqQ.send(intraMemReqQdelay);
 		  interMemReqQ.send(interMemReqQdelay);
 		  //$display( "TRACE Prediction: passing storing addr data");//////////////////
 	       end
 	    
-	    if(blockHor==3 || (blockHor[0]==1 && outChromaFlag==1) || (outstatefifo.first()==Intra4x4 && outChromaFlag==0))
+	    if(blockHor==3 || (blockHor[0]==1 && outChromaFlag==Chroma) || (outstatefifo.first()==Intra4x4 && outChromaFlag==Luma))
 	       begin
-		  if(outChromaFlag==0)
+		  if(outChromaFlag==Luma)
 		     begin
 			Bit#(32) intraLeftValNextTemp = intraLeftValNext;
 			if(totalVer==0 || (outstatefifo.first()==Intra4x4 && pixelVer==0))
@@ -775,7 +837,7 @@ module [HASIM_MODULE] mkPrediction ();
 			   end
 			endcase
 		     end
-		  else
+		  else // chroma
 		     begin
 			if(outBlockNum[2]==0)
 			   intraLeftValChroma0 <= update(intraLeftValChroma0,totalVer+1,outputVector[3]);
@@ -784,9 +846,9 @@ module [HASIM_MODULE] mkPrediction ();
 		     end
 	       end
 			   
-	    if(pixelVer==3 && (blockVer==3 || (blockVer[0]==1 && outChromaFlag==1) || (outstatefifo.first()==Intra4x4 && outChromaFlag==0)))
+	    if(pixelVer==3 && (blockVer==3 || (blockVer[0]==1 && outChromaFlag==Chroma) || (outstatefifo.first()==Intra4x4 && outChromaFlag==Luma)))
 	       begin
-		  if(outChromaFlag==0)
+		  if(outChromaFlag==Luma)
 		     begin
 			intraTopVal <= update(intraTopVal,zeroExtend(blockHor),{outputVector[3],outputVector[2],outputVector[1],outputVector[0]});
 			if(outstatefifo.first()==Intra4x4)
@@ -796,7 +858,7 @@ module [HASIM_MODULE] mkPrediction ();
 			else
 			   intra4x4typeTop <= update(intra4x4typeTop,blockHor,14);
 		     end
-		  else
+		  else // Chroma stuff
 		     begin
 			if(outBlockNum[2]==0)
 			   begin
@@ -815,7 +877,7 @@ module [HASIM_MODULE] mkPrediction ();
 		     end
 	       end
 
-	    if(outChromaFlag==1 && outBlockNum==7)
+	    if(outChromaFlag==Chroma && outBlockNum==7)
 	       begin
 		  Bit#(PicWidthSz) tempStoreAddr = truncate(currMbHor);
 		  InterBlockMv outBlockMv = interOutBlockMvfifo.first();
@@ -829,7 +891,7 @@ module [HASIM_MODULE] mkPrediction ();
 		  if(pixelVer==3 && picWidth>1)
 		     interMemReqQdelay <= StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)};
 		  else
-		     interMemReqQ.send(StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)});
+		     interMemReqQ.send(tagged StoreReq {addr:{tempStoreAddr,pixelVer},data:pack(outBlockMv)});
 		  if(pixelVer>0)
 		     begin
 			Bit#(4)  intra4x4typeTopStore = ((outstatefifo.first()==Inter) ? 14 : ((outstatefifo.first()!=Intra4x4) ? 13: intra4x4typeTop[(pixelVer-1)]));
@@ -837,7 +899,7 @@ module [HASIM_MODULE] mkPrediction ();
 			Bit#(16) intraTopValChroma0Store = intraTopValChroma0[(pixelVer-1)];
 			Bit#(16) intraTopValChroma1Store = (pixelVer<3 ? intraTopValChroma1[(pixelVer-1)] : {outputVector[1],outputVector[0]});
 			Bit#(68) intraStore = {intra4x4typeTopStore,intraTopValChroma1Store,intraTopValChroma0Store,intraTopValStore};
-			intraMemReqQ.send(StoreReq {addr:{tempStoreAddr,(pixelVer-1)},data:intraStore});
+			intraMemReqQ.send(tagged StoreReq {addr:{tempStoreAddr,(pixelVer-1)},data:intraStore});
 			if(pixelVer==3)
 			   begin
 			      intra4x4typeTopStore = ((outstatefifo.first()==Inter) ? 14 : ((outstatefifo.first()!=Intra4x4) ? 13: intra4x4typeTop[3]));
@@ -852,27 +914,30 @@ module [HASIM_MODULE] mkPrediction ();
 	    outPixelNum <= outPixelNum+4;
 	    if(outPixelNum == 12)
 	       begin
-		  if(outChromaFlag==0)
+		  if(outChromaFlag==Luma)
 		     begin
 			outBlockNum <= outBlockNum+1;
 			if(outBlockNum == 15)
-			   outChromaFlag <= 1;
+			   outChromaFlag <= Chroma;
 			if(nextoutputfifo.first() == Intra4x4)
 			   nextoutputfifo.deq();
 		     end
-		  else
+		  else // Luma
 		     begin
 			if(outBlockNum == 7)
 			   begin
 			      outBlockNum <= 0;
-			      outChromaFlag <= 0;
+			      outChromaFlag <= Luma;
 			      currMb <= currMb+1;
 			      currMbHor <= currMbHor+1;
 			      interCurrMbDiff <= interCurrMbDiff-1;
 			      outstatefifo.deq;
 			      intrastate <= Start;
 			      if(truncate(currMbHor)==picWidth-1 && currMbVer==picHeight-1)
-				 interpolator.endOfFrame();
+				begin
+				 interpolator_luma.endOfFrame();
+				 interpolator_chroma.endOfFrame();
+ 				end
 			      nextoutputfifo.deq();
 			   end
 			else
@@ -881,6 +946,8 @@ module [HASIM_MODULE] mkPrediction ();
 	       end
 	 end
    endrule
+
+
 
 
    rule currMbHorUpdate( !(currMbHor<zeroExtend(picWidth)) );
@@ -945,7 +1012,10 @@ module [HASIM_MODULE] mkPrediction ();
 	 end
       else
 	 interReqCount <= 0;
-      $display( "Trace Prediction: interSendReq %h %h %h", interstate, interReqCount, temp);
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "Trace Prediction: interSendReq %h %h %h", interstate, interReqCount, temp);
+        end
    endrule
 
 
@@ -961,7 +1031,10 @@ module [HASIM_MODULE] mkPrediction ();
 	    interLeftVal <= replicate(tagged NotInter 0);
 	    interTopLeftVal <= replicate(tagged NotInter 0);
 	 end
-      $display( "Trace Prediction: interReceiveNoResp %h %h", interstate, interRespCount);
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "Trace Prediction: interReceiveNoResp %h %h", interstate, interRespCount);
+        end
    endrule
 
    
@@ -1019,7 +1092,10 @@ module [HASIM_MODULE] mkPrediction ();
 	 end
       interTopVal <= interTopValNext;
       interTopLeftVal <= interTopLeftValNext;
-      $display( "Trace Prediction: interReceiveResp %h %h %h", interstate, interRespCount, data);
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "Trace Prediction: interReceiveResp %h %h %h", interstate, interRespCount, data);
+        end
    endrule
 
 
@@ -1199,7 +1275,7 @@ module [HASIM_MODULE] mkPrediction ();
 				       mvverPred = 0;
 				    end
 			      end
-			   else if(blockABC[ii] matches tagged  NotInter 0)
+			   else if(blockABC[ii] matches tagged NotInter 0)
 			      begin
 			         mvhorPred = 0;
 			         mvverPred = 0;
@@ -1239,7 +1315,10 @@ module [HASIM_MODULE] mkPrediction ();
 	          end
 	       interMvFile.upd({interMbPartNum,interSubMbPartNum},tuple2(mvhorfinal,mvverfinal));
 	       interNewestMvNext = zeroExtend({interMbPartNum,interSubMbPartNum})+1;
-	       $display( "Trace Prediction: interProcessStep %h %h %h %h %h %h %h %h %h", interstate, interStepCount, interMbPartNum, interSubMbPartNum, pack(blockABC[0]), pack(blockABC[1]), pack(blockABC[2]), mvhorPred, mvverPred);
+               if(`PREDICTION_DEBUG == 1)
+                 begin
+	           $display( "Trace Prediction: interProcessStep %h %h %h %h %h %h %h %h %h", interstate, interStepCount, interMbPartNum, interSubMbPartNum, pack(blockABC[0]), pack(blockABC[1]), pack(blockABC[2]), mvhorPred, mvverPred);
+                 end
 	    end
          else
 	    begin
@@ -1320,7 +1399,7 @@ module [HASIM_MODULE] mkPrediction ();
             interLeftVal <= interLeftValNext;
             interTopLeftVal <= interTopLeftValNext;
             if(blockVer == 3)
-	       interOutBlockMvfifo.enq(BlockMv {refIdx:refIndex,mvhor:mvhorfinal,mvver:mvverfinal,nonZeroTransCoeff:0});
+	       interOutBlockMvfifo.enq(tagged BlockMv {refIdx:refIndex,mvhor:mvhorfinal,mvver:mvverfinal,nonZeroTransCoeff:0});
             if(interSubMbPartNum == 3)//next step
 	       begin
 	          interSubMbPartNum <= 0;
@@ -1344,9 +1423,10 @@ module [HASIM_MODULE] mkPrediction ();
 	       interStepCount <= 0;
 	    else
 	       interStepCount <= 1;
-
-	    $display( "Trace Prediction: interProcessStep final %h %h %h %h %h %h %h",interstate,interStepCount,interMbPartNum,interSubMbPartNum,mvhorfinal,mvverfinal,interNewestMvNext);
-
+           if(`PREDICTION_DEBUG == 1)
+             begin
+	       $display( "Trace Prediction: interProcessStep final %h %h %h %h %h %h %h",interstate,interStepCount,interMbPartNum,interSubMbPartNum,mvhorfinal,mvverfinal,interNewestMvNext);
+             end
        end
    endrule
 
@@ -1416,13 +1496,20 @@ module [HASIM_MODULE] mkPrediction ();
 		  btTemp = IP8x8;
 		  mvhorTemp = tpl_1(interMvFile.sub({interIPMbPartNumTemp,2'b00}));
 		  mvverTemp = tpl_2(interMvFile.sub({interIPMbPartNumTemp,2'b00}));
-		  interpolator.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+		  $display("PARDEBLOCK issuing luma at %0d", total_cycles);
+		  interpolator_luma.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
 	       end
 	    else
-	       interpolator.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	       begin
+	     	  $display("PARDEBLOCK issuing luma at %0d", total_cycles);
+	          interpolator_luma.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	       end
 	 end
       else
-	 interpolator.request(IPChroma {refIdx:refIndex,uv:interIPStepCount[0],hor:horTemp,ver:truncate(verTemp>>1),mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	begin
+	   $display("PARDEBLOCK issuing Chroma at %0d", total_cycles);     
+	   interpolator_chroma.request(IPChroma {refIdx:refIndex,uv:interIPStepCount[0],hor:horTemp,ver:truncate(verTemp>>1),mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	end
       if(interIPSubMbPartNum >= truncate(numSubPart-1))
 	 begin
 	    interIPSubMbPartNum <= 0;
@@ -1446,7 +1533,7 @@ module [HASIM_MODULE] mkPrediction ();
 	    else
 	       interIPSubMbPartNum <= interIPSubMbPartNum+1;
 	 end
-      $display( "Trace Prediction: interIPProcessStep %h %h %h %h %h %h %h %h %h %h", interstate, interIPStepCount, interIPMbPartNum, interIPSubMbPartNum, refIndex, horTemp, verTemp, mvhorTemp, mvverTemp, pack(btTemp));
+      $display( "PARDEBLOCKTrace Prediction: interIPProcessStep %h %h %h %h %h %h %h %h %h %h", interstate, interIPStepCount, interIPMbPartNum, interIPSubMbPartNum, refIndex, horTemp, verTemp, mvhorTemp, mvverTemp, pack(btTemp));
    endrule
 
 
@@ -1455,17 +1542,20 @@ module [HASIM_MODULE] mkPrediction ();
       //$display( "Trace Prediction: interOutputTransfer %h %h", interstate, interOutputCount);
    endrule
 
-   
-   rule interOutputTransfer ( True );
-      predictedfifo.enq(interpolator.first());
-      interpolator.deq();
-      //$display( "Trace Prediction: interOutputTransfer %h %h", interstate, interOutputCount);
+   //Can probably just drop these rules. They don't add any value
+   rule interOutputTransferChroma (True);
+      predictedfifochroma.enq(tuple3(Chroma,Inter,interpolator_chroma.first()));
+      interpolator_chroma.deq();
    endrule
 
 
+   rule interOutputTransferLuma (True);
+      predictedfifoluma.enq(tuple3(Luma,Inter,interpolator_luma.first()));
+      interpolator_luma.deq();
+   endrule
+
 
    // intra prediction rules
-
    rule intraSendReq ( intraReqCount>0 && currMbHor<zeroExtend(picWidth) && !nextoutputfifo.notEmpty() );
       Bit#(PicWidthSz) temp2 = truncate(currMbHor);
       Bit#(TAdd#(PicWidthSz,2)) temp = 0;
@@ -1641,10 +1731,10 @@ module [HASIM_MODULE] mkPrediction ();
 	    cur_intra4x4_pred_mode <= curType;
 	    intraStepCount <= intraStepCount+1;
 	    if(blockNum == 15)
-	       nextoutputfifo.enq(Intra4x4PlusChroma);
+	       nextoutputfifo.enq(tagged Intra4x4PlusChroma);
 	    else
-	       nextoutputfifo.enq(Intra4x4);
-	   // $display( "TRACE Prediction: intraPredTypeStep currMbHor currMbVer blockNum topType leftType predType remType curType %0d %0d %0d %0d %0d %0d %0d %0d",currMbHor,currMbVer,blockNum,topType,leftType,predType,remType,curType);//////////////////
+	       nextoutputfifo.enq(tagged Intra4x4);
+	    $display( "TRACE Prediction: intraPredTypeStep currMbHor currMbVer blockNum topType leftType predType remType curType %0d %0d %0d %0d %0d %0d %0d %0d",currMbHor,currMbVer,blockNum,topType,leftType,predType,remType,curType);//////////////////
 	 end
       //$display( "Trace Prediction: intraPredTypeStep");
    endrule
@@ -1672,12 +1762,12 @@ module [HASIM_MODULE] mkPrediction ();
 	 leftAvailable = 0;
       else
 	 leftAvailable = 1;
-      if(blockNum==0 && pixelNum==0 && intraChromaFlag==0)
+      if(blockNum==0 && pixelNum==0 && intraChromaFlag==Luma)
 	 begin
 	    intraChromaTopAvailable <= topAvailable;
 	    intraChromaLeftAvailable <= leftAvailable;
 	 end
-      if(intrastate==Intra4x4 && intraChromaFlag==0)
+      if(intrastate==Intra4x4 && intraChromaFlag==Luma)
 	 begin
 	    if(intraStepCount==2)
 	       begin
@@ -1690,7 +1780,11 @@ module [HASIM_MODULE] mkPrediction ();
 		     topValSet = {topMidValSet[31:24],topMidValSet[31:24],topMidValSet[31:24],topMidValSet[31:24],topMidValSet,leftValSet[7:0]};
 		  else
 		     topValSet = {topRightValSet,topMidValSet,leftValSet[7:0]};
-		  $display( "TRACE Prediction: intraProcessStep intra4x4 %0d %0d %h %h", cur_intra4x4_pred_mode, blockNum, leftValSet, topValSet);////////////////////
+                  if(`PREDICTION_DEBUG == 1)
+                    begin
+                      $display( "TRACE Prediction: intraProcessStep intra4x4 %0d %0d %h %h", cur_intra4x4_pred_mode, blockNum, leftValSet, topValSet);////////////////////
+                    end
+
 		  Bit#(4) topSelect1 = 0;
 		  Bit#(4) topSelect2 = 0;
 		  Bit#(4) topSelect3 = 0;
@@ -1930,7 +2024,7 @@ module [HASIM_MODULE] mkPrediction ();
 	    else
 	       $display( "ERROR Prediction: intraProcessStep intra4x4 unknown intraStepCount");
 	 end
-      else if(intrastate==Intra16x16  && intraChromaFlag==0)
+      else if(intrastate==Intra16x16  && intraChromaFlag==Luma)
 	 begin
 	    //$display( "TRACE Prediction: intraProcessStep intra16x16 %0d %0d %0d %h", intra16x16_pred_mode, currMb, blockNum, select(intraTopVal,blockHor));/////////////////
 	    case(intra16x16_pred_mode)
@@ -2100,7 +2194,7 @@ module [HASIM_MODULE] mkPrediction ();
 	       end
 	    endcase
 	 end
-      else if(intraChromaFlag==1)
+      else if(intraChromaFlag==Chroma)
 	 begin
 	    //$display( "TRACE Prediction: intraProcessStep intraChroma %0d %0d %0d %0d %0d %0d %h %h %h %h %h %h %h %h",intra_chroma_pred_mode.first(),intraChromaTopAvailable,intraChromaLeftAvailable,currMb,blockNum,pixelNum,pack(intraLeftValChroma0),pack(intraTopValChroma0),pack(intraLeftValChroma1),pack(intraTopValChroma1),intraLeftValChroma0[0],intraTopValChroma0[3][15:8],intraLeftValChroma1[0],intraTopValChroma1[3][15:8]);///////////////////
 	    Vector#(9,Bit#(8)) tempLeftVec;
@@ -2270,16 +2364,23 @@ module [HASIM_MODULE] mkPrediction ();
 
       if(outFlag==1)
 	 begin
-	    predictedfifo.enq(predVector);
+            if(intraChromaFlag == Luma)
+              begin
+	        predictedfifoluma.enq(tuple3(intraChromaFlag,(intrastate==Intra4x4)?Intra4x4:Intra,predVector));
+              end
+            else
+              begin
+	        predictedfifochroma.enq(tuple3(intraChromaFlag,(intrastate==Intra4x4)?Intra4x4:Intra,predVector));
+              end
 	    pixelNum <= pixelNum+4;
 	    if(pixelNum == 12)
 	       begin
-		  if(intraChromaFlag==0)
+		  if(intraChromaFlag==Luma)
 		     begin
 			blockNum <= blockNum+1;
 			if(blockNum == 15)
 			   begin
-			      intraChromaFlag <= 1;
+			      intraChromaFlag <= Chroma;
 			      intraStepCount <= 2;
 			   end
 			else if(intrastate==Intra4x4)
@@ -2290,7 +2391,7 @@ module [HASIM_MODULE] mkPrediction ();
 			if(blockNum == 7)
 			   begin
 			      blockNum <= 0;
-			      intraChromaFlag <= 0;
+			      intraChromaFlag <= Luma;
 			      intraStepCount <= 0;
 			      intra_chroma_pred_mode.deq();
 			   end
@@ -2309,8 +2410,7 @@ module [HASIM_MODULE] mkPrediction ();
 	 intraStepCount <= nextIntraStepCount;
       //$display( "Trace Prediction: intraProcessStep");
    endrule
-
-      
+	   
 endmodule
 
 

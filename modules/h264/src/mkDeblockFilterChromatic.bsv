@@ -1,4 +1,3 @@
-
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -20,28 +19,25 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 //**********************************************************************
 // Deblocking Filter
 //----------------------------------------------------------------------
 //     
 //
 
-
 `include "hasim_common.bsh"
-`include "soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
+`include "h264_decoder_types_parallel.bsh"
 `include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
 `include "h264_memory_unit.bsh"
-
 
 import FIFO::*;
 import FIFOF::*;
 import Vector::*;
-import FIFOUtility::*;
 import FShow::*;
+
+import IDeblockFilter::*;
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
@@ -56,6 +52,7 @@ import RWire::*;
 typedef enum                
 {
   Passing,          //not working on anything in particular
+  Initialize,
   Horizontal,
   Cleanup,
   HorizontalCleanup,
@@ -210,7 +207,7 @@ endfunction
 
 //-----------------------------------------------------------
 // 1 read port register file module
-/*
+
 interface RFileSingle#(type idx_t, type d_t);
    method Action upd(idx_t x1, d_t x2);
    method ActionValue#(d_t) sub(idx_t x1);
@@ -303,34 +300,31 @@ module mkbSVector(IbSVector);
   method upd = bsVector.upd;
 endmodule
 
-*/
 
 
 
-//(* synthesize *)
-module [HASIM_MODULE] mkDeblockFilter( );
+module [HASIM_MODULE] mkDeblockFilterChromatic#(ChromaFlag chromaFlag) ( IDeblockFilter );
 
-   // Instantiate Memories.
+   String csStr = (chromaFlag == Luma)?"Luma":"Chroma";
+
    MEMORY_IFC#(Bit#(TAdd#(PicWidthSz,5)),Bit#(32))  dataMem      <- mkBRAM();
    MEMORY_IFC#(Bit#(PicWidthSz),Bit#(13))           parameterMem <- mkBRAM();
-                              
 
-   Connection_Receive#(PredictionOT) infifo <- mkConnection_Receive("mkDeblocking_infifo");
-   Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifo");  
- 
+   FIFOF#(PredictionOT) infifo     <- mkSizedFIFOF(deblockFilter_infifo_size);
+   FIFO#(DeblockFilterOT) outfifo <- mkFIFO();
    FIFO#(DeblockFilterOT) outfifoVertical <- mkSizedFIFO(5);
 
 
    FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) memReqRowToColumnConversion <- mkFIFO();
-                                                                                         
-                            
    FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) memReqVertical              <- mkFIFO();
- 
+   FIFO#(MemReq#(TAdd#(PicWidthSz,5),32)) memReqDataSendReq           <- mkFIFO();
+
+
    Reg#(Process) process       <- mkReg(Passing);
    Reg#(VerticalState) verticalState <- mkReg(NormalOperation);
-   Reg#(Bit#(1)) chromaFlagHor <- mkReg(0);
-   Reg#(Bit#(1)) chromaFlagVer <- mkReg(0);
+
    Reg#(Bit#(5)) dataReqCount  <- mkReg(0);
+   Reg#(Bit#(5)) dataRespCount <- mkReg(0);
    Reg#(Bit#(4)) blockNum      <- mkReg(0);
    Reg#(Bit#(2)) pixelNum      <- mkReg(0);
 
@@ -351,10 +345,13 @@ module [HASIM_MODULE] mkDeblockFilter( );
 
    Reg#(Bit#(6)) curr_qpy   <- mkReg(0);
    Reg#(Bit#(6)) left_qpy   <- mkReg(0);
+   Reg#(Bit#(6)) top_qpy    <- mkReg(0);
    Reg#(Bit#(6)) curr_qpc   <- mkReg(0);
    Reg#(Bit#(6)) left_qpc   <- mkReg(0);
+   Reg#(Bit#(6)) top_qpc    <- mkReg(0);
    Reg#(Bit#(1)) curr_intra <- mkReg(0);
    Reg#(Bit#(1)) left_intra <- mkReg(0);
+   Reg#(Bit#(1)) top_intra  <- mkReg(0);
 
    Reg#(Bit#(2)) blockHorVerticalCleanup <- mkReg(0);
 
@@ -384,33 +381,34 @@ module [HASIM_MODULE] mkDeblockFilter( );
 			       { 4, 6, 9 }, { 5, 7,10 }, { 6, 8,11 }, { 6, 8,13 }, { 7,10,14 }, { 8,11,16 },
 			       { 9,12,18 }, {10,13,20 }, {11,15,23 }, {13,17,25 }};
 
-   RegFile#(Bit#(3),Bit#(32)) workVectorRows <- mkRegFileFull();
-   RegFile#(Bit#(4),Bit#(32)) workVectorCols <- mkRegFileFull();
-   RegFile#(Bit#(5),Bit#(32)) leftVector <- mkRegFileFull();
-   RegFile#(Bit#(4),Bit#(32)) topVector  <- mkRegFileFull();
+   IWorkVectorHor workVectorRows <- mkWorkVectorHor();
+   IWorkVectorVer workVectorCols <- mkWorkVectorVer();
+   ILeftVector leftVector <- mkLeftVector();
+   ITopVector  topVector  <- mkTopVector();
+   Reg#(Bit#(16)) topVectorValidBits <- mkReg(0);  
 
-   RegFile#(Bit#(4),Bit#(3)) bSfileHor <- mkRegFileFull;
-   RegFile#(Bit#(4),Bit#(3)) bSfileVer <- mkRegFileFull;
+   IbSVector bSfileHor <- mkbSVector();
+   IbSVector bSfileVer <- mkbSVector();
 
    Reg#(Bit#(6)) cleanup_state <- mkReg(0);
 
    Vector#(4, FIFO#(Bit#(32))) rowToColumnStore <- replicateM(mkSizedFIFO(3));
    Reg#(Bit#(2)) rowToColumnState <- mkReg(0);
-   FIFO#(Tuple3#(Bit#(4),Bit#(1),Bit#(1))) rowToColumnStoreBlock <- mkFIFO(); // The second bit 1 is to rotate the damned 
+   FIFO#(Tuple2#(Bit#(4),Bit#(1))) rowToColumnStoreBlock <- mkFIFO(); // The third bit 1 is to rotate the damned 
                                                                               // last left vector block
-   FIFO#(Tuple3#(Bit#(4), Bit#(32), Bit#(1))) verticalFilterBlock <- mkFIFO();
+   FIFO#(Tuple2#(Bit#(4), Bit#(32))) verticalFilterBlock <- mkFIFO();
 
    Reg#(Bit#(2)) columnState <- mkReg(0);
    Vector#(4, FIFO#(Bit#(32))) columnToRowStore <- replicateM(mkSizedFIFO(3));
    Reg#(Bit#(2)) columnToRowState <- mkReg(0);
-   FIFO#(Tuple3#(Bit#(4), Bit#(1), Bit#(1))) columnToRowStoreBlock <- mkFIFO(); 
+   FIFO#(Tuple2#(Bit#(4), Bit#(1))) columnToRowStoreBlock <- mkFIFO(); 
 
    Reg#(Bit#(2)) columnNumber <- mkReg(0);      
   
    // Debugging register
    Reg#(Bit#(32)) fifo_full_count <- mkReg(0);
    Reg#(Bit#(32)) fifo_empty_count <- mkReg(0);
-   Reg#(Bit#(32)) total_cycles <- mkReg(0);
+   Reg#(Bit#(64)) total_cycles <- mkReg(0);
 
 
    rule incr;
@@ -421,134 +419,153 @@ module [HASIM_MODULE] mkDeblockFilter( );
      if(!infifo.notEmpty)
        begin
           fifo_empty_count <= fifo_empty_count + 1;
-          if(fifo_empty_count[15:0] == 0)
+          if(fifo_empty_count[15:0] == 0) 
             begin
-              $display("DEBLOCK FIFO EMPTY: %d of %d",fifo_empty_count, total_cycles); 
-            end
+              $display("DEBLOCK FIFO EMPTY: %d of %d",fifo_empty_count, total_cycles);
+            end 
        end   
    endrule
 
+
    rule checkFIFO ( True );
-     let cycle <- $time;
-     if(cycle[16:0] == 0) 
-       begin
-         $display( "Trace DeblockFilter: checkFIFO %h cycle: %d", infifo.receive(), total_cycles );
-         $display( "TRACE DeblockFilter: checkFIFO %h", infifo.receive() );
-       end       
+      if(total_cycles[15:0] == 0)
+        begin
+          $display( "Trace DeblockFilter: checkFIFO ", fshow(infifo.first()));
+        end
+
+      if(!infifo.notFull)
+        begin
+          fifo_full_count <= fifo_full_count + 1;
+          if(fifo_full_count[15:0] == 0) 
+            begin
+              $display("DEBLOCK FIFO(%d) FULL: %d of %d",deblockFilter_infifo_size, fifo_full_count, total_cycles); 
+            end
+        end       
    endrule
 
    rule memReqMergeRowToColumnConversion(memReqRowToColumnConversion.first() matches tagged StoreReq .store);
      memReqRowToColumnConversion.deq();
-     dataMem.write(store.addr, store.data);     
+     dataMem.write(store.addr,store.data);
    endrule
- 
+
    rule memReqMergeVertical(memReqVertical.first() matches tagged StoreReq .store);
      memReqVertical.deq();
      dataMem.write(store.addr,store.data);
    endrule
-   
+
    rule outfifoVerticalSplit;
      outfifoVertical.deq();
-     outfifo.send(outfifoVertical.first());
+     outfifo.enq(outfifoVertical.first());
    endrule
 
    rule passing ( process matches Passing );
-      case (infifo.receive()) matches
+      case (infifo.first()) matches
          tagged EDOT .edot:
-           case (edot) matches
-	     tagged NewUnit . xdata :
-	       begin
-	         infifo.deq();
-	         outfifo.send(tagged EDOT edot);
-               end
-             tagged SPSpic_width_in_mbs .xdata :
-	       begin
-	         infifo.deq();
-	         outfifo.send(tagged EDOT edot);
-	         picWidth <= xdata;
-	       end
-	     tagged SPSpic_height_in_map_units .xdata :
-	       begin
-	         infifo.deq();
-	         outfifo.send(tagged EDOT edot);
-	         picHeight <= xdata; 
-	      end
-            tagged PPSdeblocking_filter_control_present_flag .xdata :
-	      begin
-	        infifo.deq();
-	        if (xdata == 0)
-		  begin
-		     disable_deblocking_filter_idc <= 0;
-		     slice_alpha_c0_offset <= 0;
-		     slice_beta_offset <= 0;
-		  end
-  	      end
-	    tagged SHfirst_mb_in_slice .xdata :
-	      begin
-	        infifo.deq();
-	        outfifo.send(tagged EDOT edot);
-	        firstMb   <= xdata;
-	        currMb    <= xdata;
-	        currMbHor <= xdata;
-	        currMbVer <= 0;
-	      end
-	   tagged SHdisable_deblocking_filter_idc .xdata :
-	      begin
-	        infifo.deq();
-	        disable_deblocking_filter_idc <= xdata;
-	      end
-	   tagged SHslice_alpha_c0_offset .xdata :
-	      begin
-	        infifo.deq();
-	        slice_alpha_c0_offset <= xdata;
-	      end
-	   tagged SHslice_beta_offset .xdata :
-	      begin
-	        infifo.deq();
-	        slice_beta_offset <= xdata;
-	      end
-	   tagged EndOfFile :
-  	     begin
-	       infifo.deq();
-	       outfifo.send(tagged EDOT edot);
-	       $display( "ccl5: EndOfFile reached");
-	       //$finish(0);
-	     end
-	   default:
-	     begin
-	       infifo.deq();
-	       outfifo.send(tagged EDOT edot);
-	     end
-          endcase
+           begin
+             case (edot) matches
+   	       tagged NewUnit .xdata :
+	         begin
+	           infifo.deq();
+	           outfifo.enq(tagged EDOT edot);
+	           $display("ccl5newunit");
+	           $display("ccl5rbspbyte %h", xdata);
+	         end
 
-	  tagged IBTmb_qp .xdata :
+	       tagged SPSpic_width_in_mbs .xdata :
+	         begin
+	           infifo.deq();
+	           outfifo.enq(tagged EDOT edot);
+	           picWidth <= xdata;
+	         end
+
+   	       tagged SPSpic_height_in_map_units .xdata :
+	         begin
+	           infifo.deq();
+	           outfifo.enq(tagged EDOT edot);
+	           picHeight <= xdata; 
+	         end
+ 
+	       tagged PPSdeblocking_filter_control_present_flag .xdata :
+	         begin
+	           infifo.deq();
+	           if (xdata == 0)
+		     begin
+		       disable_deblocking_filter_idc <= 0;
+		       slice_alpha_c0_offset <= 0;
+		       slice_beta_offset <= 0;
+		    end
+	         end
+
+   	       tagged SHfirst_mb_in_slice .xdata :
+	         begin
+	           infifo.deq();
+	           outfifo.enq(tagged EDOT edot);
+	           firstMb   <= xdata;
+	           currMb    <= xdata;
+	           currMbHor <= xdata;
+	           currMbVer <= 0;
+	         end
+
+    	       tagged SHdisable_deblocking_filter_idc .xdata :
+	         begin
+	           infifo.deq();
+	           disable_deblocking_filter_idc <= xdata;
+	         end
+
+               tagged SHslice_alpha_c0_offset .xdata :
+	         begin
+	           infifo.deq();
+	           slice_alpha_c0_offset <= xdata;
+	         end
+
+               tagged SHslice_beta_offset .xdata :
+	         begin
+	           infifo.deq();
+	           slice_beta_offset <= xdata;
+	        end
+
+              tagged EndOfFile :
+                begin
+                  infifo.deq();
+                  outfifo.enq(tagged EDOT edot);
+                  $display( "ccl5: EndOfFile reached: %0d", total_cycles);
+	        end
+
+	      default:
+                begin
+	          infifo.deq();
+	          outfifo.enq(tagged EDOT edot);
+	        end
+             endcase // Handling the EDOT stuff
+           end
+
+           tagged IBTmb_qp .xdata :
 	     begin
 	       infifo.deq();
 	       curr_qpy <= xdata.qpy;
-	       curr_qpc <= xdata.qpc;
+               curr_qpc <= xdata.qpc;
 	     end
-	  tagged PBbS .xdata :
+
+           tagged PBbS .xdata :
 	     begin
-               if(`DEBLOCKING_DEBUG == 1)
-                 begin
-                   $display( "TRACE Deblocking Filter: initialize %0d", currMb);
-                 end
-               process <= Horizontal;
-               dataReqCount <= 1;
-               filterTopMbEdgeFlag <= !(currMb<zeroExtend(picWidth) || disable_deblocking_filter_idc==1 || (disable_deblocking_filter_idc==2 && currMb-firstMb<zeroExtend(picWidth)));
-               filterLeftMbEdgeFlag <= !(currMbHor==0 || disable_deblocking_filter_idc==1 || (disable_deblocking_filter_idc==2 && currMb==firstMb));
-               filterInternalEdgesFlag <= !(disable_deblocking_filter_idc==1);
-	    end
-	 tagged PBoutput .xdata :
-	    begin
-	       $display( "ERROR Deblocking Filter: passing PBoutput");
+	       process <= Initialize;
+	     end
+
+           tagged PBoutput .xdata :
+	     begin
+	       $display( "ERROR Deblocking Filter(%s): passing PBoutput", csStr);
+	       match {.colorFlag, .data} = xdata;
+	       if(chromaFlag != colorFlag)
+		  begin
+		     $display( "ERROR Deblocking Filter(%s): color mismatch", csStr);
+		  end
 	    end
 	 default:
-           begin
-	     infifo.deq();
-	     $display("mkDeblockFilter unhandled case ", fshow(infifo.receive));
-             $finish;
-           end
+	    begin
+	       infifo.deq();
+               $display("ERROR: Unhandled case in Deblock Filter");
+	       $finish;
+	    end
       endcase
    endrule
 
@@ -569,32 +586,49 @@ module [HASIM_MODULE] mkDeblockFilter( );
    endrule
 
    
-/*   rule initialize ( process==Initialize && currMbHor<zeroExtend(picWidth) );
+   rule initialize ( process==Initialize && currMbHor<zeroExtend(picWidth) );
       $display( "TRACE Deblocking Filter: initialize %0d", currMb);
       process <= Horizontal;
       dataReqCount <= 1;
+      dataRespCount <= 1;
       filterTopMbEdgeFlag <= !(currMb<zeroExtend(picWidth) || disable_deblocking_filter_idc==1 || (disable_deblocking_filter_idc==2 && currMb-firstMb<zeroExtend(picWidth)));
       filterLeftMbEdgeFlag <= !(currMbHor==0 || disable_deblocking_filter_idc==1 || (disable_deblocking_filter_idc==2 && currMb==firstMb));
       filterInternalEdgesFlag <= !(disable_deblocking_filter_idc==1);
-   endrule */
+      blockNum <= 0;
+      pixelNum <= 0;
+      topVectorValidBits <= 0;
+   endrule 
 
-   // no data comes through if we are on the top edge? kinda bogus
    rule dataSendReq ( dataReqCount>0 && currMbHor<zeroExtend(picWidth) );
       if(`DEBLOCKING_DEBUG == 1)
         begin
           $display( "TRACE Deblocking Filter: dataSendReq %0d", dataReqCount);
         end
+
       Bit#(PicWidthSz) temp = truncate(currMbHor);
+      if(currMb<zeroExtend(picWidth))
+	 dataReqCount <= 0;
+      else
+	 begin
 	    if(dataReqCount==1)
-	      parameterMem.readReq(temp);
+	       parameterMem.readReq(temp);
 	    Bit#(4) temp2 = truncate(dataReqCount-1);
-	    let temp3 = {temp,chromaFlagHor,temp2}; // here the troubles begin
+	    let temp3 = {temp,pack(chromaFlag)[0],temp2};
             dataMem.readReq(temp3);
 	    if(dataReqCount==16)
 	       dataReqCount <= 0;
 	    else
 	       dataReqCount <= dataReqCount+1;
-	 
+	 end
+   endrule
+
+
+   rule dataReceiveNoResp ( dataRespCount>0 && currMb<zeroExtend(picWidth) && currMb-firstMb<zeroExtend(picWidth) );
+      if(`DEBLOCKING_DEBUG == 1)
+        begin
+          $display( "TRACE Deblocking Filter: dataReceiveNoResp");
+        end
+      dataRespCount <= 0;
    endrule
 
    function Action deque(FIFO#(Bit#(32)) fifo);
@@ -607,7 +641,6 @@ module [HASIM_MODULE] mkDeblockFilter( );
      Bit#(2) blockVer = {tpl_1(rowToColumnStoreBlock.first())[3],tpl_1(rowToColumnStoreBlock.first())[1]};
      Bit#(2) blockHor = {tpl_1(rowToColumnStoreBlock.first())[2],tpl_1(rowToColumnStoreBlock.first())[0]};
      Bool storeBottomRightBlock = tpl_2(rowToColumnStoreBlock.first()) == 1;
-     Bit#(1) chromaFlag = tpl_3(rowToColumnStoreBlock.first());
 
      rowToColumnState  <= rowToColumnState + 1;
      Bit#(32) data_out = 0;
@@ -635,39 +668,37 @@ module [HASIM_MODULE] mkDeblockFilter( );
                                // It has to be rotated to the column major ordering used in the top vector 
                                // memory
        begin
-          if(`DEBLOCKING_DEBUG == 1)
-            begin
-              $display( "TRACE Deblocking Filter: rowToColumnRotate rotating block (%0d, %0d) rowtoColumnState: %d bottomRightBlock: %d, data: %h", blockHor, blockVer, rowToColumnState, storeBottomRightBlock, data_out);
-            end
-         // The block hor calculation may be questionable... between U and V.
-         if(chromaFlag == 0)
+         if(`DEBLOCKING_DEBUG == 1)
            begin
-             memReqRowToColumnConversion.enq(StoreReq {addr:{adjustedMbHor,chromaFlag,2'b11,rowToColumnState},data:data_out});
+             $display( "TRACE Deblocking Filter: rowToColumnRotate rotating block (%0d, %0d) rowtoColumnState: %d bottomRightBlock: %d, data: %h", blockHor, blockVer, rowToColumnState, storeBottomRightBlock, data_out);
+           end
+
+         // The block hor calculation may be questionable... between U and V.
+         if(chromaFlag == Luma)
+           begin
+             memReqRowToColumnConversion.enq(StoreReq {addr:{adjustedMbHor,pack(chromaFlag)[0],2'b11,rowToColumnState},data:data_out});
            end
          else
            begin  //differentiate between u and v
-             memReqRowToColumnConversion.enq(StoreReq {addr:{adjustedMbHor,chromaFlag,blockHor[1],1'b1,rowToColumnState},data:data_out});
+             memReqRowToColumnConversion.enq(StoreReq {addr:{adjustedMbHor,pack(chromaFlag)[0],blockHor[1],1'b1,rowToColumnState},data:data_out});
            end
                
        end
      else // pass data along to vertical filter
        begin  
-         verticalFilterBlock.enq(tuple3(tpl_1(rowToColumnStoreBlock.first()),data_out,chromaFlag));
+         verticalFilterBlock.enq(tuple2(tpl_1(rowToColumnStoreBlock.first()),data_out));
          if(`DEBLOCKING_DEBUG == 1)
            begin
-             $display( "TRACE Deblocking Filter: rowToColumnRotate rotating block (%0d, %0d) rowtoColumnState: %d chroma: %d bottomRightBlock: %d, data: %h", blockHor, blockVer, rowToColumnState, chromaFlag, storeBottomRightBlock, data_out);
+            $display( "TRACE Deblocking Filter: rowToColumnRotate rotating block (%0d, %0d) rowtoColumnState: %d bottomRightBlock: %d, data: %h", blockHor, blockVer, rowToColumnState, storeBottomRightBlock, data_out);
            end
        end
    endrule
 
-
-   // XXX need to pipeline through the chromaFlagVer... It's wrong here
    // rotate row to column after applying the vertical filter
    rule columnToRowConversion;
      Bit#(32) data_out = 0;
      Bool topValues = tpl_2(columnToRowStoreBlock.first()) == 1;
      Bit#(4) blockNumCols = tpl_1(columnToRowStoreBlock.first());
-     Bit#(1) chromaFlag = tpl_3(columnToRowStoreBlock.first());
      Bit#(2) blockHor = {blockNumCols[2],blockNumCols[0]};
      Bit#(2) blockVer = {blockNumCols[3],blockNumCols[1]} - 1; // Subtract 1, because these output values lag slightly  
      columnToRowState  <= columnToRowState + 1;  
@@ -687,7 +718,6 @@ module [HASIM_MODULE] mkDeblockFilter( );
                           (columnToRowStore[1].first())[23:16],
                           (columnToRowStore[0].first())[23:16]};
        2'b11: begin
-
                 data_out = {(columnToRowStore[3].first())[31:24],
                             (columnToRowStore[2].first())[31:24],
                             (columnToRowStore[1].first())[31:24],
@@ -702,16 +732,17 @@ module [HASIM_MODULE] mkDeblockFilter( );
      // Actually send the data out. This stuff is not the bottom row or left column, and is therefore done.
      // THe bottom row was sent out to the temporary buffer in the vertical rule.  But if we're on the last row of
      // the frame, there coming here.  Also, if we're in the last block, we must output the leftvector values
-     if( !topValues && (!(blockHor==3 || (blockHor[0]==1 && chromaFlag==1)) || (currMbVer==picHeight-1)))
+     if( !topValues && (!(blockHor==3 || (blockHor[0]==1 && chromaFlag==Chroma)) || (currMbVer==picHeight-1)))
        begin       
          $display( " Normal");
-         if(chromaFlag==0)
+         if(chromaFlag==Luma)
            begin
              if(`DEBLOCKING_DEBUG == 1)
                begin
                  $display("TRACE mkDeblockFilter: Outputting Luma ver{mbVer, blockVer(2), state}: %h, hor{mbHor, blockHor(2)}: %b, data: %h", {currMbVer,blockVer}, {currMbHorT,blockHor}, data_out); 
                end
-             outfifo.send(DFBLuma {ver:{currMbVer,blockVer,columnToRowState},
+
+             outfifo.enq(DFBLuma {ver:{currMbVer,blockVer,columnToRowState},
                                   hor:{currMbHorT,blockHor},
                                   data:data_out});
            end
@@ -719,9 +750,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
            begin
              if(`DEBLOCKING_DEBUG == 1)
                begin
-                 $display("TRACE mkDeblockFilter: Outputting Chroma %d ver{mbVer, blockVer(1), state(2)}: %b, hor{mbHor, blockHor(1)}: %b, data: %h",blockHor[1],{currMbVer,blockVer[0],columnToRowState},{currMbHorT,blockHor[0]},data_out); 
+                 $display("TRACE mkDeblockFilter: Outputting Chroma %d ver{mbVer, blockVer(1), state(2)}: %b, hor{mbHor, blockHor(1)}: %b, data: %h",blockHor[1],{currMbVer,blockVer[0],columnToRowState},{currMbHorT,blockHor[0]},data_out);
                end
-             outfifo.send(DFBChroma {uv:blockHor[1],
+ 
+             outfifo.enq(DFBChroma {uv:blockHor[1],
                                     ver:{currMbVer,blockVer[0],columnToRowState},
                                     hor:{currMbHorT,blockHor[0]},
                                     data:data_out});
@@ -732,39 +764,41 @@ module [HASIM_MODULE] mkDeblockFilter( );
                        // Mb, we must adjust the the Mbs used.   
        begin   
          $display( " TopValues");              
-         if(chromaFlag==0)
-           begin 
+         if(chromaFlag==Luma)
+           begin  
              if(`DEBLOCKING_DEBUG == 1)
                begin
-                $display("TRACE mkDeblockFilter: (Top Value) Outputting Luma ver{mbVer, blockVer(2), state(2)}: %b, hor{mbHor, blockHor(2)}: %h, data: %h",{currMbVer-1,2'b11,columnToRowState}, {currMbHorT,blockHor}, data_out); 
+                 $display("TRACE mkDeblockFilter: (Top Value) Outputting Luma ver{mbVer, blockVer(2), state(2)}: %b, hor{mbHor, blockHor(2)}: %h, data: %h",{currMbVer-1,2'b11,columnToRowState}, {currMbHorT,blockHor}, data_out); 
                end
-             outfifo.send(DFBLuma {ver:{currMbVer-1,2'b11,columnToRowState},
+
+             outfifo.enq(DFBLuma {ver:{currMbVer-1,2'b11,columnToRowState},
                                   hor:{currMbHorT,blockHor},
                                   data:data_out});
            end
          else
-           begin     
+           begin      
              if(`DEBLOCKING_DEBUG == 1)
                begin           
                  $display("TRACE mkDeblockFilter: (Top Value) Outputting Chroma %d ver{mbVer, blockVer(1), state(2)}: %b, hor{mbHor, blockHor(1)}: %b, data: %h",blockHor[1],{currMbVer-1,1'b1,columnToRowState},{currMbHorT,blockHor[0]},data_out);              
                end
-             outfifo.send(DFBChroma {uv:blockHor[1],
+
+             outfifo.enq(DFBChroma {uv:blockHor[1],
                                     ver:{currMbVer-1,1'b1,columnToRowState},
                                     hor:{currMbHorT,blockHor[0]},
                                     data:data_out});
 	   end 
        end        
 
-     if( !topValues && (blockHor==3 || (blockHor[0]==1 && chromaFlag==1))) // We need to write to the left Vector which will be used in the future. These values will not be written out.
+     if( !topValues && (blockHor==3 || (blockHor[0]==1 && chromaFlag==Chroma))) // We need to write to the left Vector which will be used in the future. These values will not be written out.
           // It may be wise at some point to 
        begin
          // We need to check for the last point in the pipeline. This is the bottom right corner of the Mb.
          $display( " Left Vector");
-	 if(chromaFlag==0)
+	 if(chromaFlag==Luma)
            begin
              if((blockVer == 3) && (columnToRowState == 3))
                begin
-                 //process <= Initialize;
+                 process <= Cleanup;
                end
              //check for last macro block         
 	     leftVector.upd({1'b0,blockVer,columnToRowState}, data_out);
@@ -774,19 +808,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
              // Only cleanup a single time after the chroma blocks
              if((blockHor == 3) && (blockVer[0] == 1) && (columnToRowState == 3))
                begin
-                 $display( "TRACE Deblocking Filter: horizontal bsFIFO chroma completed");
-                 Bit#(PicWidthSz) temp = truncate(currMbHor);
-                 parameterMem.write(temp,{curr_intra,curr_qpc,curr_qpy});
-                 currMb <= currMb+1;
-                 currMbHor <= currMbHor+1;
-                 if(currMbVer==picHeight-1 && currMbHor==zeroExtend(picWidth-1))
-                   begin
-                     process <= Cleanup;
-                   end
-                 else
-                   begin
-                     process <= Passing;
-                   end    
+                 process <= Cleanup;
                end
              leftVector.upd({1'b1,blockHor[1],blockVer[0],columnToRowState}, data_out);
            end     
@@ -794,16 +816,40 @@ module [HASIM_MODULE] mkDeblockFilter( );
  
    endrule
 
-  
+   
+   rule dataReceiveResp ( dataRespCount>0 && !(currMb<zeroExtend(picWidth)) && currMbHor<zeroExtend(picWidth) );
+      $display( "TRACE Deblocking Filter: dataReceiveResp %0d", dataRespCount);
+      Bit#(4) temp = truncate(dataRespCount-1);
+      if(dataRespCount==1)
+	 begin
+	    Bit#(13) tempParameters=0;	
+	    tempParameters <- parameterMem.readRsp();
+	    top_qpy <= tempParameters[5:0];
+	    top_qpc <= tempParameters[11:6];
+	    top_intra <= tempParameters[12];
+	 end
+      if(dataRespCount==16)
+	 dataRespCount <= 0;
+      else
+	 dataRespCount <= dataRespCount+1;
+
+      topVectorValidBits[temp] <= 1;
+      let respData <- dataMem.readRsp;
+      topVector.upd(temp, respData);
+      
+      //$display( "TRACE Deblocking Filter: dataReceiveResp topVector %h %h %h %h %h %h %h %h %h %h %h %h %h %h %h %h", topVector[0], topVector[1], topVector[2], topVector[3], topVector[4], topVector[5], topVector[6], topVector[7], topVector[8], topVector[9], topVector[10], topVector[11], topVector[12], topVector[13], topVector[14], topVector[15]);
+   endrule
+
+
    rule horizontal ( process==Horizontal && currMbHor<zeroExtend(picWidth) );
       Bit#(2) blockHor = {blockNum[2],blockNum[0]};
       Bit#(2) blockVer = {blockNum[3],blockNum[1]};
       Bit#(2) pixelVer = pixelNum;
 
-      Bool leftEdge = (blockNum[0]==0 && (blockNum[2]==0 || chromaFlagHor==1));
+      Bool leftEdge = (blockNum[0]==0 && (blockNum[2]==0 || chromaFlag==Chroma));
       if(blockNum==0 && pixelNum==0)
 	 begin
-	    Bit#(6) qpav = (chromaFlagHor==0 ? curr_qpy : curr_qpc);
+	    Bit#(6) qpav = (chromaFlag==Luma ? curr_qpy : curr_qpc);
 	    Bit#(8) indexAtemp = zeroExtend(qpav)+signExtend(slice_alpha_c0_offset);
 	    Bit#(8) indexBtemp = zeroExtend(qpav)+signExtend(slice_beta_offset);
 	    Bit#(6) indexA = (indexAtemp[7]==1 ? 0 : (indexAtemp[6:0]>51 ? 51 : indexAtemp[5:0]));
@@ -813,37 +859,45 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	    Vector#(3,Bit#(5)) tc0temp = arrayToVector(tc0_table[indexA]);
 	    tc0Internal <= tc0temp;
 	 end
-      case (infifo.receive()) matches
+      case (infifo.first()) matches
 	 tagged PBbS .xdata :
 	    begin
 	       infifo.deq();	       
-               bSfileHor.upd(blockNum, xdata.bShor);
-               bSfileVer.upd(blockNum, xdata.bSver);
-               $display( "TRACE Deblocking Filter: horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",infifo.receive(), blockHor, blockVer, pixelNum);
+               bSfileHor.upd(xdata.blockNum, xdata.bShor);
+               bSfileVer.upd(xdata.blockNum, xdata.bSver);
+               $display( "TRACE Deblocking Filter(%s): horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",csStr,infifo.first(), blockHor, blockVer, pixelNum);
+
 	    end
-	 tagged PBoutput .xdata :
+	 tagged PBoutput .predOutput :
 	    begin
+	       match {.predChromaFlag, .xdata} = predOutput;
+	       if(predChromaFlag != chromaFlag)
+		  begin
+		    $display("PARDEBLOCK deblockingFilter(%s) ERROR chroma flag mismatch in deblocking filter",csStr);
+		  end
                Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);
-               if((chromaFlagHor == 1) && (blockHor[1] == 1))
+               if((chromaFlag == Chroma) && (blockHor[1] == 1))
                  begin
                    if(`DEBLOCKING_DEBUG == 1)
                      begin
                        $display("PRE %h %h %h", {currMbVer,blockVer[0],pixelVer},{currMbHorT,blockHor[0]}, {xdata[0],xdata[1],xdata[2],xdata[3]});
                      end
                  end
+
                if(`DEBLOCKING_DEBUG == 1)
                  begin
-                   $display( "TRACE Deblocking Filter: horizontal chroma: %d, subblock(%0d, %0d) row: %0d, data: %h", chromaFlagHor, blockHor, blockVer, pixelNum, xdata);
+                   $display( "TRACE Deblocking Filter: horizontal chroma: %d, subblock(%0d, %0d) row: %0d, data: %h", chromaFlag, blockHor, blockVer, pixelNum, xdata);
                  end
+
 	       infifo.deq();
 	       Bit#(6) addrq = {blockHor,blockVer,pixelVer};
-	       Bit#(5) addrpLeft = (chromaFlagHor==0 ? {1'b0,blockVer,pixelVer} : {1'b1,blockHor[1],blockVer[0],pixelVer});
+	       Bit#(5) addrpLeft = (chromaFlag==Luma ? {1'b0,blockVer,pixelVer} : {1'b1,blockHor[1],blockVer[0],pixelVer});
 	       Bit#(6) addrpCurr = {(blockHor-1),blockVer,pixelVer};
 	       Bit#(32) pixelq = {xdata[3],xdata[2],xdata[1],xdata[0]};
 	       Bit#(32) pixelp;
 	       if(leftEdge)
                  begin
-		   pixelp = leftVector.sub(addrpLeft);
+		   pixelp <- leftVector.sub(addrpLeft);
                    if(`DEBLOCKING_DEBUG == 1)
                      begin
                        $display( "TRACE Deblocking Filter: horizontal P (left) addr %h, data %h ",addrpLeft, pixelp);
@@ -851,7 +905,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
                  end
 	       else
                  begin
-                   pixelp = workVectorRows.sub({blockVer[0], pixelVer});
+                   pixelp <- workVectorRows.sub({blockVer[0], pixelVer});
                    if(`DEBLOCKING_DEBUG == 1)
                      begin
                        $display( "TRACE Deblocking Filter: horizontal P (work) addr %h, data %h ",addrpCurr, pixelp);
@@ -860,8 +914,8 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	       Bit#(64) result = {pixelq,pixelp};
 	       if(leftEdge && filterLeftMbEdgeFlag)
 		  begin
-                    Bit#(6) curr_qp = (chromaFlagHor==0 ? curr_qpy : curr_qpc);
-                    Bit#(6) left_qp = (chromaFlagHor==0 ? left_qpy : left_qpc);
+                    Bit#(6) curr_qp = (chromaFlag==Luma ? curr_qpy : curr_qpc);
+                    Bit#(6) left_qp = (chromaFlag==Luma ? left_qpy : left_qpc);
                     Bit#(7) qpavtemp = zeroExtend(curr_qp)+zeroExtend(left_qp)+1;
                     Bit#(6) qpav = qpavtemp[6:1];
                     Bit#(8) indexAtemp = zeroExtend(qpav)+signExtend(slice_alpha_c0_offset);
@@ -873,12 +927,13 @@ module [HASIM_MODULE] mkDeblockFilter( );
                     Vector#(3,Bit#(5)) tc0MbLeft = arrayToVector(tc0_table[indexA]);
 		    if(filter_test({pixelq[15:0],pixelp[31:16]},alphaMbLeft,betaMbLeft))
                       begin
-                        if(`DEBLOCKING_DEBUG == 1)
-                          begin
-                            $display("TRACE mkDeblockFilter: Applying horizontal, left filter");
-                          end
-                         Bit#(3) bsData = bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0}));
-                         result = filter_input({pixelq,pixelp},chromaFlagHor==1,bsData,alphaMbLeft,betaMbLeft,tc0MbLeft);
+                         if(`DEBLOCKING_DEBUG == 1)
+                           begin
+                             $display("TRACE mkDeblockFilter: Applying horizontal, left filter");
+                           end
+
+                         Bit#(3) bsData <- bSfileHor.sub((chromaFlag==Luma?blockNum:{blockNum[1:0],pixelVer[1],1'b0}));
+                         result = filter_input({pixelq,pixelp},chromaFlag==Chroma,bsData,alphaMbLeft,betaMbLeft,tc0MbLeft);
                        end
 		  end
 	       else if(!leftEdge && filterInternalEdgesFlag)
@@ -889,8 +944,9 @@ module [HASIM_MODULE] mkDeblockFilter( );
                            begin
                              $display("TRACE mkDeblockFilter: Applying horizontal, internal filter");
                            end
-                         Bit#(3) bSData = bSfileHor.sub((chromaFlagHor==0?blockNum:{blockNum[1:0],pixelVer[1],1'b0})); 
-                         result = filter_input({pixelq,pixelp},chromaFlagHor==1,bSData,alphaInternal,betaInternal,tc0Internal);
+
+                         Bit#(3) bSData <- bSfileHor.sub((chromaFlag==Luma?blockNum:{blockNum[1:0],pixelVer[1],1'b0})); 
+                         result = filter_input({pixelq,pixelp},chromaFlag==Chroma,bSData,alphaInternal,betaInternal,tc0Internal);
                        end
 		  end
              
@@ -904,22 +960,23 @@ module [HASIM_MODULE] mkDeblockFilter( );
                    Bit#(PicHeightSz) adjustedMbVer = ((currMbHorT==0) && (currMbVer!=0)) ? currMbVer-1 : currMbVer;
                    Bit#(PicWidthSz)  adjustedMbHor = currMbHorT==0 ? picWidth-1 : currMbHorT-1;
                    // In this case we buffer the bottom vertical element, since it has to be used again
-                   if(((blockVer == 3) || ((chromaFlagHor == 1) && (blockVer == 1))) && (adjustedMbVer != picHeight - 1))
+                   if(((blockVer == 3) || ((chromaFlag == Chroma) && (blockVer == 1))) && (adjustedMbVer != picHeight - 1))
                      begin                      
 		       rowToColumnStore[pixelNum[1:0]].enq(result[31:0]);
                        // only push in a command for the bottom leftblock.  It has to be rotated.
                        if(pixelNum == 3)
                          begin
-                           rowToColumnStoreBlock.enq(tuple3(blockNum,1,chromaFlagHor));
+                           rowToColumnStoreBlock.enq(tuple2(blockNum,1));
                          end
                     end
                    // these outputs occur in the past, so we must use the adjusted Mb numbers 
-                   else if(chromaFlagHor==0)
+                   else if(chromaFlag==Luma)
                      begin
                        if(`DEBLOCKING_DEBUG == 1)
                          begin
                            $display("TRACE mkDeblockFilter: (Left Vector) Outputting Luma ver{mbVer, blockVer(2), state(2)}: %b, hor{mbHor, blockHor(2)}: %b, data: %h",{adjustedMbVer,blockVer,pixelNum},{adjustedMbHor,2'b11} ,result[31:0] ); 
                          end
+
                        outfifoVertical.enq(DFBLuma {ver:{adjustedMbVer,blockVer,pixelVer},
                                             hor:{adjustedMbHor,2'b11},
                                             data:result[31:0]});
@@ -930,6 +987,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
                          begin
                            $display("TRACE mkDeblockFilter: (Left Vector) Outputting Chroma %d ver{mbVer, blockVer(2), state(2)}: %b, hor{mbHor, blockHor(2)}: %b, data: %h",blockHor[1],{adjustedMbVer,blockVer[0],pixelNum},{adjustedMbHor,1'b1}  ,result[31:0]);
                          end
+
                        outfifoVertical.enq(DFBChroma {uv:blockHor[1],
                                               ver:{adjustedMbVer,blockVer[0],pixelVer},
                                               hor:{adjustedMbHor,1'b1},
@@ -945,20 +1003,20 @@ module [HASIM_MODULE] mkDeblockFilter( );
                       begin
                         let blockHorPast = blockHor - 1;
                         let blockNumPast = {blockVer[1], blockHorPast[1], blockVer[0], blockHorPast[0]};
-                        rowToColumnStoreBlock.enq(tuple3(blockNumPast,0,chromaFlagHor));                   
+                        rowToColumnStoreBlock.enq(tuple2(blockNumPast,0));                   
                       end
                   end
-   
-                  if(`DEBLOCKING_DEBUG == 1)
-                    begin
-                      $display( "TRACE Deblocking Filter: horizontal Q (work) addr %h, data %h, original data: %h ",addrq, result[63:32], pixelq);
-                    end
+
+               if(`DEBLOCKING_DEBUG == 1)
+                 begin
+                   $display( "TRACE Deblocking Filter: horizontal Q (work) addr %h, data %h, original data: %h ",addrq, result[63:32], pixelq);
+                 end
 
                workVectorRows.upd({blockVer[0],pixelVer}, result[63:32]);
 	 
                // Step out to clean up the edge block
                // What about the chroma?  
-               if((pixelNum == 3) && ((blockHor == 3) || ((chromaFlagHor == 1) && (blockHor == 1)))) 
+               if((pixelNum == 3) && ((blockHor == 3) || ((chromaFlag == Chroma) && (blockHor == 1)))) 
                  begin
                     $display( "TRACE Deblocking Filter: Heading to Horizontal Cleanup"); 
                    process <= HorizontalCleanup;// we enter this state to push out the remaining
@@ -967,12 +1025,31 @@ module [HASIM_MODULE] mkDeblockFilter( );
                  end
 	       else if(pixelNum==3)
                  begin
-                   $display( "TRACE Deblocking Filter: horizontal bsFIFO completed subblock(%0d, %0d)", blockHor, blockVer);
+                   $display( "TRACE Deblocking Filter(%s): horizontal bsFIFO completed subblock(%0d, %0d)",csStr, blockHor, blockVer);
 		   blockNum <= blockNum+1;
                  end              
 	       pixelNum <= pixelNum+1;
 	    end
-	 default: $display( "ERROR Deblocking Filter: horizontal non-PBoutput input");
+	 default: begin
+                     $display( "ERROR Deblocking Filter(%s): horizontal non-PBoutput input at sublock (%0d,%0d)", csStr,blockHor,blockVer);
+		     case(infifo.first()) matches
+                       tagged EDOT .edot:
+                         case (edot) matches 
+                           tagged NewUnit . xdata : $display("Caused by NewUnit");
+                           tagged SPSpic_width_in_mbs .xdata : $display("Caused by SPSpic_width_in_mbs");
+                           tagged SPSpic_height_in_map_units .xdata : $display("Caused by SPSpic_height_in_map_units");
+                           tagged PPSdeblocking_filter_control_present_flag .xdata : $display("Caused by PPSdeblocking_filter_control_present_flag");
+                           tagged SHfirst_mb_in_slice .xdata : $display("Caused by SHfirst_mb_in_slice");
+                           tagged SHdisable_deblocking_filter_idc .xdata : $display("Caused by SHdisable_deblocking_filter_idc");
+                           tagged SHslice_alpha_c0_offset .xdata : $display("Caused by SHslice_alpha_c0_offset");
+                           tagged SHslice_beta_offset .xdata : $display("Caused by SHslice_beta_offset"); 
+                           tagged EndOfFile : $display("Caused by EndOfFile");
+                         endcase
+                         tagged IBTmb_qp .xdata : $display("Caused by IBTmb_qp");
+		       default:
+	                 $display("Caused by Unknown");
+	             endcase
+		  end
       endcase
    endrule
 
@@ -980,7 +1057,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
     Bit#(2) blockHor = {blockNum[2],blockNum[0]};
     Bit#(2) blockVer = {blockNum[3],blockNum[1]};
     $display( "TRACE Deblocking Filter: horizontal_cleanup (%0d, %0d) row: %d", blockHor, blockVer, pixelNum);
-    if(pixelNum==3 && (blockNum==15 || (blockNum==7 && chromaFlagHor==1)))
+    if(pixelNum==3 && (blockNum==15 || (blockNum==7 && chromaFlag==Chroma)))
       begin
         if(blockNum == 15)
           begin
@@ -991,81 +1068,43 @@ module [HASIM_MODULE] mkDeblockFilter( );
             $display( "TRACE Deblocking Filter: horizontal completed Mb (%0d) Chroma", currMb);
           end
         blockNum <= 0;
-       // process <= Vertical;// we enter this state to wait for the vertical processing to complete
-        if(chromaFlagHor == 1)
-          begin
-            chromaFlagHor <= 0;
-            process <= Vertical; 
-            left_intra <= curr_intra;
-            left_qpc <= curr_qpc;
-            left_qpy <= curr_qpy;
-          end
-        else 
-          begin
-            process <= Horizontal;
-            chromaFlagHor <= 1;
-            dataReqCount <= 1;  // Do we want to start this early?
-          end 
-        rowToColumnStoreBlock.enq(tuple3(blockNum,0,chromaFlagHor));
+        process <= Vertical;// we enter this state to wait for the vertical processing to complete
+        rowToColumnStoreBlock.enq(tuple2(blockNum,0));
       end
     else if(pixelNum == 3)
       begin        
         blockNum <= blockNum + 1;
         process <= Horizontal; // not done with this Mb yet.
-        rowToColumnStoreBlock.enq(tuple3(blockNum,0,chromaFlagHor));
+        rowToColumnStoreBlock.enq(tuple2(blockNum,0));
       end
     pixelNum <= pixelNum + 1;
     // push the correction into reorder block;
-    Bit#(32) work_data = workVectorRows.sub({blockVer[0], pixelNum});
+    Bit#(32) work_data <- workVectorRows.sub({blockVer[0], pixelNum});
     rowToColumnStore[pixelNum].enq(work_data);
   endrule
 
-  // XXX the block numbers coming out of rows to cols look wrong check em out.
 
   // declare these to share the rule
   begin 
    Bit#(4) blockNumCols = tpl_1(verticalFilterBlock.first());
-   Bit#(1) chromaFlag = tpl_3(verticalFilterBlock.first());
    Bit#(2) blockVer = {blockNumCols[3],blockNumCols[1]};    
    Bit#(2) blockHor = {blockNumCols[2],blockNumCols[0]};
    Bool topEdge = (blockVer==0);
   
-  // Hmmm.... how to handle this, now that these qs are gone.
-  rule vertical_filter_halt((verticalState == NormalOperation) && !((!topEdge) || (dataMem.notEmpty() && parameterMem.notEmpty()) || (currMb<zeroExtend(picWidth))));
+
+  rule vertical_filter_halt((verticalState == NormalOperation) && !((!topEdge) || (topVectorValidBits[{blockHor,columnNumber}] == 1) || (currMb<zeroExtend(picWidth))));
         if(process == Vertical || process == Horizontal)
           begin
-            $display("TRACE Deblocking Filter: vertical processing halted on block: %h (%0d, %0d), column %d chromaFlag %d due to data dependency",  blockNumCols, blockHor, blockVer, columnNumber, chromaFlag);
+            $display("TRACE Deblocking Filter: Vertical processing halted on block: %h (%0d, %0d), column %d chromaFlag %d due to data dependency",  blockNumCols, blockHor, blockVer, columnNumber, chromaFlag);
           end
 
-  endrule
-
-  rule top_edge(topEdge && (`DEBLOCKING_DEBUG == 1));
-    $display("TRACE Deblocking Filter: top edge set");
-  endrule
-
-  rule infifos_full(dataMem.notEmpty() && parameterMem.notEmpty() 
-                    && (`DEBLOCKING_DEBUG == 1));
-    $display("TRACE Deblocking Filter: vertical processing has data in the input queues");
-  endrule 
-  
-  rule infifos_mem(dataMem.notEmpty() && (`DEBLOCKING_DEBUG == 1));
-    $display("TRACE Deblocking Filter: vertical processing mem resp has data");
-  endrule 
-
-  rule infifos_param(parameterMem.notEmpty() && (`DEBLOCKING_DEBUG == 1));
-    $display("TRACE Deblocking Filter: vertical processing has mem parameter data");
-  endrule 
-
-  rule vertFiltHead(`DEBLOCKING_DEBUG == 1);
-    $display("TRACE Deblocking Filter: verticalFilterHead: %h", verticalFilterBlock.first());
   endrule
 
 
   // As with horizontal, the q data will be read from the data store, and the p data will be streamed in via the
   // reordering FIFO.  The new p data must be stored, but the q data will need to be spooled out, since it needs to 
   // make it to the left vector.
-  rule vertical((verticalState == NormalOperation) && 
-                ((!topEdge) || (dataMem.notEmpty() && parameterMem.notEmpty()) || (currMb<zeroExtend(picWidth))));
+  rule vertical((verticalState == NormalOperation) && ((!topEdge) || (topVectorValidBits[{blockHor,columnNumber}] == 1) || (currMb<zeroExtend(picWidth))));
     //$display( "TRACE Deblocking Filter: vertical %0d %0d", colNum, rowNum);
     //$display( "TRACE Deblocking Filter: vertical topVector %h %h %h %h %h %h %h %h %h %h %h %h %h %h %h %h", topVector[0], topVector[1], topVector[2], topVector[3], topVector[4], topVector[5], topVector[6], topVector[7], topVector[8], topVector[9], topVector[10], topVector[11], topVector[12], topVector[13], topVector[14], topVector[15]);
     //Process the block according to what got passed to us.
@@ -1075,58 +1114,46 @@ module [HASIM_MODULE] mkDeblockFilter( );
     Bit#(8) alpha;
     Bit#(5) beta;
     Vector#(3,Bit#(5)) tc0;
-      if(`DEBLOCKING_DEBUG == 1)
-        begin
-         $display( "TRACE Deblocking Filter: vertical subblock (%0d, %0d), chroma: %d, column: %d, data: %h", blockHor, blockVer, chromaFlag, columnNumber, workV);
-        end
+
+    if(`DEBLOCKING_DEBUG == 1)
+      begin
+        $display( "TRACE Deblocking Filter: vertical subblock (%0d, %0d), column: %d, data: %h", blockHor, blockVer, columnNumber, workV);
+      end
+
       columnNumber <= columnNumber + 1;
-      chromaFlagVer <= chromaFlag;
       verticalFilterBlock.deq();
       if(topEdge)
-        begin
-          let dataMemValue = dataMem.peek;
-          let parameterMemValue = parameterMem.peek;
-          if((blockHor == 3) && (columnNumber + 1 == 0))
-            begin
-              $display("Trace Deblocking filter parameter deq");
-              let deqValue <- parameterMem.readRsp();  // deq the parameter value
-            end
-	  Bit#(6)  top_qpy = parameterMemValue[5:0];
-          Bit#(6)  top_qpc = parameterMemValue[11:6];
-	  Bit#(1)  top_intra = parameterMemValue[12];
-          Bit#(6) curr_qp = (chromaFlag==0 ? curr_qpy : curr_qpc); // may need to check these 
-	  Bit#(6) top_qp = (chromaFlag==0 ? top_qpy : top_qpc);
-	  Bit#(7) qpavtemp = zeroExtend(curr_qp)+zeroExtend(top_qp)+1;
-	  Bit#(6) qpav = qpavtemp[6:1];
-	  Bit#(8) indexAtemp = zeroExtend(qpav)+signExtend(slice_alpha_c0_offset);
-          Bit#(8) indexBtemp = zeroExtend(qpav)+signExtend(slice_beta_offset);
-	  Bit#(6) indexA = (indexAtemp[7]==1 ? 0 : (indexAtemp[6:0]>51 ? 51 : indexAtemp[5:0]));
-	  Bit#(6) indexB = (indexBtemp[7]==1 ? 0 : (indexBtemp[6:0]>51 ? 51 : indexBtemp[5:0]));
-	  Bit#(8) alphaMbTop = alpha_table[indexA];
-	  Bit#(5) betaMbTop = beta_table[indexB];
-	  Vector#(3,Bit#(5)) tc0MbTop = arrayToVector(tc0_table[indexA]);
-	  tempV = dataMemValue; 
-          if(`DEBLOCKING_DEBUG == 1)
-            begin
-              $display("Trace Deblocking filter vertical memory resp deq");
-            end
-          let deqDataMem <- dataMem.readRsp(); // pop value off of data mem.
-          if(`DEBLOCKING_DEBUG == 1)
-            begin
-              $display( "TRACE Deblocking Filter: vertical P (top) addr %h, orig data %h ",{blockVer,columnNumber}, tempV);
-            end
-	  alpha = alphaMbTop;
-	  beta = betaMbTop;
-	  tc0 = tc0MbTop;
-         end
+	 begin
+            Bit#(6) curr_qp = (chromaFlag==Luma ? curr_qpy : curr_qpc);
+	    Bit#(6) top_qp = (chromaFlag==Luma ? top_qpy : top_qpc);
+	    Bit#(7) qpavtemp = zeroExtend(curr_qp)+zeroExtend(top_qp)+1;
+	    Bit#(6) qpav = qpavtemp[6:1];
+	    Bit#(8) indexAtemp = zeroExtend(qpav)+signExtend(slice_alpha_c0_offset);
+	    Bit#(8) indexBtemp = zeroExtend(qpav)+signExtend(slice_beta_offset);
+	    Bit#(6) indexA = (indexAtemp[7]==1 ? 0 : (indexAtemp[6:0]>51 ? 51 : indexAtemp[5:0]));
+	    Bit#(6) indexB = (indexBtemp[7]==1 ? 0 : (indexBtemp[6:0]>51 ? 51 : indexBtemp[5:0]));
+	    Bit#(8) alphaMbTop = alpha_table[indexA];
+	    Bit#(5) betaMbTop = beta_table[indexB];
+	    Vector#(3,Bit#(5)) tc0MbTop = arrayToVector(tc0_table[indexA]);
+	    tempV <- topVector.sub({blockHor,columnNumber});
+            if(`DEBLOCKING_DEBUG == 1)
+              begin
+                $display( "TRACE Deblocking Filter: vertical P (top) addr %h, orig data %h ",{blockVer,columnNumber}, tempV);
+              end
+
+	    alpha = alphaMbTop;
+	    beta = betaMbTop;
+	    tc0 = tc0MbTop;
+	 end
       else
 	 begin  
             // We read this value from the original vector           
-	    tempV = topVector.sub({blockHor, columnNumber});
+	    tempV <- topVector.sub({blockHor, columnNumber});
             if(`DEBLOCKING_DEBUG == 1)
               begin	
-                $display( "TRACE Deblocking Filter: vertical P (work) addr %h, orig data %h ",{blockHor, blockVer - 1, columnNumber}, tempV); 
-              end  
+                $display( "TRACE Deblocking Filter: vertical P (work) addr %h, orig data %h ",{blockHor, blockVer - 1, columnNumber}, tempV);
+              end
+   
 	    alpha = alphaInternal;
 	    beta = betaInternal;
 	    tc0 = tc0Internal;
@@ -1137,16 +1164,20 @@ module [HASIM_MODULE] mkDeblockFilter( );
       resultV = {tpl_2(verticalFilterBlock.first()),tempV};
 
       // Apply filter, only if filter test passes, and we are either filtering the top edge, or we aren't on the top edge
-      if(`DEBLOCKING_DEBUG == 1)
-        begin
-          $display( "TRACE Deblocking Filter: vertical Filter test: P1P0Q0Q1: %h",{workV[15:8],workV[7:0],tempV[31:24],tempV[23:16]}); 
-        end
+     if(`DEBLOCKING_DEBUG == 1)
+       begin
+         $display( "TRACE Deblocking Filter: vertical Filter test: P1P0Q0Q1: %h",{workV[15:8],workV[7:0],tempV[31:24],tempV[23:16]}); 
+       end
 
       if((filter_test({workV[15:8],workV[7:0],tempV[31:24],tempV[23:16]},alpha,beta)) && ((topEdge && filterTopMbEdgeFlag)|| (!topEdge && filterInternalEdgesFlag) ))
         begin
-          $display("TRACE mkDeblockFilter: Applying vertical filter");
-          Bit#(3) bsData = bSfileVer.sub((chromaFlag==0?blockNumCols:{blockVer[0],blockHor[0],1'b0,columnNumber[1]}));
-	  resultV = filter_input(resultV,chromaFlag==1,bsData,alpha,beta,tc0);
+          if(`DEBLOCKING_DEBUG == 1)
+            begin
+              $display("TRACE mkDeblockFilter: Applying vertical filter");
+            end
+
+          Bit#(3) bsData <- bSfileVer.sub((chromaFlag==Luma?blockNumCols:{blockVer[0],blockHor[0],1'b0,columnNumber[1]}));
+	  resultV = filter_input(resultV,chromaFlag==Chroma,bsData,alpha,beta,tc0);
         end
       //Write out the result data  31:0 are the done q values
       if(topEdge)
@@ -1157,7 +1188,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
               begin
                 if(columnNumber == 3)
                   begin
-                    columnToRowStoreBlock.enq(tuple3(blockNumCols,1'b1,chromaFlag));
+                    columnToRowStoreBlock.enq(tuple2(blockNumCols,1'b1));
                   end
                 columnToRowStore[columnNumber].enq(resultV[31:0]);
               end
@@ -1169,34 +1200,32 @@ module [HASIM_MODULE] mkDeblockFilter( );
             // The values to store are in the P vector... except the bottom right block, which is different.
             Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);   
             
-            if(((blockVer == 3) && (blockHor == 3)) || ((chromaFlag == 1) && (blockVer == 1) && (blockHor[0] == 1)))
+            if(((blockVer == 3) && (blockHor == 3)) || ((chromaFlag == Chroma) && (blockVer == 1) && (blockHor[0] == 1)))
               begin
                 // need to enter escape state to write the bottom left block to the leftVector. 
                 if(columnNumber == 3)
                   begin
                     blockHorVerticalCleanup <= blockHor;
-                    $display("TRACE Deblocking Filter: heading to vertical cleanup");
                     verticalState <= VerticalCleanup;
                   end                
               end  
-            else if((blockVer == 3) || ((chromaFlag == 1) && (blockVer == 1)))
+            else if((blockVer == 3) || ((chromaFlag == Chroma) && (blockVer == 1)))
               begin
                 if((currMbVer == picHeight - 1) && (columnNumber == 3)) // If we're at the bottom of the frame, we'd 
                                                                         // roll through the block clean up.
                   begin
                     blockHorVerticalCleanup <= blockHor;
-                    $display("TRACE Deblocking Filter: heading to vertical cleanup");
                     verticalState <= VerticalCleanup;
                   end                 
-                memReqVertical.enq(StoreReq {addr:{currMbHorT,chromaFlag,blockHor,columnNumber},data:resultV[63:32]});
+                memReqVertical.enq(StoreReq {addr:{currMbHorT,pack(chromaFlag)[0],blockHor,columnNumber},data:resultV[63:32]});
               end
             columnToRowStore[columnNumber].enq(resultV[31:0]);
             if(columnNumber == 0)
               begin
-                columnToRowStoreBlock.enq(tuple3(blockNumCols,1'b0,chromaFlag));
+                columnToRowStoreBlock.enq(tuple2(blockNumCols,1'b0));
               end            
 	 end
-
+ 
         if(`DEBLOCKING_DEBUG == 1)
           begin
             $display( "TRACE Deblocking Filter: vertical P                 data %h                     ",  resultV[31:0]); 
@@ -1214,16 +1243,16 @@ end
       begin
         verticalState <= NormalOperation;
       end
-    if(chromaFlagVer == 0)
+    if(chromaFlag == Luma)
       begin
         Bit#(2) blockHor = blockHorVerticalCleanup;
         Bit#(2) blockVer = 0;
         if(columnNumber == 3)
           begin
             // Horizontal Postion is 3, but vertical position is 0, owing to subtraction in the rotation unit
-            columnToRowStoreBlock.enq(tuple3({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0,chromaFlagVer));
+            columnToRowStoreBlock.enq(tuple2({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0));
           end      
-        Bit#(32) w_data = topVector.sub({blockHor, columnNumber}); 
+        Bit#(32) w_data <- topVector.sub({blockHor, columnNumber}); 
         columnToRowStore[columnNumber].enq(w_data);     
      end
    else
@@ -1233,20 +1262,43 @@ end
        if(columnNumber == 3)
          begin
            // Horizontal Postion is 3, but vertical position is 0, owing to subtraction in the rotation unit
-           columnToRowStoreBlock.enq(tuple3({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0,chromaFlagVer));
+           columnToRowStoreBlock.enq(tuple2({blockVer[1],blockHor[1],blockVer[0],blockHor[0]},1'b0));
          end          
-       Bit#(32) w_data = topVector.sub({blockHor, columnNumber}); 
+       Bit#(32) w_data <- topVector.sub({blockHor, columnNumber}); 
        columnToRowStore[columnNumber].enq(w_data);                 
      end
   endrule
 
-  // What is going on here?
-  rule cleanup ( process==Cleanup && currMbHor<zeroExtend(picWidth) ); //XXX
-    $display( "TRACE Deblocking Filter: cleanup %0d", currMb);
-    outfifo.send(EndOfFrame);
-    process <= Passing;
-  endrule
 
+  rule cleanup ( process==Cleanup && currMbHor<zeroExtend(picWidth) );
+    $display( "TRACE Deblocking Filter: cleanup %0d", currMb);
+    Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);     
+    if(chromaFlag==Luma)
+      begin		    
+        $display( "TRACE Deblocking Filter(%s): horizontal bsFIFO luma completed",csStr);
+      end
+    else
+      begin
+         $display( "TRACE Deblocking Filter(%s): horizontal bsFIFO chroma completed",csStr);
+      end
+        process <= Passing;
+        Bit#(PicWidthSz) temp = truncate(currMbHor);
+        parameterMem.write(temp,{curr_intra,curr_qpc,curr_qpy}); // this may need to change....
+        left_intra <= curr_intra;
+        left_qpc <= curr_qpc;
+        left_qpy <= curr_qpy;
+        currMb <= currMb+1;
+        currMbHor <= currMbHor+1;
+        if(currMbVer==picHeight-1 && currMbHor==zeroExtend(picWidth-1))
+          begin
+            $display("Deblocking Filter at EndOfFrame");
+            outfifo.enq(EndOfFrame);
+          end	 	     
+   endrule
+  
+   interface Put ioin  = fifoToPut(fifofToFifo(infifo));
+   interface Get ioout = fifoToGet(outfifo);
+      
 endmodule
 
 

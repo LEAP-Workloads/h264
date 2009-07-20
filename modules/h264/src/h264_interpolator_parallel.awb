@@ -4,18 +4,15 @@
 
 %AWB_START
 
-%name H264 interpolator module
-%desc H264 interpolator module
-%provides h264_interpolator
+%name H264 parallel interpolator module
+%desc H264 parallel interpolator module
+%provides h264_interpolator_parallel
 
 %attributes h264
 
-%public mkInterpolator.bsv IInterpolator.bsv
+%public mkInterpolatorChromatic.bsv IInterpolatorParallel.bsv
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
-
-%param REQFIFO_LOAD_SIZE 4 "Req FIFO Load Size"
-%param REQFIFO_WORK_SIZE 8 "Req FIFO Work Size"
 
 %AWB_END
 
