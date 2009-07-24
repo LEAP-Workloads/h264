@@ -442,12 +442,27 @@ module [HASIM_MODULE] mkBufferControl();
 
    // some generally useful helper functions   
    function calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);     
-     Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(indata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(indata.hor);
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(ver_high_bits,Bit#(2)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,6)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(indata.hor) * 4 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 16);
+
      return addr;
    endfunction
 
    function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);
-     Bit#(TAdd#(PicAreaSz,4)) addr = {(zeroExtend(indata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(indata.hor);
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(ver_high_bits,Bit#(2)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,6)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(indata.hor) * 4 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 8);
      return addr;
    endfunction
 
@@ -484,16 +499,13 @@ module [HASIM_MODULE] mkBufferControl();
    Reg#(Bool) newInputFrame    <- mkReg(True);
    Reg#(Bool) noMoreInput      <- mkReg(False);
    Reg#(Bool) inputframedone   <- mkReg(False);
-   Reg#(Outprocess) outprocess <- mkReg(Idle);
-   Reg#(Bool) outputframedone  <- mkReg(True);
+  
 
    Reg#(Bit#(5)) inSlot <- mkReg(0);
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
-   Reg#(Bit#(5)) outSlot <- mkReg(31);
-   Reg#(Bit#(FrameBufferSz)) outAddrBase <- mkReg(0);
-   Reg#(Bit#(TAdd#(PicAreaSz,7))) outReqCount <- mkReg(0);
-   Reg#(Bit#(TAdd#(PicAreaSz,7))) outRespCount <- mkReg(0);
-   
+  
+   //XXX kill the outslot check....  
+   // Steal pellauer free list
    FreeSlots freeSlots <- mkFreeSlots();//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
@@ -888,55 +900,9 @@ module [HASIM_MODULE] mkBufferControl();
    endrule
 
    
-   rule outputingReq ( outprocess != Idle );
-      if(outprocess==Y)
-	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}-1)
-	       outprocess <= U;
-	    outReqCount <= outReqCount+1;
-	 end
-      else if(outprocess==U)
-	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{3'b000,frameinmb,4'b0000}-1)
-	       outprocess <= V;
-	    outReqCount <= outReqCount+1;
-	 end
-      else
-	 begin
-	    //$display( "TRACE BufferControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-	       outprocess <= Idle;
-	    outReqCount <= outReqCount+1;
-	 end
-   endrule
-   
 
-   rule outputingResp ( !outputframedone );
-      if(loadRespQ1.receive() matches tagged FBLoadResp .xdata)
-	 begin
-	    loadRespQ1.deq();
-	    outfifo.send(tagged YUV xdata);
-	    if(outRespCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-               begin 
-	         outputframedone <= True;
-                 $display("EndOfFrame total data: %d", outRespCount);
-               end
-	    outRespCount <= outRespCount+1;
-	 end
-   endrule
-
-
-   rule goToNextFrame ( outputframedone && inputframedone && inLoadReqQ.receive()==IPLoadEndFrame );
+   rule goToNextFrame ( inputframedone && inLoadReqQ.receive()==IPLoadEndFrame );
       inputframedone <= False;
-      outprocess <= Y;
-      outputframedone <= False;
-      outSlot <= inSlot;
-      outAddrBase <= inAddrBase;
-      outReqCount <= 0;
-      outRespCount <= 0;
       loadReqQ1.send(FBEndFrameSync);
       loadReqQ2.send(FBEndFrameSync);
       storeReqQ.send(FBEndFrameSync);
