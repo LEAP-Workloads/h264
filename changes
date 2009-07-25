@@ -146,3 +146,67 @@ Directory modules/h264/test
 
 
 Added support for limiting printouts
+
+----------
+keflemin    Date: Sat Jul 25 15:45:21 EDT 2009  CSN: CSN-h264-145
+                  Sat Jul 25 19:45:21 UTC 2009
+
+
+Directory tools/decoder/bin
+ ldecod.exe                Locally Modified          144 
+
+Directory tools/decoder/ldecod
+ dependencies              Locally Modified          144 
+
+Directory config/pm/h264
+ h264_decoder_coalesce.apm Locally Added               0 
+ h264_decoder.apm          Locally Modified          144 
+ h264_decoder_deblocking.apm Locally Added               0 
+ h264_decoder_parallel_backend.apm Locally Modified          144 
+ h264_decoder_synth.apm    Locally Modified          144 
+ h264_decoder_synth_deblocking.apm Locally Added               0 
+ h264_decoder_synth_acp.apm Locally Modified          144 
+ h264_fast.apm             Locally Modified          144 
+ h264_decoder_parallel_backend_synth.apm Locally Added               0 
+
+Directory modules/h264/src
+ mkDeblockFilterChromatic.bsv Locally Modified          144 
+ mkTH.cpp                  Locally Added               0 
+ Coalescer.bsv             Locally Added               0 
+ mkPredictionLumaChroma.bsv Locally Modified          144 
+ DMA.bsv                   Locally Added               0 
+ H264SystemTypes.bsv       Locally Modified          144 
+ mkFrameBufferMultiCachedWriteCacheScratchpadParallel.bsv Locally Modified          144 
+ mkFinalOutputRRRWide.cpp  Locally Modified          144 
+ mkBufferControl.bsv       Locally Modified          144 
+ mkTH.bsv                  Locally Modified          144 
+ BlockDMA.bsv              Locally Modified          144 
+ mkFrameBufferMultiCachedScratchpad.bsv Locally Added               0 
+ h264_buffer_control.awb   Locally Modified          144 
+ h264_multi_scratchpad_coalesced_frame_buffer.bsv Locally Added               0 
+ mkFinalOutputRRRWide.bsv  Locally Modified          144 
+ mkDeblockFilter.bsv       Locally Modified          144 
+ h264_deblocking_dma.awb   Locally Added               0 
+ h264_multi_scratchpad_write_cache_frame_buffer_parallel.awb Locally Modified          144 
+ h264_multi_scratchpad_frame_buffer.awb Locally Added               0 
+ h264_multi_scratchpad_coalesced_frame_buffer.awb Locally Added               0 
+ mkDeblockFilterDMA.bsv    Locally Added               0 
+ mkFrameBufferCoalescedMultiScratchpad.bsv Locally Added               0 
+ mkEntropyDec.bsv          Locally Modified          144 
+ h264_scratchpad_frame_buffer.awb Locally Modified          144 
+ mkFinalOutput.dic         Locally Added               0 
+ h264_h264_system.awb      Locally Modified          144 
+ h264_decoder.awb          Locally Modified          144 
+ mkPrediction.bsv          Locally Modified          144 
+ FrameBufferStats.bsv      Locally Added               0 
+ h264_multi_scratchpad_write_cache_frame_buffer.awb Locally Added               0 
+ H264Types.bsv             Locally Modified          144 
+ mkFrameBufferMultiCachedWriteCacheScratchpad.bsv Locally Added               0 
+ DMASequencer.bsv          Locally Added               0 
+ h264_h264_software_system.awb Locally Added               0 
+ mkFrameBufferMultiScratchpad.bsv Locally Added               0 
+ mkTH.h                    Locally Added               0 
+ h264_output_rrr_wide.awb  Locally Modified          144 
+ h264_rrr_cached_frame_buffer.awb Locally Modified          144 
+
+Mother of all checkins - Adding support for multiple L1 caches, software system, and other things 

@@ -1651,8 +1651,12 @@ module [HASIM_MODULE] mkPrediction ();
 
 
    rule intraProcessStep ( intraStepCount>1 );
-      $display( "TRACE Prediction: intraProcessStep %0d %0d", blockNum, pixelNum);////////////////////
-      //$display( "TRACE Prediction: intraProcessStep intraTopVal %h %h %h %h %h",intraTopVal[4],intraTopVal[3],intraTopVal[2],intraTopVal[1],intraTopVal[0]);/////////////////
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "TRACE Prediction: intraProcessStep %0d %0d", blockNum, pixelNum);////////////////////
+          //$display( "TRACE Prediction: intraProcessStep intraTopVal %h %h %h %h %h",intraTopVal[4],intraTopVal[3],intraTopVal[2],intraTopVal[1],intraTopVal[0]);/////////////////
+        end
+
       Bit#(1) outFlag  = 0;
       Bit#(4) nextIntraStepCount = intraStepCount+1;
       Bit#(2) blockHor = {blockNum[2],blockNum[0]};
@@ -1690,7 +1694,11 @@ module [HASIM_MODULE] mkPrediction ();
 		     topValSet = {topMidValSet[31:24],topMidValSet[31:24],topMidValSet[31:24],topMidValSet[31:24],topMidValSet,leftValSet[7:0]};
 		  else
 		     topValSet = {topRightValSet,topMidValSet,leftValSet[7:0]};
-		  $display( "TRACE Prediction: intraProcessStep intra4x4 %0d %0d %h %h", cur_intra4x4_pred_mode, blockNum, leftValSet, topValSet);////////////////////
+                  if(`PREDICTION_DEBUG == 1)
+                    begin
+		      $display( "TRACE Prediction: intraProcessStep intra4x4 %0d %0d %h %h", cur_intra4x4_pred_mode, blockNum, leftValSet, topValSet);
+                    end
+
 		  Bit#(4) topSelect1 = 0;
 		  Bit#(4) topSelect2 = 0;
 		  Bit#(4) topSelect3 = 0;

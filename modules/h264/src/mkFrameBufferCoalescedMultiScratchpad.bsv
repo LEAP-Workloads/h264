@@ -28,13 +28,14 @@
 //
 //
 
-`include "platform_interface.bsh"
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/platform_interface.bsh"
+`include "asim/provides/hasim_common.bsh"
+`include "asim/provides/soft_connections.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "scratchpad_memory.bsh"
+`include "asim/provides/librl_bsv_cache.bsh"
 
 
 import RegFile::*;
@@ -43,6 +44,7 @@ import ClientServer::*;
 import Connectable::*;
 import FIFO::*;
 import Vector::*;
+import Coalescer::*;
 import FrameBufferStats::*;
 
 //----------------------------------------------------------------------
@@ -50,11 +52,14 @@ import FrameBufferStats::*;
 //----------------------------------------------------------------------
 
 module [HASIM_MODULE] mkFrameBuffer();
-
+/*  provisos(Bits#(addr_t, addr_t_sz),
+           Bits#(mem_t, mem_t_sz),
+           Bits#(ref_t, ref_t_sz)
+           );*/
   //-----------------------------------------------------------
   // State
-
- // we curry the cache constructors here.
+  
+  // we curry the cache constructors here.
 
   // The raster order reader does not need a large cache, stats, and other such things
   String rasterCacheFilename = "RasterCacheDebug";
@@ -63,86 +68,70 @@ module [HASIM_MODULE] mkFrameBuffer();
                                mkDebugFile(rasterCacheFilename):
                                mkDebugFileNull(rasterCacheFilename); 
 
-  RL_CACHE_STATS rasterStats <- mkNullRLCacheStats();
-
-
+  RL_CACHE_STATS rasterStats <- mkBasicRLCacheStats(
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_HIT,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_MISS,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
+  
   function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
                 = mkCacheDirectMapped(source,False,rasterStats,rasterCacheLog);
+     
  
-  //the inter caches doe need stats and a large cache.
-  String interCacheLumaFilename = "InterCacheLumaDebug";
-  // Luma Cache
- 
-  DEBUG_FILE interCacheLumaLog <- (`SCRATCHPAD_DEBUG == 1)?
-                                   mkDebugFile(interCacheLumaFilename):
-                                   mkDebugFileNull(interCacheLumaFilename); 
+  //the inter cache does need stats and a large cache.
+  String interCacheFilename = "InterCacheDebug";
 
-  RL_CACHE_STATS interStatsLuma <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
+  DEBUG_FILE interCacheLog <- (`SCRATCHPAD_DEBUG == 1)?
+                               mkDebugFile(interCacheFilename):
+                               mkDebugFileNull(interCacheFilename); 
 
+  RL_CACHE_STATS interStats <- mkBasicRLCacheStats(
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_MISS,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
+  
   function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
-               mkInterCacheLuma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
+               mkInterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,False,interStatsLuma,interCacheLumaLog);
-
-  // Chroma cache
-  String interCacheChromaFilename = "InterCacheChromaDebug";
-
-  DEBUG_FILE interCacheChromaLog <- (`SCRATCHPAD_DEBUG == 1)?
-                                   mkDebugFile(interCacheChromaFilename):
-                                   mkDebugFileNull(interCacheChromaFilename); 
-
-  RL_CACHE_STATS interStatsChroma <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
-
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
-               mkInterCacheChroma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
-                 provisos(Bits#(addr_t, addr_t_sz),
-                          Bits#(mem_t, mem_t_sz),
-                          Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,False,interStatsChroma,interCacheChromaLog);
-
+            = mkCacheDirectMapped(source,False,interStats,interCacheLog);
 
   // Make constructor list here
-  let constructors = cons(mkRasterCache, cons(mkInterCacheLuma, cons(mkInterCacheChroma,nil)));
+  let constructors = cons(mkRasterCache, cons(mkInterCache,nil));
 
- 
-  MEMORY_MULTI_READ_IFC#(3,FrameBufferAddr, FrameBufferData) memory <- 
-      mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, 
-                                                replicate(0),
-                                                constructors);
+  MEMORY_MULTI_READ_IFC#(2,FrameBufferContainerAddr, 
+                         Vector#(2,FrameBufferData)) memory <- 
+      mkMultiReadMultiCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, 
+                                      replicate(2),
+                                      constructors);
   
-  
-   FIFO#(Bit#(0)) allocateSpace1 <- mkSizedFIFO(32);
-   FIFO#(Bit#(0)) allocateSpace2 <- mkSizedFIFO(32);
-   FIFO#(Bit#(0)) allocateSpace3 <- mkSizedFIFO(32);
+   FIFO#(Bit#(1)) allocateSpace1 <- mkSizedFIFO(32);
+   FIFO#(Bit#(1)) allocateSpace2 <- mkSizedFIFO(32);
    FIFO#(FrameBufferLoadReq)  loadReqQ1  <- mkFIFO();
-   FIFO#(FrameBufferLoadResp) loadRespQ1 <- mkSizedFIFO(32);
+   FIFO#(Vector#(2,FrameBufferData)) loadRespQ1 <- mkSizedFIFO(32);
    FIFO#(FrameBufferLoadReq)  loadReqQ2  <- mkFIFO();
-   FIFO#(FrameBufferLoadResp) loadRespQ2 <- mkSizedFIFO(32);
-   FIFO#(FrameBufferLoadReq)  loadReqQ3  <- mkFIFO();
-   FIFO#(FrameBufferLoadResp) loadRespQ3 <- mkSizedFIFO(32);
+   FIFO#(Vector#(2,FrameBufferData)) loadRespQ2 <- mkSizedFIFO(32);
    FIFO#(FrameBufferStoreReq) storeReqQ  <- mkFIFO();
+
+   SizedCoalescer#(FrameBufferData,
+                   BufferAddr, 
+                   ContainerAddr,
+                   N) coalescer <- mkCoalescerSimple;
+   
 
   
    rule loading1 ( loadReqQ1.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
 	    loadReqQ1.deq();
-            memory.readPorts[0].readReq(addrt);
-            allocateSpace1.enq(?);
+            memory.readPorts[0].readReq(truncateLSB(addrt));
+            allocateSpace1.enq(truncate(addrt));
             if(`FRAME_BUFFER_DEBUG == 1)
               begin
                 $display("FrameBuffer requesting load1 %h", addrt);
@@ -153,8 +142,8 @@ module [HASIM_MODULE] mkFrameBuffer();
    endrule
 
    rule loadingResp1;   
-     FrameBufferData value <- memory.readPorts[0].readRsp;
-     loadRespQ1.enq( tagged FBLoadResp value );
+     let value <- memory.readPorts[0].readRsp;
+     loadRespQ1.enq(value);
      if(`FRAME_BUFFER_DEBUG == 1)
        begin
          $display("FrameBuffer load1 loaded %h", value);
@@ -165,8 +154,8 @@ module [HASIM_MODULE] mkFrameBuffer();
       if(addrt<frameBufferSize)
 	 begin
 	    loadReqQ2.deq();
-            memory.readPorts[1].readReq(addrt); 
-            allocateSpace2.enq(?);   
+            memory.readPorts[1].readReq(truncateLSB(addrt)); 
+            allocateSpace2.enq(truncate(addrt));   
             if(`FRAME_BUFFER_DEBUG == 1)
               begin
                 $display("FrameBuffer requesting load2 %h", addrt);
@@ -177,43 +166,20 @@ module [HASIM_MODULE] mkFrameBuffer();
    endrule
 
    rule loadingResp2;   
-     FrameBufferData value <- memory.readPorts[1].readRsp;
-     loadRespQ2.enq( tagged FBLoadResp value );
+     let value <- memory.readPorts[1].readRsp;
+     loadRespQ2.enq(value);
      if(`FRAME_BUFFER_DEBUG == 1)
        begin
          $display("FrameBuffer load2 loaded %h", value);
        end
    endrule
 
-   rule loading3 ( loadReqQ3.first() matches tagged FBLoadReq .addrt );
-      if(addrt<frameBufferSize)
-	 begin
-	    loadReqQ3.deq();
-            memory.readPorts[2].readReq(addrt); 
-            allocateSpace3.enq(?);   
-            if(`FRAME_BUFFER_DEBUG == 1)
-              begin
-                $display("FrameBuffer requesting load3 %h", addrt);
-              end
-	 end
-      else
-	 $display( "ERROR FrameBuffer: loading3 outside range" );
-   endrule
-
-   rule loadingResp3;   
-     FrameBufferData value <- memory.readPorts[2].readRsp;
-     loadRespQ3.enq( tagged FBLoadResp value );
-     if(`FRAME_BUFFER_DEBUG == 1)
-       begin
-         $display("FrameBuffer load3 loaded %h", value);
-       end
-   endrule
-
+   // feed requests from store Q into coalescer
    rule storing ( storeReqQ.first() matches tagged FBStoreReq { addr:.addrt,data:.datat} );
       if(addrt<frameBufferSize)
 	 begin
             // Wasteful, but forces coherence
-            memory.write(addrt,datat);  
+            coalescer.in.put(RL_DM_CACHE_STORE_REQ{val:datat,addr: addrt});
 	    storeReqQ.deq();
             if(`FRAME_BUFFER_DEBUG == 1)
               begin
@@ -223,29 +189,35 @@ module [HASIM_MODULE] mkFrameBuffer();
       else
 	 $display( "ERROR FrameBuffer: storing outside range" );
    endrule
+
+   rule coalesceStore;
+     let cacheReq <- coalescer.out.get;
+     memory.write(cacheReq.addr,cacheReq.val);
+   endrule
+
    // may need to sync with end of pipeline
-   rule syncing ( loadReqQ1.first() matches tagged FBEndFrameSync &&& loadReqQ2.first() matches tagged FBEndFrameSync &&& loadReqQ3.first() matches tagged FBEndFrameSync &&& storeReqQ.first() matches tagged FBEndFrameSync);
-      $display("FrameBuffer Frame Sync");
+   // Does this have any meaning in a coherent system?
+   rule syncing ( loadReqQ1.first() matches tagged FBEndFrameSync &&& loadReqQ2.first() matches tagged FBEndFrameSync &&& storeReqQ.first() matches tagged FBEndFrameSync);
+      if(`FRAME_BUFFER_DEBUG == 1)
+        begin
+          $display("FrameBuffer Frame Sync");
+        end
       loadReqQ1.deq();
       loadReqQ2.deq();
-      loadReqQ3.deq();
       storeReqQ.deq();
    endrule
 
 
    Connection_Receive#(FrameBufferLoadReq) loadReqQ1RX <- mkConnection_Receive("frameBuffer_LoadReqQ1");
    Connection_Send#(FrameBufferLoadResp) loadRespQ1TX <- mkConnection_Send("frameBuffer_LoadRespQ1");
-   Connection_Receive#(FrameBufferLoadReq) loadReqQ2RX <- mkConnection_Receive("frameBuffer_LoadReqQLuma");
-   Connection_Send#(FrameBufferLoadResp) loadRespQ2TX <- mkConnection_Send("frameBuffer_LoadRespQLuma");
-   Connection_Receive#(FrameBufferLoadReq) loadReqQ3RX <- mkConnection_Receive("frameBuffer_LoadReqQChroma");
-   Connection_Send#(FrameBufferLoadResp) loadRespQ3TX <- mkConnection_Send("frameBuffer_LoadRespQChroma");
+   Connection_Receive#(FrameBufferLoadReq) loadReqQ2RX <- mkConnection_Receive("frameBuffer_LoadReqQ2");
+   Connection_Send#(FrameBufferLoadResp) loadRespQ2TX <- mkConnection_Send("frameBuffer_LoadRespQ2");
    Connection_Receive#(FrameBufferStoreReq) storeReqQRX <- mkConnection_Receive("frameBuffer_StoreReqQ");
-
-
    mkConnection(connectionToGet(loadReqQ1RX),fifoToPut(loadReqQ1));  
 
    rule dumpData1;
-     loadRespQ1TX.send(loadRespQ1.first);
+     Vector#(2,FrameBufferData) dataVec = loadRespQ1.first;
+     loadRespQ1TX.send(tagged FBLoadResp dataVec[allocateSpace1.first]);
      loadRespQ1.deq;
      allocateSpace1.deq;
    endrule
@@ -253,19 +225,13 @@ module [HASIM_MODULE] mkFrameBuffer();
    mkConnection(connectionToGet(loadReqQ2RX),fifoToPut(loadReqQ2));  
 
    rule dumpData2;
-     loadRespQ2TX.send(loadRespQ2.first);
+     Vector#(2,FrameBufferData) dataVec = loadRespQ2.first;
+     loadRespQ2TX.send(tagged FBLoadResp dataVec[allocateSpace2.first]);
      loadRespQ2.deq;
      allocateSpace2.deq;
    endrule
 
-   mkConnection(connectionToGet(loadReqQ3RX),fifoToPut(loadReqQ3));  
+   mkConnection(connectionToGet(storeReqQRX),fifoToPut(storeReqQ));  
 
-   rule dumpData3;
-     loadRespQ3TX.send(loadRespQ3.first);
-     loadRespQ3.deq;
-     allocateSpace3.deq;
-   endrule
-
-   mkConnection(connectionToGet(storeReqQRX),fifoToPut(storeReqQ)); 
 endmodule
 

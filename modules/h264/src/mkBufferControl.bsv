@@ -440,16 +440,6 @@ endmodule
 
 module [HASIM_MODULE] mkBufferControl();
 
-   // some generally useful helper functions   
-   function calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);     
-     Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(indata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(indata.hor);
-     return addr;
-   endfunction
-
-   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);
-     Bit#(TAdd#(PicAreaSz,4)) addr = {(zeroExtend(indata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(indata.hor);
-     return addr;
-   endfunction
 
 
    // Mass of soft connections
@@ -510,6 +500,18 @@ module [HASIM_MODULE] mkBufferControl();
    Reg#(Bool) lockInterLoads <- mkReg(True);
    DoNotFire donotfire <- mkDoNotFire();
    
+
+   // some generally useful helper functions   
+   function calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);     
+     Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(hor);
+     return addr;
+   endfunction
+
+   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);
+     Bit#(TAdd#(PicAreaSz,4)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(hor);
+     return addr;
+   endfunction
+
 
    //-----------------------------------------------------------
    // Rules
@@ -763,20 +765,22 @@ module [HASIM_MODULE] mkBufferControl();
 	    begin
 	       infifo.deq();
 	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
-	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateCoordLuma(indata.hor,
+	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
                                                                     indata.ver);
+               $display("TRACE BufferControl: Luma Store: addr:%h",addr);
 	       storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
 	    end
 	 tagged DFBChroma .indata :
 	    begin
 	       infifo.deq();
-	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateCoordChroma(indata.hor,
+	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(indata.hor,
                                                                     indata.ver);
 	       Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
 	       Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
 	       if(indata.uv == 1)
 		  vOffset = {frameinmb,4'b0000};
 	       storeReqQ.send(FBStoreReq {addr:(inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)),data:indata.data});
+               $display("TRACE BufferControl: Chroma Store: UV: %h addr:%h",indata.uv, addr);
 	       //$display( "TRACE Buffer Control: input Chroma %0d %0h %h %h %h %h", indata.uv, indata.ver, indata.hor, indata.data, addr, (inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
 	    end
 	 tagged EndOfFrame :
@@ -951,10 +955,13 @@ module [HASIM_MODULE] mkBufferControl();
       lockInterLoads <= False;
    endrule
 
-
+   
+   //This may not be right...
    rule theEndOfFile ( outputframedone && noMoreInput );
      $display("BufferControl Sending EndOfFile");
-      outfifo.send(EndOfFile);
+     noMoreInput <= False;
+     outputframedone <= False;
+     outfifo.send(EndOfFile);
    endrule
 
 

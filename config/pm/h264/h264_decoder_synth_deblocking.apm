@@ -2,7 +2,7 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder_synth
+File=h264_decoder_synth_deblocking
 SaveParameters=0
 Description=H264 Decoder Synth
 Name=H264 Decoder Synth
@@ -27,7 +27,7 @@ Packagehint=hasim
 [HAsim Hybrid Model Foundation/Requires]
 hasim_common=Hasim Common Library
 system=Hybrid System foundation
-hasim_controller=Hasim Standard Controller
+hasim_controller=Hybrid Basic Controller
 fpgaenv=FPGA Environment
 
 [H264 System]
@@ -39,7 +39,7 @@ File=modules/h264/src/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module (dummy)
+h264_deblocking=H264 deblocking filter module
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
@@ -64,9 +64,9 @@ Packagehint=h264
 h264_decoder=H264 decoder module
 h264_types=H264 types
 h264_memory_unit=H264 default simulation module
+funcp_base_types=Functional Partition Base Types
 h264_input=H264 RRR input module
 h264_output=H264 output RRR Wide
-funcp_base_types=Functional Partition Base Types
 
 [H264 nal unwrap module]
 File=modules/h264/src/h264_nal_unwrap.awb
@@ -91,16 +91,16 @@ Packagehint=h264
 File=modules/h264/src/h264_types.awb
 Packagehint=h264
 
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
-Packagehint=h264
-
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
 MODEL_CLOCK_DIVIDER=3
 
 [HAsim Hybrid Model Foundation/Params]
 MAKE_ALL_TARGET=bit
+
+[Hybrid Basic Controller]
+File=config/pm/hasim/submodels/controller/hybrid_basic_controller.apm
+Packagehint=hasim
 
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
@@ -114,25 +114,10 @@ Packagehint=h264
 File=modules/h264/src/h264_output_rrr_wide.awb
 Packagehint=h264
 
-[H264 multi scratchpad frame buffer with write cache]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
+
+[H264 deblocking filter module]
+File=modules/h264/src/h264_deblocking.awb
 Packagehint=h264
-
-[H264 Decoder Types]
-File=modules/h264/src/h264_decoder_types.awb
-Packagehint=h264
-
-[H264 buffer control module/Requires]
-h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
-
-[Hasim Standard Controller]
-File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
-Packagehint=hasim
-
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
-Packagehint=hasim
-
 
 [Default Software System]
 File=modules/model/default_software_system.awb
@@ -146,3 +131,18 @@ hardware_system=H264 System
 File=modules/model/hybrid_system.awb
 Packagehint=hasim
 
+
+[Functional Partition Base Types]
+File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
+Packagehint=hasim
+
+[H264 multi scratchpad frame buffer with write cache]
+File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
+Packagehint=h264
+
+[H264 Decoder Types]
+File=modules/h264/src/h264_decoder_types.awb
+Packagehint=h264
+
+[H264 buffer control module/Requires]
+h264_frame_buffer=H264 multi scratchpad frame buffer with write cache

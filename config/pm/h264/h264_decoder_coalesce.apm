@@ -2,10 +2,10 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder_synth
+File=h264_decoder_coalesce
 SaveParameters=0
-Description=H264 Decoder Synth
-Name=H264 Decoder Synth
+Description=H264 Decoder
+Name=H264 Decoder
 Class=Asim::Model
 
 [Model]
@@ -13,7 +13,7 @@ DefaultAttributes=h264 bluespec
 model=HAsim Hybrid Model Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-htg-v5-pcie.apm
+File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
 Packagehint=platforms
 
 [Hasim Common Library]
@@ -39,7 +39,7 @@ File=modules/h264/src/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module (dummy)
+h264_deblocking=H264 deblocking filter module with DMA output
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
@@ -91,17 +91,6 @@ Packagehint=h264
 File=modules/h264/src/h264_types.awb
 Packagehint=h264
 
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
-Packagehint=h264
-
-[FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=2
-MODEL_CLOCK_DIVIDER=3
-
-[HAsim Hybrid Model Foundation/Params]
-MAKE_ALL_TARGET=bit
-
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
 Packagehint=h264
@@ -110,39 +99,49 @@ Packagehint=h264
 File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
 
+[Hasim Common Library/Params]
+PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
+
+[FPGA Environment/Params]
+CENTRAL_CACHE_DEBUG_ENABLE=0
+SRATCHPAD_MEMORY_DEBUG_ENABLE=0
+
 [H264 output RRR Wide]
 File=modules/h264/src/h264_output_rrr_wide.awb
-Packagehint=h264
-
-[H264 multi scratchpad frame buffer with write cache]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
 Packagehint=h264
 
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
+
 [H264 buffer control module/Requires]
-h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
+h264_frame_buffer=H264 coalesced multi scratchpad frame buffer
 
 [Hasim Standard Controller]
 File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
 Packagehint=hasim
 
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
-Packagehint=hasim
-
-
-[Default Software System]
-File=modules/model/default_software_system.awb
-Packagehint=hasim
+[H264 coalesced multi scratchpad frame buffer]
+File=modules/h264/src/h264_multi_scratchpad_coalesced_frame_buffer.awb
+Packagehint=h264
 
 [Hybrid System foundation/Requires]
-software_system=Default Software System
+software_system=H264 Software System
 hardware_system=H264 System
 
 [Hybrid System foundation]
 File=modules/model/hybrid_system.awb
 Packagehint=hasim
 
+[Functional Partition Base Types]
+File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
+Packagehint=hasim
+
+[H264 Software System]
+File=modules/h264/src/h264_h264_software_system.awb
+Packagehint=h264
+
+[H264 deblocking filter module with DMA output]
+File=modules/h264/src/h264_deblocking_dma.awb
+Packagehint=h264

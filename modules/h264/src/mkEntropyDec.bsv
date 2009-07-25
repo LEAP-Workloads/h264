@@ -1602,8 +1602,12 @@ module [HASIM_MODULE] mkEntropyDec();
 			temp3bit1 <= 0;//suffixLength
 		     nextstate = tagged ResidualBlock 2;
 		     //$display( "TRACE EntropyDec: ResidualBlock 1 nC = %0d", tempreg);
-		     $display( "ccl2SDMRtotal_coeff %0d", totalCoeffTemp );
-		     $display( "ccl2SDMRtrailing_ones %0d", trailingOnesTemp );
+                  
+                     if(`ENTROPY_DEBUG == 1) 
+                       begin
+		         $display( "ccl2SDMRtotal_coeff %0d", totalCoeffTemp );
+		         $display( "ccl2SDMRtrailing_ones %0d", trailingOnesTemp );
+                       end
 		  end
 		  2:
 		  begin
@@ -1679,14 +1683,20 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if(totalCoeff > 0)
 			begin
 			   {tempZerosLeft,numbitsused} = cavlc_total_zeros( buffer, truncate(totalCoeff), maxNumCoeff);
-			   $display( "ccl2SDMRtotal_zeros %0d", tempZerosLeft );//////////////////////////////////////
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SDMRtotal_zeros %0d", tempZerosLeft );
+                             end
 			end
 		     else
 			tempZerosLeft = 0;
 		     zerosLeft <= tempZerosLeft;
 		     if(maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft) > 0)
 			begin
-			   $display( "ccl2SDMRcoeffLevelZeros %0d", maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft) );
+                          if(`ENTROPY_DEBUG == 1) 
+                            begin
+			      $display( "ccl2SDMRcoeffLevelZeros %0d", maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft) );
+                            end
 			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros (maxNumCoeff - totalCoeff - zeroExtend(tempZerosLeft)));
 			end
 		     nextstate = tagged ResidualBlock 5;
@@ -1696,7 +1706,11 @@ module [HASIM_MODULE] mkEntropyDec();
 		     if( totalCoeff > 0 )
 			begin
 			   tempint = signExtend(unpack(cavlcFIFO.first()));
-			   $display( "ccl2SDMRcoeffLevel %0d", tempint );
+                           if(`ENTROPY_DEBUG == 1) 
+                             begin
+			       $display( "ccl2SDMRcoeffLevel %0d", tempint );
+                             end
+
 			   if( zerosLeft > 0 )
 			      begin
 				 Bit#(4) run_before = 0;

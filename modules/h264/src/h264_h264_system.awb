@@ -6,7 +6,7 @@
 
 %name H264 System
 %desc H264 System
-%provides hasim_system
+%provides hardware_system
 
 %requires h264_decoder
 %requires h264_types
@@ -14,10 +14,14 @@
 %requires h264_output
 %requires h264_memory_unit
 
+*** ugly, and deeply troubling
+%requires funcp_base_types
+
+
+
 %attributes h264
 
 %public mkTH.bsv
-
 
 %param SMART_SYNTH_BOUNDARY 1 "turn on synth"
 

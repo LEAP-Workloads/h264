@@ -15,7 +15,6 @@
 %requires h264_inverse_transform
 %requires h264_buffer_control
 %requires h264_entropy_decoder
-%requires h264_frame_buffer
 %requires h264_decoder_types
 
 %attributes h264

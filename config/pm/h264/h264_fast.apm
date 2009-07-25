@@ -26,7 +26,7 @@ Packagehint=hasim
 
 [HAsim Hybrid Model Foundation/Requires]
 hasim_common=Hasim Common Library
-hasim_system=H264 System
+system=Hybrid System foundation
 hasim_controller=Hybrid Basic Controller
 fpgaenv=FPGA Environment
 
@@ -45,7 +45,6 @@ h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module
-h264_frame_buffer=H264 simulation module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
@@ -67,6 +66,7 @@ h264_types=H264 types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
 h264_output=H264 output RRR Wide
+funcp_base_types=Functional Partition Base Types
 
 [H264 nal unwrap module]
 File=modules/h264/src/h264_nal_unwrap.awb
@@ -110,9 +110,6 @@ PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
 CENTRAL_CACHE_DEBUG_ENABLE=0
 SRATCHPAD_MEMORY_DEBUG_ENABLE=0
 
-[H264 simulation module]
-File=modules/h264/src/h264_simulation_frame_buffer.awb
-Packagehint=h264
 
 [H264 output RRR Wide]
 File=modules/h264/src/h264_output_rrr_wide.awb
@@ -125,3 +122,27 @@ Packagehint=h264
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
+
+[Default Software System]
+File=modules/model/default_software_system.awb
+Packagehint=hasim
+
+[Hybrid System foundation/Requires]
+software_system=Default Software System
+hardware_system=H264 System
+
+[Hybrid System foundation]
+File=modules/model/hybrid_system.awb
+Packagehint=hasim
+
+
+[H264 multi scratchpad frame buffer with write cache]
+File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
+Packagehint=h264
+
+[H264 buffer control module/Requires]
+h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
+
+[Functional Partition Base Types]
+File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
+Packagehint=hasim

@@ -371,6 +371,7 @@ typedef union tagged
 BufferControlOT deriving(Eq,Bits);
 
 typedef Bit#(FrameBufferSz) FrameBufferAddr;
+typedef Bit#(TSub#(FrameBufferSz,1)) FrameBufferContainerAddr;
 typedef Bit#(32) FrameBufferData;
 typedef 0 FrameBufferMemory;
 

@@ -32,6 +32,7 @@
 `include "h264_types.bsh"
 
 `include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
+`include "asim/dict/STATS_FINAL_OUTPUT.bsh"
 
 import FIFO::*;
 import RegFile::*;
@@ -75,8 +76,14 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    Vector#(TSub#(WordsPerBurst,1),Reg#(Bit#(32))) dataBuffer <- replicateM(mkRegU);
    Reg#(Bit#(TAdd#(1,TLog#(WordsPerBurst)))) burstCount <- mkReg(0);
 
+   STAT picWidthStat  <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_WIDTH);
+   STAT picHeightStat <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_HEIGHT);
+   STAT frameCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_FRAME_COUNT);
+   STAT cycleCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_CYCLE_COUNT);
+
    rule tick;
      tickCounter <= tickCounter + 1;
+     cycleCount.incr;
      if(tickCounter%(1<<20) == 0)
        begin
          if(last_f_count == f_count)
@@ -121,6 +128,7 @@ module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
    rule finaloutFrame (infifo.first matches tagged EndOfFrame); 
      $display($time,"FinalOutput: EndOfFrame #%d sending(%h) %h", frameNum,OutEndOfFrame);
      frameNum <= frameNum + 1; 
+     frameCount.incr;
      infifo.deq;
      client_stub.makeRequest_SendControl(zeroExtend(pack(OutEndOfFrame)),zeroExtend(tickCounter),?);
      rrrRespQ.enq(?);

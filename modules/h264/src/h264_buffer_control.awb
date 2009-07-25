@@ -10,6 +10,8 @@
 
 %attributes h264
 
+%requires h264_frame_buffer
+
 %public mkBufferControl.bsv IBufferControl.bsv
 
 %param SYNTH_BOUNDARY mkBufferControl "synth boundary names"

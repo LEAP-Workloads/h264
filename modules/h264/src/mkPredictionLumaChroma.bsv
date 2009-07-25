@@ -600,8 +600,12 @@ module [HASIM_MODULE] mkPrediction(  );
       Bit#(2) blockVer = {outBlockNum[3],outBlockNum[1]};
       Bit#(2) pixelVer = {outPixelNum[3],outPixelNum[2]};
       Bit#(4) totalVer = {blockVer,pixelVer};
+      
+      if(`PREDICTION_DEBUG == 1)
+          begin
+           $display( "bsFIFO Trace Prediction: outputing (%d,%d)", blockVer,blockHor );
+          end
 
-      $display( "bsFIFO Trace Prediction: outputing (%d,%d)", blockVer,blockHor );
       if(outFirstQPFlag)
 	 begin
 	    if(infifo_ITB.receive() matches tagged IBTmb_qp .xdata)
@@ -1741,8 +1745,12 @@ module [HASIM_MODULE] mkPrediction(  );
 
 
    rule intraProcessStep ( intraStepCount>1 );
-      $display( "TRACE Prediction: intraProcessStep %0d %0d", blockNum, pixelNum);////////////////////
-      //$display( "TRACE Prediction: intraProcessStep intraTopVal %h %h %h %h %h",intraTopVal[4],intraTopVal[3],intraTopVal[2],intraTopVal[1],intraTopVal[0]);/////////////////
+      if(`PREDICTION_DEBUG == 1)
+        begin
+          $display( "TRACE Prediction: intraProcessStep %0d %0d", blockNum, pixelNum);
+          //$display( "TRACE Prediction: intraProcessStep intraTopVal %h %h %h %h %h",intraTopVal[4],intraTopVal[3],intraTopVal[2],intraTopVal[1],intraTopVal[0]);
+        end
+
       Bit#(1) outFlag  = 0;
       Bit#(4) nextIntraStepCount = intraStepCount+1;
       Bit#(2) blockHor = {blockNum[2],blockNum[0]};

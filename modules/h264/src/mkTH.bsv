@@ -28,12 +28,15 @@
 //
 //
 
-`include "low_level_platform_interface.bsh"
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
+
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
+
+`include "low_level_platform_interface.bsh"
+`include "soft_connections.bsh"
+`include "hasim_common.bsh"
+`include "asim/provides/hasim_controller.bsh"
 
 `include "h264_types.bsh"
 `include "h264_input.bsh"
@@ -57,6 +60,10 @@ module [HASIM_MODULE] mkSystem ();
    IMemEDConnection#(TAdd#(PicWidthSz,2),32) memP_inter     
                               <- mkMemEDConnection("mkPrediction_interMemReqQ",
                                                    "mkPrediction_interMemRespQ");
+
+   // Instantiate Required connections to controller
+   Connection_Send#(CONTROL_MODEL_CYCLE_MSG) link_model_cycle <- mkConnection_Send("model_cycle");
+   Connection_Send#(CONTROL_MODEL_COMMIT_MSG) link_model_commit <- mkConnection_Send("model_commits");
  
    // Cycle counter
    Reg#(Bit#(40)) cyclecount <- mkReg(0);

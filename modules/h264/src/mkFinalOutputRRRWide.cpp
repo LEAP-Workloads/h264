@@ -6,7 +6,10 @@
 #include <sys/stat.h>
 
 #include "asim/rrr/service_ids.h"
+#include "asim/provides/hasim_system.h"
+
 #include "mkFinalOutputRRRWide.h"
+
 
 using namespace std;
 
@@ -75,7 +78,8 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data0 ,UINT64 
         fflush(outputFile);
         fclose(outputFile);
         outputFile = NULL;
-        exit(0);
+        //Deadlock?
+	SYSTEM_CLASS::EndSimulation();
       }
     break;
 

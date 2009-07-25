@@ -695,8 +695,11 @@ module [HASIM_MODULE] mkDeblockFilter( );
                 mapM_(deque, columnToRowStore); // Deq the vector elements               
                 columnToRowStoreBlock.deq();
               end
-     endcase     
-     $write( "TRACE Deblocking Filter: columnToRow rotate block(%0d, %0d) columnToRowState %d, topValues: %d, data: %h", blockHor, blockVer, columnToRowState, topValues, data_out);
+     endcase
+     if(`DEBLOCKING_DEBUG == 1)
+       begin     
+          $write( "TRACE Deblocking Filter: columnToRow rotate block(%0d, %0d) columnToRowState %d, topValues: %d, data: %h", blockHor, blockVer, columnToRowState, topValues, data_out);
+       end
 
      Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);
      // Actually send the data out. This stuff is not the bottom row or left column, and is therefore done.
@@ -704,7 +707,11 @@ module [HASIM_MODULE] mkDeblockFilter( );
      // the frame, there coming here.  Also, if we're in the last block, we must output the leftvector values
      if( !topValues && (!(blockHor==3 || (blockHor[0]==1 && chromaFlag==1)) || (currMbVer==picHeight-1)))
        begin       
-         $display( " Normal");
+         if(`DEBLOCKING_DEBUG == 1)
+           begin
+             $display( " Normal");
+           end
+
          if(chromaFlag==0)
            begin
              if(`DEBLOCKING_DEBUG == 1)
@@ -731,7 +738,12 @@ module [HASIM_MODULE] mkDeblockFilter( );
      if(topValues)// These are the previous top values, and they must be sent out.  Note, that since this is a past
                        // Mb, we must adjust the the Mbs used.   
        begin   
-         $display( " TopValues");              
+
+         if(`DEBLOCKING_DEBUG == 1)
+           begin
+             $display( " TopValues");              
+           end
+
          if(chromaFlag==0)
            begin 
              if(`DEBLOCKING_DEBUG == 1)
@@ -759,7 +771,11 @@ module [HASIM_MODULE] mkDeblockFilter( );
           // It may be wise at some point to 
        begin
          // We need to check for the last point in the pipeline. This is the bottom right corner of the Mb.
-         $display( " Left Vector");
+         if(`DEBLOCKING_DEBUG == 1)
+           begin
+             $display( " Left Vector");
+           end
+
 	 if(chromaFlag==0)
            begin
              if((blockVer == 3) && (columnToRowState == 3))
@@ -774,7 +790,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
              // Only cleanup a single time after the chroma blocks
              if((blockHor == 3) && (blockVer[0] == 1) && (columnToRowState == 3))
                begin
-                 $display( "TRACE Deblocking Filter: horizontal bsFIFO chroma completed");
+                 if(`DEBLOCKING_DEBUG == 1)
+                   begin
+                     $display( "TRACE Deblocking Filter: horizontal bsFIFO chroma completed");  
+                   end
                  Bit#(PicWidthSz) temp = truncate(currMbHor);
                  parameterMem.write(temp,{curr_intra,curr_qpc,curr_qpy});
                  currMb <= currMb+1;
@@ -819,7 +838,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
 	       infifo.deq();	       
                bSfileHor.upd(blockNum, xdata.bShor);
                bSfileVer.upd(blockNum, xdata.bSver);
-               $display( "TRACE Deblocking Filter: horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",infifo.receive(), blockHor, blockVer, pixelNum);
+               if(`DEBLOCKING_DEBUG == 1)
+                 begin
+                   $display( "TRACE Deblocking Filter: horizontal bsFIFO data: %d, subblock(%0d, %0d) row: %0d, ",infifo.receive(), blockHor, blockVer, pixelNum);
+                 end
 	    end
 	 tagged PBoutput .xdata :
 	    begin
@@ -960,14 +982,22 @@ module [HASIM_MODULE] mkDeblockFilter( );
                // What about the chroma?  
                if((pixelNum == 3) && ((blockHor == 3) || ((chromaFlagHor == 1) && (blockHor == 1)))) 
                  begin
-                    $display( "TRACE Deblocking Filter: Heading to Horizontal Cleanup"); 
+                   if(`DEBLOCKING_DEBUG == 1)
+                     begin
+                       $display( "TRACE Deblocking Filter: Heading to Horizontal Cleanup"); 
+                     end
+
                    process <= HorizontalCleanup;// we enter this state to push out the remaining
                                                   // blocks, that haven't been shoved out.  Namely, the
                                                   // left blocks.
                  end
 	       else if(pixelNum==3)
                  begin
-                   $display( "TRACE Deblocking Filter: horizontal bsFIFO completed subblock(%0d, %0d)", blockHor, blockVer);
+                   if(`DEBLOCKING_DEBUG == 1)
+                     begin
+                       $display( "TRACE Deblocking Filter: horizontal bsFIFO completed subblock(%0d, %0d)", blockHor, blockVer);
+                     end
+
 		   blockNum <= blockNum+1;
                  end              
 	       pixelNum <= pixelNum+1;
@@ -979,16 +1009,26 @@ module [HASIM_MODULE] mkDeblockFilter( );
   rule horizontal_cleanup(process == HorizontalCleanup);
     Bit#(2) blockHor = {blockNum[2],blockNum[0]};
     Bit#(2) blockVer = {blockNum[3],blockNum[1]};
-    $display( "TRACE Deblocking Filter: horizontal_cleanup (%0d, %0d) row: %d", blockHor, blockVer, pixelNum);
+    if(`DEBLOCKING_DEBUG == 1)
+      begin
+        $display( "TRACE Deblocking Filter: horizontal_cleanup (%0d, %0d) row: %d", blockHor, blockVer, pixelNum);
+      end
+
     if(pixelNum==3 && (blockNum==15 || (blockNum==7 && chromaFlagHor==1)))
       begin
         if(blockNum == 15)
           begin
-            $display( "TRACE Deblocking Filter: horizontal completed Mb (%0d) Luma", currMb);
+            if(`DEBLOCKING_DEBUG == 1)
+              begin
+                $display( "TRACE Deblocking Filter: horizontal completed Mb (%0d) Luma", currMb);    
+              end
           end
         else
           begin
-            $display( "TRACE Deblocking Filter: horizontal completed Mb (%0d) Chroma", currMb);
+            if(`DEBLOCKING_DEBUG == 1)
+              begin
+                $display( "TRACE Deblocking Filter: horizontal completed Mb (%0d) Chroma", currMb);
+              end
           end
         blockNum <= 0;
        // process <= Vertical;// we enter this state to wait for the vertical processing to complete
@@ -1034,7 +1074,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
   rule vertical_filter_halt((verticalState == NormalOperation) && !((!topEdge) || (dataMem.notEmpty() && parameterMem.notEmpty()) || (currMb<zeroExtend(picWidth))));
         if(process == Vertical || process == Horizontal)
           begin
-            $display("TRACE Deblocking Filter: vertical processing halted on block: %h (%0d, %0d), column %d chromaFlag %d due to data dependency",  blockNumCols, blockHor, blockVer, columnNumber, chromaFlag);
+            if(`DEBLOCKING_DEBUG == 1)
+              begin
+                $display("TRACE Deblocking Filter: vertical processing halted on block: %h (%0d, %0d), column %d chromaFlag %d due to data dependency",  blockNumCols, blockHor, blockVer, columnNumber, chromaFlag);
+              end
           end
 
   endrule
@@ -1088,7 +1131,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
           let parameterMemValue = parameterMem.peek;
           if((blockHor == 3) && (columnNumber + 1 == 0))
             begin
-              $display("Trace Deblocking filter parameter deq");
+              if(`DEBLOCKING_DEBUG == 1)
+                begin
+                  $display("Trace Deblocking filter parameter deq");
+                end
               let deqValue <- parameterMem.readRsp();  // deq the parameter value
             end
 	  Bit#(6)  top_qpy = parameterMemValue[5:0];
@@ -1175,7 +1221,11 @@ module [HASIM_MODULE] mkDeblockFilter( );
                 if(columnNumber == 3)
                   begin
                     blockHorVerticalCleanup <= blockHor;
-                    $display("TRACE Deblocking Filter: heading to vertical cleanup");
+                    if(`DEBLOCKING_DEBUG == 1)
+                      begin
+                        $display("TRACE Deblocking Filter: heading to vertical cleanup");
+                      end
+
                     verticalState <= VerticalCleanup;
                   end                
               end  
@@ -1185,7 +1235,11 @@ module [HASIM_MODULE] mkDeblockFilter( );
                                                                         // roll through the block clean up.
                   begin
                     blockHorVerticalCleanup <= blockHor;
-                    $display("TRACE Deblocking Filter: heading to vertical cleanup");
+                    if(`DEBLOCKING_DEBUG == 1)
+                      begin
+                        $display("TRACE Deblocking Filter: heading to vertical cleanup");
+                      end
+
                     verticalState <= VerticalCleanup;
                   end                 
                 memReqVertical.enq(StoreReq {addr:{currMbHorT,chromaFlag,blockHor,columnNumber},data:resultV[63:32]});
@@ -1208,7 +1262,10 @@ module [HASIM_MODULE] mkDeblockFilter( );
 end
 
   rule vertical_cleanup(verticalState == VerticalCleanup);
-    $display( "TRACE Deblocking Filter: vertical_cleanup at block end column: %d ", columnNumber);
+    if(`DEBLOCKING_DEBUG == 1)
+      begin
+        $display( "TRACE Deblocking Filter: vertical_cleanup at block end column: %d ", columnNumber);
+      end
     columnNumber <= columnNumber + 1; 
     if(columnNumber == 3) 
       begin
@@ -1242,7 +1299,10 @@ end
 
   // What is going on here?
   rule cleanup ( process==Cleanup && currMbHor<zeroExtend(picWidth) ); //XXX
-    $display( "TRACE Deblocking Filter: cleanup %0d", currMb);
+    if(`DEBLOCKING_DEBUG == 1)
+      begin
+        $display( "TRACE Deblocking Filter: cleanup %0d", currMb);
+      end
     outfifo.send(EndOfFrame);
     process <= Passing;
   endrule

@@ -56,7 +56,7 @@ typedef enum {
 // do the whole padding thing.
 
 
-module [HASIM_MODULE] mkBlockDMAOoO (BlockToLineDMA#(OoOBlockAddr#(data,
+module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data,
                                                                    Bit#(horizontal_sz),
                                                                    Bit#(vertical_sz)),
                                                      horizontal,

@@ -14,5 +14,6 @@
 
 * I get the feeling that I'll want to split some of this out eventually
 %sources -t BSV  -v PUBLIC IFrameBuffer.bsv mkFrameBufferCachedRRR.bsv LoadCache.bsv
+%public mkFinalOutput.dic
 
 %AWB_END
