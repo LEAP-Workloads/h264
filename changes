@@ -210,3 +210,27 @@ Directory modules/h264/src
  h264_rrr_cached_frame_buffer.awb Locally Modified          144 
 
 Mother of all checkins - Adding support for multiple L1 caches, software system, and other things 
+
+----------
+keflemin    Date: Tue Jul 28 16:17:21 EDT 2009  CSN: CSN-h264-146
+                  Tue Jul 28 20:17:21 UTC 2009
+
+
+Directory config/pm/h264
+ h264_decoder_coalesce.apm Locally Modified          145 
+ h264_decoder.apm          Locally Modified          145 
+ h264_decoder_synth.apm    Locally Modified          145 
+
+Directory modules/h264/src
+ mkFinalOutputRRRWide.cpp  Locally Modified          145 
+ mkBufferControl.bsv       Locally Modified          145 
+ mkH264.bsv                Locally Modified          145 
+ mkDeblockFilter.bsv       Locally Modified          145 
+ h264_multi_scratchpad_coalesced_frame_buffer.awb Locally Modified          145 
+ mkFrameBufferCoalescedMultiScratchpad.bsv Locally Modified          145 
+ mkBufferControlCoalesced64.bsv Locally Added               0 
+ H264DecoderTypes.bsv      Locally Modified          145 
+ h264_buffer_control_coalesced.awb Locally Added               0 
+
+
+Memory now coalesces to 64 bits.

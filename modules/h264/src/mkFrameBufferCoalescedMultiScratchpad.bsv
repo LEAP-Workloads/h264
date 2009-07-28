@@ -44,7 +44,6 @@ import ClientServer::*;
 import Connectable::*;
 import FIFO::*;
 import Vector::*;
-import Coalescer::*;
 import FrameBufferStats::*;
 
 //----------------------------------------------------------------------
@@ -52,10 +51,6 @@ import FrameBufferStats::*;
 //----------------------------------------------------------------------
 
 module [HASIM_MODULE] mkFrameBuffer();
-/*  provisos(Bits#(addr_t, addr_t_sz),
-           Bits#(mem_t, mem_t_sz),
-           Bits#(ref_t, ref_t_sz)
-           );*/
   //-----------------------------------------------------------
   // State
   
@@ -74,7 +69,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
                                  `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
   
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
+  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,2048))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -95,7 +90,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
   
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
+  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
                mkInterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -113,23 +108,21 @@ module [HASIM_MODULE] mkFrameBuffer();
   
    FIFO#(Bit#(1)) allocateSpace1 <- mkSizedFIFO(32);
    FIFO#(Bit#(1)) allocateSpace2 <- mkSizedFIFO(32);
+   FIFO#(Bit#(FrameBufferSz)) addrs1 <- mkSizedFIFO(32);
+   FIFO#(Bit#(FrameBufferSz)) addrs2 <- mkSizedFIFO(32);
    FIFO#(FrameBufferLoadReq)  loadReqQ1  <- mkFIFO();
    FIFO#(Vector#(2,FrameBufferData)) loadRespQ1 <- mkSizedFIFO(32);
    FIFO#(FrameBufferLoadReq)  loadReqQ2  <- mkFIFO();
    FIFO#(Vector#(2,FrameBufferData)) loadRespQ2 <- mkSizedFIFO(32);
    FIFO#(FrameBufferStoreReq) storeReqQ  <- mkFIFO();
-
-   SizedCoalescer#(FrameBufferData,
-                   BufferAddr, 
-                   ContainerAddr,
-                   N) coalescer <- mkCoalescerSimple;
-   
-
+   Reg#(Bool) loadReg <- mkReg(True);
+   Reg#(FrameBufferData) registeredData <- mkRegU;
   
    rule loading1 ( loadReqQ1.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
 	    loadReqQ1.deq();
+            addrs1.enq(addrt);
             memory.readPorts[0].readReq(truncateLSB(addrt));
             allocateSpace1.enq(truncate(addrt));
             if(`FRAME_BUFFER_DEBUG == 1)
@@ -154,6 +147,7 @@ module [HASIM_MODULE] mkFrameBuffer();
       if(addrt<frameBufferSize)
 	 begin
 	    loadReqQ2.deq();
+            addrs2.enq(addrt);
             memory.readPorts[1].readReq(truncateLSB(addrt)); 
             allocateSpace2.enq(truncate(addrt));   
             if(`FRAME_BUFFER_DEBUG == 1)
@@ -175,11 +169,16 @@ module [HASIM_MODULE] mkFrameBuffer();
    endrule
 
    // feed requests from store Q into coalescer
-   rule storing ( storeReqQ.first() matches tagged FBStoreReq { addr:.addrt,data:.datat} );
+   rule storingRegister ( storeReqQ.first() matches tagged FBStoreReq { addr:.addrt,data:.datat} &&& loadReg);
       if(addrt<frameBufferSize)
 	 begin
-            // Wasteful, but forces coherence
-            coalescer.in.put(RL_DM_CACHE_STORE_REQ{val:datat,addr: addrt});
+            if(truncate(addrt) != 1'b0)
+              begin 
+                $display( "ERROR FrameBuffer: register store requests out of order: %h to %h",datat,addrt );
+              end
+            loadReg <= False;
+            registeredData <= datat;
+            
 	    storeReqQ.deq();
             if(`FRAME_BUFFER_DEBUG == 1)
               begin
@@ -190,9 +189,29 @@ module [HASIM_MODULE] mkFrameBuffer();
 	 $display( "ERROR FrameBuffer: storing outside range" );
    endrule
 
-   rule coalesceStore;
-     let cacheReq <- coalescer.out.get;
-     memory.write(cacheReq.addr,cacheReq.val);
+
+   rule storingDispatch ( storeReqQ.first() matches tagged FBStoreReq { addr:.addrt,data:.datat} &&& !loadReg);
+      if(addrt<frameBufferSize)
+	 begin
+            if(truncate(addrt) != 1'b1)
+              begin 
+                $display( "ERROR FrameBuffer: output store requests out of order: %h to %h",datat,addrt );
+              end
+            // Wasteful, but forces coherence
+            loadReg <= True;
+            Vector#(2,FrameBufferData) dataVec = newVector;
+            dataVec[1] = datat;
+            dataVec[0] = registeredData;
+            registeredData <= datat;
+            memory.write(truncateLSB(addrt),dataVec);           
+	    storeReqQ.deq();
+            if(`FRAME_BUFFER_DEBUG == 1)
+              begin
+                $display("FrameBuffer Storing: %h to %h", addrt, dataVec);
+              end
+	 end
+      else
+	 $display( "ERROR FrameBuffer: storing outside range" );
    endrule
 
    // may need to sync with end of pipeline
@@ -200,7 +219,7 @@ module [HASIM_MODULE] mkFrameBuffer();
    rule syncing ( loadReqQ1.first() matches tagged FBEndFrameSync &&& loadReqQ2.first() matches tagged FBEndFrameSync &&& storeReqQ.first() matches tagged FBEndFrameSync);
       if(`FRAME_BUFFER_DEBUG == 1)
         begin
-          $display("FrameBuffer Frame Sync");
+          $display("FrameBuffer FrameSync");
         end
       loadReqQ1.deq();
       loadReqQ2.deq();
@@ -220,6 +239,11 @@ module [HASIM_MODULE] mkFrameBuffer();
      loadRespQ1TX.send(tagged FBLoadResp dataVec[allocateSpace1.first]);
      loadRespQ1.deq;
      allocateSpace1.deq;
+     addrs1.deq;
+     if(`FRAME_BUFFER_DEBUG == 1)
+       begin
+         $display("FrameBuffer returns load1 %h %h", addrs1.first, dataVec[allocateSpace1.first]);
+       end
    endrule
 
    mkConnection(connectionToGet(loadReqQ2RX),fifoToPut(loadReqQ2));  
@@ -228,7 +252,12 @@ module [HASIM_MODULE] mkFrameBuffer();
      Vector#(2,FrameBufferData) dataVec = loadRespQ2.first;
      loadRespQ2TX.send(tagged FBLoadResp dataVec[allocateSpace2.first]);
      loadRespQ2.deq;
+     addrs2.deq;
      allocateSpace2.deq;
+     if(`FRAME_BUFFER_DEBUG == 1)
+       begin
+         $display("FrameBuffer returns load2 %h %h", addrs2.first, dataVec[allocateSpace2.first]);
+       end
    endrule
 
    mkConnection(connectionToGet(storeReqQRX),fifoToPut(storeReqQ));  

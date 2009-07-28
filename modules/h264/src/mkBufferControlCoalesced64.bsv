@@ -27,11 +27,10 @@
 
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
-
+`include "h264_frame_buffer_coalesced_64.bsh"
 
 `include "h264_types.bsh"
 `include "h264_decoder_types.bsh"
-`include "h264_frame_buffer.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -484,7 +483,11 @@ module [HASIM_MODULE] mkBufferControl();
    Reg#(Bit#(FrameBufferSz)) outAddrBase <- mkReg(0);
    Reg#(Bit#(TAdd#(PicAreaSz,7))) outReqCount <- mkReg(0);
    Reg#(Bit#(TAdd#(PicAreaSz,7))) outRespCount <- mkReg(0);
-   
+   // Probably doesn't need to be so big.
+   Reg#(LumaCoordHor) outputHorIndex  <- mkReg(0);
+   Reg#(LumaCoordVer) outputVerIndex <- mkReg(0);
+
+
    FreeSlots freeSlots <- mkFreeSlots();//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
@@ -503,13 +506,31 @@ module [HASIM_MODULE] mkBufferControl();
    
 
    // some generally useful helper functions   
-   function calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);     
-     Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(hor);
+   // We want to interleave adjacent rows.
+   function  calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);   
+       
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(Bit#(TAdd#(PicHeightSz,3)),Bit#(1)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,6)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(hor) * 2 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 8);
+
      return addr;
    endfunction
 
-   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);
-     Bit#(TAdd#(PicAreaSz,4)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(hor);
+
+   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);     
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(Bit#(TAdd#(PicHeightSz,2)),Bit#(1)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,4)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(hor) * 2 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 4);
      return addr;
    endfunction
 
@@ -765,10 +786,15 @@ module [HASIM_MODULE] mkBufferControl();
 	 tagged DFBLuma .indata :
 	    begin
 	       infifo.deq();
-	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
-	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
+               Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
                                                                     indata.ver);
-               $display("TRACE BufferControl: Luma Store: addr:%h",addr);
+               if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Luma Store: hor: %d ver: %d addr:%h data:%h", indata.hor, 
+                                                                                                indata.ver, 
+                                                                                                addr, 
+                                                                                                indata.data);
+                 end
 	       storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
 	    end
 	 tagged DFBChroma .indata :
@@ -781,8 +807,16 @@ module [HASIM_MODULE] mkBufferControl();
 	       if(indata.uv == 1)
 		  vOffset = {frameinmb,4'b0000};
 	       storeReqQ.send(FBStoreReq {addr:(inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)),data:indata.data});
-               $display("TRACE BufferControl: Chroma Store: UV: %h addr:%h",indata.uv, addr);
-	       //$display( "TRACE Buffer Control: input Chroma %0d %0h %h %h %h %h", indata.uv, indata.ver, indata.hor, indata.data, addr, (inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
+
+               if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Chroma Store: hor: %d, ver %d, UV: %h addr:%h data:%h",
+                            indata.hor, 
+                            indata.ver, 
+                            indata.uv, 
+                            addr, 
+                            indata.data);
+                 end
 	    end
 	 tagged EndOfFrame :
 	    begin
@@ -892,29 +926,103 @@ module [HASIM_MODULE] mkBufferControl();
 	 end
    endrule
 
-   
+   // need to adjust the accounting here. 
    rule outputingReq ( outprocess != Idle );
+     LumaCoordHor maxIndexHor = (outprocess == Y)?zeroExtend(picWidth)*4:zeroExtend(picWidth)*2;
+     LumaCoordVer maxIndexVer = (outprocess == Y)?zeroExtend(picHeight)*16:zeroExtend(picHeight)*8;
+     
+     if(`DEBUG_BUFFER_CONTROL == 1) 
+       begin
+         $display("BufferControl: pickWidth: %d, picHeight: %d",
+                  picWidth,
+                  picHeight);
+     
+         $display("BufferControl: maxIndexHor: %d, curIndexHor: %d, maxIndexVer: %d, curIndexVer: %d",
+                  maxIndexHor,
+                  outputHorIndex,
+                  maxIndexVer, 
+                  outputVerIndex);
+       end
+
+     if(outputHorIndex + 1 == maxIndexHor)
+       begin
+         if(outputVerIndex + 1 == maxIndexVer)
+           begin
+             outputVerIndex <= 0;
+           end
+         else
+           begin
+             outputVerIndex <= outputVerIndex + 1;
+           end
+         outputHorIndex <= 0;
+       end
+     else
+       begin
+         outputHorIndex <= outputHorIndex + 1;
+       end
+
       if(outprocess==Y)
 	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}-1)
-	       outprocess <= U;
-	    outReqCount <= outReqCount+1;
+            if(outputHorIndex + 1 == maxIndexHor && outputVerIndex + 1 == maxIndexVer)
+              begin
+                outprocess <= U;      
+                $display("BufferControl: Transistion to U");
+              end
+
+            Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(outputHorIndex,
+                                                               outputVerIndex);
+
+            if(`DEBUG_BUFFER_CONTROL == 1) 
+              begin  
+                $display("BufferControl Output Y: %h hor: %d ver: %d",addr,outputHorIndex,outputVerIndex);
+              end
+
+	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(addr)));
 	 end
       else if(outprocess==U)
 	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{3'b000,frameinmb,4'b0000}-1)
-	       outprocess <= V;
-	    outReqCount <= outReqCount+1;
+            if(outputHorIndex + 1 == maxIndexHor && outputVerIndex + 1 == maxIndexVer)
+              begin
+                outprocess <= V;      
+                $display("BufferControl: Transistion to V");
+              end
+
+            ChromaCoordHor hor = truncate(outputHorIndex);
+            ChromaCoordVer ver = truncate(outputVerIndex);
+
+            Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(hor,
+                                                                 ver);
+	    Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};	   
+
+            if(`DEBUG_BUFFER_CONTROL == 1) 
+              begin
+                $display("BufferControl Output U: %h hor: %d ver: %d",addr,outputHorIndex,outputVerIndex);
+              end
+
+	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(chromaOffset)+zeroExtend(addr)));
 	 end
       else
 	 begin
-	    //$display( "TRACE BufferControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-	       outprocess <= Idle;
-	    outReqCount <= outReqCount+1;
+            if(outputHorIndex + 1 == maxIndexHor && outputVerIndex + 1 == maxIndexVer)
+              begin
+                outprocess <= Idle;      
+                $display("BufferControl: Transistion to Idle");
+              end
+
+            ChromaCoordHor hor = truncate(outputHorIndex);
+            ChromaCoordVer ver = truncate(outputVerIndex);
+
+            Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(hor,
+                                                                  ver);
+            if(`DEBUG_BUFFER_CONTROL == 1) 
+              begin
+                $display("BufferControl Output V: %h hor: %d ver: %d",addr,outputHorIndex,outputVerIndex);
+              end
+
+             Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
+             Bit#(TAdd#(PicAreaSz,4)) vOffset = {frameinmb,4'b0000};
+             loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(vOffset)+zeroExtend(chromaOffset)+
+                                       zeroExtend(addr)));
 	 end
    endrule
    
@@ -927,7 +1035,7 @@ module [HASIM_MODULE] mkBufferControl();
 	    if(outRespCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
                begin 
 	         outputframedone <= True;
-                 $display("EndOfFrame total data: %d", outRespCount);
+                 $display("BufferControl EndOfFrame total data: %d", outRespCount);
                end
 	    outRespCount <= outRespCount+1;
 	 end
@@ -970,7 +1078,8 @@ module [HASIM_MODULE] mkBufferControl();
       inLoadReqQ.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
-      Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
+      Bit#(TAdd#(PicAreaSz,6)) addr =  calculateLumaCoord(reqdata.hor,
+                                                          reqdata.ver);
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
       loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(addr)));
       //$display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(addr));
@@ -985,7 +1094,9 @@ module [HASIM_MODULE] mkBufferControl();
       Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
       if(reqdata.uv == 1)
 	 vOffset = {frameinmb,4'b0000};
-      Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(reqdata.hor);
+     
+      Bit#(TAdd#(PicAreaSz,4)) addr =  calculateChromaCoord(reqdata.hor,
+                                                            reqdata.ver);
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
       loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
       //$display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr));

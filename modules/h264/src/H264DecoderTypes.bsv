@@ -132,10 +132,15 @@ instance FShow#(PredictionOT);
    endfunction
 endinstance
 
+typedef Bit#(TAdd#(PicWidthSz,2)) LumaCoordHor;
+typedef Bit#(TAdd#(PicHeightSz,4)) LumaCoordVer;
+typedef Bit#(TAdd#(PicWidthSz,1)) ChromaCoordHor;
+typedef Bit#(TAdd#(PicHeightSz,3)) ChromaCoordVer;
+
 typedef union tagged                
 {
- struct {Bit#(TAdd#(PicWidthSz,2)) hor; Bit#(TAdd#(PicHeightSz,4)) ver; Bit#(32) data;} DFBLuma;
- struct {Bit#(1) uv; Bit#(TAdd#(PicWidthSz,1)) hor; Bit#(TAdd#(PicHeightSz,3)) ver; Bit#(32) data;} DFBChroma;
+ struct {LumaCoordHor hor; LumaCoordVer ver; Bit#(32) data;} DFBLuma;
+ struct {Bit#(1) uv; ChromaCoordHor hor; ChromaCoordVer ver; Bit#(32) data;} DFBChroma;
  void EndOfFrame;
  EntropyDecOT EDOT;
 }

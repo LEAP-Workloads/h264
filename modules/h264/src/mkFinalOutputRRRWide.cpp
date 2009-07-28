@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 
 #include "asim/rrr/service_ids.h"
-#include "asim/provides/hasim_system.h"
+#include "asim/provides/software_system.h"
 
 #include "mkFinalOutputRRRWide.h"
 

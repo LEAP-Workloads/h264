@@ -70,6 +70,13 @@ typedef enum
 }
 VerticalState deriving(Eq,Bits);
 
+typedef enum 
+{
+  Free,
+  UseVertical,
+  UseColumnToRow
+} OutputControl deriving (Eq,Bits);
+
 //-----------------------------------------------------------
 // Helper functions
 
@@ -207,107 +214,6 @@ endfunction
 // Deblocking Filter Module
 //-----------------------------------------------------------
 
-
-//-----------------------------------------------------------
-// 1 read port register file module
-/*
-interface RFileSingle#(type idx_t, type d_t);
-   method Action upd(idx_t x1, d_t x2);
-   method ActionValue#(d_t) sub(idx_t x1);
-endinterface
-
-module mkRFileSingle#( idx_t lo, idx_t hi ) ( RFileSingle#(idx_t, d_t) )
-   provisos (Bits#(idx_t, si),Bits#(d_t, sa));
-   RegFile#(idx_t,d_t) rf <- mkRegFileWCF(lo,hi);
-   RWire#(Bit#(0)) sched_hack <- mkRWire();
-   method Action upd( idx_t index, d_t data );
-      rf.upd( index, data );
-   endmethod
-   method ActionValue#(d_t) sub( idx_t index );
-      sched_hack.wset(0);
-      return rf.sub(index);
-   endmethod
-endmodule
-   
-module mkRFileSingleFull( RFileSingle#(idx_t, d_t) )
-   provisos (Bits#(idx_t, si),Bits#(d_t, sa),Bounded#(idx_t),Literal#(idx_t) );
-   RegFile#(idx_t,d_t) rf <- mkRegFileWCF(0,fromInteger(valueof(TSub#(TExp#(si),1))));
-   RWire#(Bit#(0)) sched_hack <- mkRWire();
-   method Action upd( idx_t index, d_t data );
-      rf.upd( index, data );
-   endmethod
-   method ActionValue#(d_t) sub( idx_t index );
-      sched_hack.wset(0);
-      return rf.sub(index);
-   endmethod
-endmodule
-
-
-interface ILeftVector;
-  method ActionValue#(Bit#(32)) sub(Bit#(5) addr); 
-  method Action upd(Bit#(5) addr, Bit#(32) data);
-endinterface
- 
-//(*synthesize*)
-module mkLeftVector(ILeftVector);
-  RFileSingle#(Bit#(5),Bit#(32)) leftVector <- mkRFileSingleFull;
-  method sub = leftVector.sub;
-  method upd = leftVector.upd;
-endmodule
-
-interface IWorkVectorVer;
-  method ActionValue#(Bit#(32)) sub(Bit#(4) addr); 
-  method Action upd(Bit#(4) addr, Bit#(32) data);
-endinterface
- 
-//(*synthesize*)
-module mkWorkVectorVer(IWorkVectorVer);
-  RFileSingle#(Bit#(4),Bit#(32)) workVector <- mkRFileSingleFull();
-  method sub = workVector.sub;
-  method upd = workVector.upd;
-endmodule
-
-interface IWorkVectorHor;
-  method ActionValue#(Bit#(32)) sub(Bit#(3) addr); 
-  method Action upd(Bit#(3) addr, Bit#(32) data);
-endinterface
- 
-//(*synthesize*)
-module mkWorkVectorHor(IWorkVectorHor);
-  RFileSingle#(Bit#(3),Bit#(32)) workVector <- mkRFileSingleFull();
-  method sub = workVector.sub;
-  method upd = workVector.upd;
-endmodule
-
-interface ITopVector;
-  method ActionValue#(Bit#(32)) sub(Bit#(4) addr); 
-  method Action upd(Bit#(4) addr, Bit#(32) data);  
-endinterface
- 
-//(*synthesize*)
-module mkTopVector(ITopVector);
-  RFileSingle#(Bit#(4),Bit#(32)) topVector <- mkRFileSingleFull();
-  method sub = topVector.sub;
-  method upd = topVector.upd;
-endmodule
-
-interface IbSVector;
-  method ActionValue#(Bit#(3)) sub(Bit#(4) addr); 
-  method Action upd(Bit#(4) addr, Bit#(3) data);  
-endinterface
- 
-//(*synthesize*)
-module mkbSVector(IbSVector);
-  RFileSingle#(Bit#(4),Bit#(3)) bsVector <- mkRFileSingleFull();
-  method sub = bsVector.sub;
-  method upd = bsVector.upd;
-endmodule
-
-*/
-
-
-
-//(* synthesize *)
 module [HASIM_MODULE] mkDeblockFilter( );
 
    // Instantiate Memories.
@@ -361,6 +267,8 @@ module [HASIM_MODULE] mkDeblockFilter( );
    Reg#(Bit#(8)) alphaInternal  <- mkReg(0);
    Reg#(Bit#(5)) betaInternal   <- mkReg(0);
    Reg#(Vector#(3,Bit#(5))) tc0Internal <- mkRegU();   
+   Reg#(OutputControl) outputControl <- mkReg(Free);
+
 
    Bit#(8) alpha_table[52] = {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 			      0,  0,  0,  0,  0,  0,  4,  4,  5,  6,
@@ -447,7 +355,8 @@ module [HASIM_MODULE] mkDeblockFilter( );
      dataMem.write(store.addr,store.data);
    endrule
    
-   rule outfifoVerticalSplit;
+   rule outfifoVerticalSplit((outputControl == Free) || (outputControl == UseVertical));
+     outputControl <= (outputControl == Free)?UseVertical:Free;
      outfifoVertical.deq();
      outfifo.send(outfifoVertical.first());
    endrule
@@ -663,7 +572,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
 
    // XXX need to pipeline through the chromaFlagVer... It's wrong here
    // rotate row to column after applying the vertical filter
-   rule columnToRowConversion;
+   rule columnToRowConversion ((outputControl == Free) || (outputControl == UseColumnToRow));
      Bit#(32) data_out = 0;
      Bool topValues = tpl_2(columnToRowStoreBlock.first()) == 1;
      Bit#(4) blockNumCols = tpl_1(columnToRowStoreBlock.first());
@@ -682,10 +591,12 @@ module [HASIM_MODULE] mkDeblockFilter( );
                           (columnToRowStore[2].first())[15:8],
                           (columnToRowStore[1].first())[15:8],
                           (columnToRowStore[0].first())[15:8]};
+
        2'b10: data_out = {(columnToRowStore[3].first())[23:16],
                           (columnToRowStore[2].first())[23:16],
                           (columnToRowStore[1].first())[23:16],
                           (columnToRowStore[0].first())[23:16]};
+
        2'b11: begin
 
                 data_out = {(columnToRowStore[3].first())[31:24],
@@ -696,10 +607,12 @@ module [HASIM_MODULE] mkDeblockFilter( );
                 columnToRowStoreBlock.deq();
               end
      endcase
+
      if(`DEBLOCKING_DEBUG == 1)
        begin     
           $write( "TRACE Deblocking Filter: columnToRow rotate block(%0d, %0d) columnToRowState %d, topValues: %d, data: %h", blockHor, blockVer, columnToRowState, topValues, data_out);
        end
+
 
      Bit#(PicWidthSz) currMbHorT = truncate(currMbHor);
      // Actually send the data out. This stuff is not the bottom row or left column, and is therefore done.
@@ -712,6 +625,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
              $display( " Normal");
            end
 
+         outputControl <= (outputControl == Free)?UseColumnToRow:Free;
          if(chromaFlag==0)
            begin
              if(`DEBLOCKING_DEBUG == 1)
@@ -744,6 +658,7 @@ module [HASIM_MODULE] mkDeblockFilter( );
              $display( " TopValues");              
            end
 
+         outputControl <= (outputControl == Free)?UseColumnToRow:Free;
          if(chromaFlag==0)
            begin 
              if(`DEBLOCKING_DEBUG == 1)
@@ -1298,6 +1213,7 @@ end
   endrule
 
   // What is going on here?
+  // probably should check that the data output fifos have been drained.
   rule cleanup ( process==Cleanup && currMbHor<zeroExtend(picWidth) ); //XXX
     if(`DEBLOCKING_DEBUG == 1)
       begin

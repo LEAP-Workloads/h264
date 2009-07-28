@@ -39,18 +39,15 @@ File=modules/h264/src/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module with DMA output
+h264_deblocking=H264 deblocking filter module (dummy)
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 buffer control module
+h264_buffer_control=H264 coalescing buffer control module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
-[H264 buffer control module]
-File=modules/h264/src/h264_buffer_control.awb
-Packagehint=h264
 
 [H264 entropy decoder module]
 File=modules/h264/src/h264_entropy_decoder.awb
@@ -115,9 +112,6 @@ File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
 
-[H264 buffer control module/Requires]
-h264_frame_buffer=H264 coalesced multi scratchpad frame buffer
-
 [Hasim Standard Controller]
 File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
 Packagehint=hasim
@@ -142,6 +136,14 @@ Packagehint=hasim
 File=modules/h264/src/h264_h264_software_system.awb
 Packagehint=h264
 
-[H264 deblocking filter module with DMA output]
-File=modules/h264/src/h264_deblocking_dma.awb
+
+[H264 deblocking filter module (dummy)]
+File=modules/h264/src/h264_deblocking_dummy.awb
 Packagehint=h264
+
+[H264 coalescing buffer control module]
+File=modules/h264/src/h264_buffer_control_coalesced.awb
+Packagehint=h264
+
+[H264 coalescing buffer control module/Requires]
+h264_frame_buffer_coalesced_64=H264 coalesced multi scratchpad frame buffer

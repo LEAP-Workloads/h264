@@ -6,7 +6,7 @@
 
 %name H264 coalesced multi scratchpad frame buffer
 %desc coalesced multi scratchpad based memory
-%provides h264_frame_buffer
+%provides h264_frame_buffer_coalesced_64
 
 %attributes h264
 

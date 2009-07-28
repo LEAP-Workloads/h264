@@ -1,0 +1,22 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 coalescing buffer control module
+%desc H264 coalescing buffer control module
+%provides h264_buffer_control
+
+%attributes h264
+
+%requires h264_frame_buffer_coalesced_64
+
+%public mkBufferControlCoalesced64.bsv IBufferControl.bsv
+
+%param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
+
+%param DEBUG_BUFFER_CONTROL 0 "Buffer control debug"
+
+%AWB_END
+

@@ -38,7 +38,6 @@
 `include "h264_prediction.bsh"
 `include "h264_deblocking.bsh"
 `include "h264_buffer_control.bsh"
-`include "h264_frame_buffer.bsh"
 `include "h264_control.bsh"
 `include "h264_nal_unwrap.bsh"
  
@@ -52,7 +51,6 @@ module [HASIM_MODULE] mkH264( IH264 );
    // Instantiate the modules
 
    INalUnwrap     nalunwrap     <- mkNalUnwrap();
-   Empty   framebuffer   <- mkFrameBuffer();
    Empty    control       <- mkControl();
    Empty    entropydec    <- mkEntropyDec();
    Empty    inversetrans  <- mkInverseTrans();

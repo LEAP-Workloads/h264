@@ -44,13 +44,9 @@ h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 buffer control module
+h264_buffer_control=H264 coalescing buffer control module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
-
-[H264 buffer control module]
-File=modules/h264/src/h264_buffer_control.awb
-Packagehint=h264
 
 [H264 entropy decoder module]
 File=modules/h264/src/h264_entropy_decoder.awb
@@ -97,7 +93,6 @@ Packagehint=h264
 
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
-MODEL_CLOCK_DIVIDER=3
 
 [HAsim Hybrid Model Foundation/Params]
 MAKE_ALL_TARGET=bit
@@ -114,16 +109,9 @@ Packagehint=h264
 File=modules/h264/src/h264_output_rrr_wide.awb
 Packagehint=h264
 
-[H264 multi scratchpad frame buffer with write cache]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
-Packagehint=h264
-
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
-
-[H264 buffer control module/Requires]
-h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
 
 [Hasim Standard Controller]
 File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
@@ -133,16 +121,25 @@ Packagehint=hasim
 File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
 Packagehint=hasim
 
-
-[Default Software System]
-File=modules/model/default_software_system.awb
-Packagehint=hasim
-
 [Hybrid System foundation/Requires]
-software_system=Default Software System
+software_system=H264 Software System
 hardware_system=H264 System
 
 [Hybrid System foundation]
 File=modules/model/hybrid_system.awb
 Packagehint=hasim
 
+[H264 coalescing buffer control module]
+File=modules/h264/src/h264_buffer_control_coalesced.awb
+Packagehint=h264
+
+[H264 coalesced multi scratchpad frame buffer]
+File=modules/h264/src/h264_multi_scratchpad_coalesced_frame_buffer.awb
+Packagehint=h264
+
+[H264 coalescing buffer control module/Requires]
+h264_frame_buffer_coalesced_64=H264 coalesced multi scratchpad frame buffer
+
+[H264 Software System]
+File=modules/h264/src/h264_h264_software_system.awb
+Packagehint=h264
