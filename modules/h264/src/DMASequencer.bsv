@@ -25,12 +25,16 @@
 `include "soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
+import FIFO::*;
+import FIFOF::*;
+
+
 // Some design issues here.  How to handle the case in which we have leftover data - higher level required to pad us 
 // out, I guess?  Simpler interface, but kinda ugly.
 
-interface DMASequencer#(type data);
-  method Action input(data);
-  method ActionValue#(data) output();
+interface DMASequencer#(type data_t);
+  method Action in(data_t data);
+  method ActionValue#(data_t) out();
 endinterface
 
 typedef DMASequencer#(data) BlockDMASequencer#(type data, numeric type horizontal, numeric type vertical);
@@ -42,12 +46,12 @@ typedef struct {
   hor_index_t horIndex;
   ver_index_t verIndex;
   data_t data;
-} OoOBlockAddr#(type data_t, type hor_index_t, type ver_index_t);
+} OoOBlockAddr#(type data_t, type hor_index_t, type ver_index_t)  deriving (Bits,Eq);
 
 typedef enum {
   Buffer1,
   Buffer2
-} BufferTarget;
+} BufferTarget deriving(Bits,Eq);
 
 
 // This module requires that horizontal <= dma length
@@ -56,20 +60,20 @@ typedef enum {
 // do the whole padding thing.
 
 
-module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data,
-                                                                   Bit#(horizontal_sz),
-                                                                   Bit#(vertical_sz)),
-                                                     horizontal,
-                                                     vertical, 
-                                                     dma_length
-                                     )) 
-  provisos#(Bits#(data,data_sz),
+module mkOoOBlockDMASequencer (BlockToLineDMASequencer#(OoOBlockAddr#(data,
+                                                                      Bit#(horizontal_sz),
+                                                                      Bit#(vertical_sz)),
+                                                        horizontal,
+                                                        vertical, 
+                                                        dma_length))
+        
+  provisos (Bits#(data,data_sz),
             Mul#(horizontal,vertical,index),
             Div#(dma_length,horizontal, number_blocks),
             Mul#(number_blocks, horizontal, dma_length),
             Log#(horizontal, horizontal_sz_unsafe),
             Max#(1,horizontal_sz_unsafe,horizontal_sz), 
-            Log#(dma_length, dma_length_unsafe),
+            Log#(dma_length, dma_length_sz_unsafe),
             Max#(1,dma_length_sz_unsafe,dma_length_sz), 
             Log#(vertical, vertical_sz_unsafe),
             Max#(1,vertical_sz_unsafe,vertical_sz),
@@ -77,24 +81,26 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
             Max#(1,number_blocks_sz_unsafe,number_blocks_sz),
             Add#(vertical_sz,dma_length_sz,buffer_index_sz),
             Add#(vertical_sz,horizontal_sz,block_index_sz),
-            Add#(block_index_sz,number_blocks_sz,buffer_index_sz));
+            Add#(block_index_sz,number_blocks_sz,buffer_index_sz), 
+            Add#(xxx,horizontal_sz, buffer_index_sz));
 
   // Grrr.. need some muls in here to guarantee alignment.  Oh well...
 
-  MEMORY_IFC#(Bit#(,Bit#(32))  buffer1 <- mkBRAM();
-  MEMORY_IFC#(Bit#(TAdd#(PicWidthSz,5)),Bit#(32))  buffer2 <- mkBRAM();
+  MEMORY_IFC#(Bit#(buffer_index_sz),data)  buffer1 <- mkBRAM();
+  MEMORY_IFC#(Bit#(buffer_index_sz),data)  buffer2 <- mkBRAM();
   
   // Fill state 
   Reg#(Bit#(number_blocks_sz)) fillBlockCount <- mkReg(0);
   Reg#(Bit#(dma_length_sz)) blockOffset <- mkReg(0);
-  BufferTarget fillBuffer <- mkReg(Buffer1);
+  Reg#(BufferTarget) fillBuffer <- mkReg(Buffer1);
+  FIFO#(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz))) infifo <- mkFIFO;
 
 
   // Drain state
   FIFOF#(BufferTarget) drainBufferReq <- mkSizedFIFOF(2); 
   FIFOF#(BufferTarget) drainBufferResp <- mkSizedFIFOF(2); // if this fifo is full, it means both buffers are full or processing 
-  Reg#(buffer_index_sz) drainElementCount <- mkReg(0);
-  FIFO#(data) outfifo <- mkFIFO;
+  Reg#(Bit#(buffer_index_sz)) drainElementCount <- mkReg(0);
+  FIFO#(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz))) outfifo <- mkFIFO;
   FIFO#(Bool) deqDrainBuffer <- mkSizedFIFO(2); 
 
   // Some useful constants
@@ -107,9 +113,9 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
   // may split this up at some point
   rule loadBuffer (drainBufferResp.notFull);
     let buffer = (fillBuffer == Buffer1)?buffer1:buffer2;
-    if(fillBlockCount + 1 = blockSize) 
+    if(fillBlockCount + 1 == blockSize) 
       begin
-        if(blockOffset + horizontalLength == dmaLength)
+        if(blockOffset + horizontalSize == dmaLength)
           begin
             blockOffset <= 0;
             drainBufferReq.enq(fillBuffer);
@@ -118,7 +124,7 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
           end
         else
           begin
-            blockOffset <= blockOffset + horizontalLength;
+            blockOffset <= blockOffset + horizontalSize;
           end
         fillBlockCount <= 0;
       end      
@@ -129,7 +135,7 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
 
    // the multiplication below might create an issue.
    buffer.write(zeroExtend(blockOffset) + 
-               (fromInteger(dma_length) * zeroExtend(infifo.first.verIndex)) +
+               (dmaLength * zeroExtend(infifo.first.verIndex)) +
                zeroExtend(infifo.first.horIndex),infifo.first.data);
 
   endrule
@@ -158,8 +164,8 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
       end
     
     deqDrainBuffer.deq();
-    let resp <- buffer1.readResp;
-    outfifo.enq(resp);
+    let resp <- buffer1.readRsp;
+    outfifo.enq(OoOBlockAddr{data:resp});
   endrule
 
   rule drainBuffer2 (drainBufferReq.first == Buffer2);
@@ -184,15 +190,15 @@ module [HASIM_MODULE] mkOoOBlockDMASequencer (BlockToLineDMA#(OoOBlockAddr#(data
       end
     
     deqDrainBuffer.deq();
-    let resp <- buffer2.readResp;
-    outfifo.enq(resp);
+    let resp <- buffer2.readRsp;
+    outfifo.enq(OoOBlockAddr{data:resp});
   endrule
 
-  method Action input(BlockToLineDMA#(OoOBlockAddr#(data,Bit#(block_index_sz))) blockData);
+  method Action in(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz)) blockData);
     infifo.enq(blockData);
   endmethod
   
-  method ActionValue#(data) output();
+  method ActionValue#(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz))) out();
     outfifo.deq;
     return outfifo.first;
   endmethod

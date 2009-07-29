@@ -15,4 +15,6 @@
 * I get the feeling that I'll want to split some of this out eventually
 %public mkFrameBuffer.bsv
 
+%param  FRAME_BUFFER_DEBUG 0 "Enable Frame Buffer Debug"
+
 %AWB_END

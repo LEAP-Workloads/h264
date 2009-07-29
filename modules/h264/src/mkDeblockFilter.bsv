@@ -34,7 +34,6 @@
 
 `include "h264_types.bsh"
 `include "h264_decoder_types.bsh"
-`include "h264_memory_unit.bsh"
 
 
 import FIFO::*;

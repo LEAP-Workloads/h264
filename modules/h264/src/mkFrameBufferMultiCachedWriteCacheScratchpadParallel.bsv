@@ -118,10 +118,29 @@ module [HASIM_MODULE] mkFrameBuffer();
   // Make constructor list here
   let constructors = cons(mkRasterCache, cons(mkInterCacheLuma, cons(mkInterCacheChroma,nil)));
 
+ // Write cache constructor
+  String writeCacheFilename = "writeCacheDebug";
+  DEBUG_FILE writeCacheLog <- (`SCRATCHPAD_DEBUG == 1)?
+                              mkDebugFile(writeCacheFilename):
+                              mkDebugFileNull(writeCacheFilename); 
+
+  RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
+
+  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
+               mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
+                 provisos(Bits#(addr_t, addr_t_sz),
+                          Bits#(mem_t, mem_t_sz),
+                          Bits#(ref_t, ref_t_sz))
+            = mkCacheDirectMapped(source,False,writeStats,writeCacheLog);
+
+
+
  
   MEMORY_MULTI_READ_IFC#(3,FrameBufferAddr, FrameBufferData) memory <- 
-      mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, 
-                                                replicate(0),
+      mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER,
+                                                0,
+                                                mkWriteCache, 
+                                                replicate(1),
                                                 constructors);
   
   

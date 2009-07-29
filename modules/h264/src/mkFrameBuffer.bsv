@@ -91,8 +91,14 @@ module [HASIM_MODULE] mkFrameBuffer ();
    rule loading1 ( loadReqQ1.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
-	    loadRespQ1.enq( tagged FBLoadResp rfile2.load1(addrt) );
+            let data = rfile2.load1(addrt);
+	    loadRespQ1.enq( tagged FBLoadResp data );
 	    loadReqQ1.deq();
+            if(`FRAME_BUFFER_DEBUG == 1)
+              begin
+                $display("FrameBuffer requesting load1 %h", addrt);
+                $display("FrameBuffer returns load1 %h", data);
+              end
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading1 outside range" );
@@ -101,8 +107,14 @@ module [HASIM_MODULE] mkFrameBuffer ();
    rule loading2 ( loadReqQ2.first() matches tagged FBLoadReq .addrt );
       if(addrt<frameBufferSize)
 	 begin
-	    loadRespQ2.enq( tagged FBLoadResp rfile2.load2(addrt) );
+            let data = rfile2.load2(addrt);
+	    loadRespQ2.enq( tagged FBLoadResp data );
 	    loadReqQ2.deq();
+            if(`FRAME_BUFFER_DEBUG == 1)
+              begin
+                $display("FrameBuffer requesting load2 %h", addrt);
+                $display("FrameBuffer returns load2 %h", data);
+              end
 	 end
       else
 	 $display( "ERROR FrameBuffer: loading2 outside range" );
@@ -113,13 +125,14 @@ module [HASIM_MODULE] mkFrameBuffer ();
 	 begin
 	    rfile2.store(addrt,datat);
 	    storeReqQ.deq();
-            //$display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
+            $display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
 	 end
       else
 	 $display( "ERROR FrameBuffer: storing outside range" );
    endrule
    
    rule syncing ( loadReqQ1.first() matches tagged FBEndFrameSync &&& loadReqQ2.first() matches tagged FBEndFrameSync &&& storeReqQ.first() matches tagged FBEndFrameSync);
+      $display("FrameBuffer FrameSync");
       loadReqQ1.deq();
       loadReqQ2.deq();
       storeReqQ.deq();

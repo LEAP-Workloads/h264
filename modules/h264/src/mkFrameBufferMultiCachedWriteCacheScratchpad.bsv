@@ -114,7 +114,7 @@ module [HASIM_MODULE] mkFrameBuffer();
 
   RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
+  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),

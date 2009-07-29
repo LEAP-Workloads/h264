@@ -44,22 +44,24 @@ typedef DMA#(data_t,addr_t) OoOBlockToLineDMA#(type data_t,
 typedef struct {
   addr_t baseAddress;
   addr_t burstOffset;
-} BlockToLineDMAAddr#(addr_t) deriving (Bits,Eq);
+} BlockToLineDMAAddr#(type addr_t) deriving (Bits,Eq);
 
 module mkOoOBlockToLineDMA (OoOBlockToLineDMA#(OoOBlockAddr#(data,
                                                              Bit#(horizontal_sz),
                                                              Bit#(vertical_sz)),
-                                               BlockToLineDMAAddr#(addr_t), 
+                                               BlockToLineDMAAddr#(addr), 
                                                horizontal, 
                                                vertical, 
                                                dma_length))
-   provisos#(Bits#(data,data_sz),
+   provisos(Bits#(data,data_sz),
+ /*           Arith#(addr_t),*/
+            Bits#(addr,addr_sz),
             Mul#(horizontal,vertical,index),
             Div#(dma_length,horizontal, number_blocks),
             Mul#(number_blocks, horizontal, dma_length),
             Log#(horizontal, horizontal_sz_unsafe),
             Max#(1,horizontal_sz_unsafe,horizontal_sz), 
-            Log#(dma_length, dma_length_unsafe),
+            Log#(dma_length, dma_length_sz_unsafe),
             Max#(1,dma_length_sz_unsafe,dma_length_sz), 
             Log#(vertical, vertical_sz_unsafe),
             Max#(1,vertical_sz_unsafe,vertical_sz),
@@ -67,10 +69,11 @@ module mkOoOBlockToLineDMA (OoOBlockToLineDMA#(OoOBlockAddr#(data,
             Max#(1,number_blocks_sz_unsafe,number_blocks_sz),
             Add#(vertical_sz,dma_length_sz,buffer_index_sz),
             Add#(vertical_sz,horizontal_sz,block_index_sz),
-            Add#(block_index_sz,number_blocks_sz,buffer_index_sz));
+            Add#(block_index_sz,number_blocks_sz,buffer_index_sz),
+            Add#(xxx, horizontal_sz, buffer_index_sz));
 
-   // probably need to assert that addr_t > dma_length, possibly also arith
-  BlockToLineDMA#(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz)),
+   // probably need to assert that addr > dma_length, possibly also arith
+  BlockToLineDMASequencer#(OoOBlockAddr#(data,Bit#(horizontal_sz),Bit#(vertical_sz)),
                   horizontal,
                   vertical, 
                   dma_length) dmaBlock <- mkOoOBlockDMASequencer;
@@ -80,21 +83,21 @@ module mkOoOBlockToLineDMA (OoOBlockToLineDMA#(OoOBlockAddr#(data,
 
   //State to generate the addresses, which will occur in row order
   Reg#(Bit#(vertical_sz)) burstCount <- mkReg(0);
-  Reg#(Bit#(addr_t)) burstOffset <- mkReg(0); 
-  Reg#(Bit#(addr_t)) currentBurstOffset <- mkReg(0); 
-  Reg#(Bit#(addr_t)) baseAddress <- mkReg(0); 
+  Reg#(Bit#(addr_sz)) burstOffset <- mkRegU; 
+  Reg#(Bit#(addr_sz)) currentBurstOffset <- mkRegU; 
+  Reg#(Bit#(addr_sz)) baseAddress <- mkRegU; 
 
-  method Action inputData = dmaBlock.input;
+  method inputData = dmaBlock.in;
 
-  method outputData = dmaBlock.output;
+  method outputData = dmaBlock.out;
 
-  method Action inputAddr(BlockToLineDMAAddr#(addr_t) addr) if(idle);
+  method Action inputAddr(BlockToLineDMAAddr#(addr) address) if(idle);
     idle <= False;
-    burstOffset <= addr.burstOffset;
-    baseAddress <= addr.baseAddress;
+    burstOffset <= pack(address.burstOffset);
+    baseAddress <= pack(address.baseAddress);
   endmethod
 
-  method ActionValue#(BlockToLineDMAAddr#(addr_t)) outputAddr(!idle); 
+  method ActionValue#(BlockToLineDMAAddr#(addr)) outputAddr() if(!idle); 
     if(burstCount + 1 == fromInteger(valueof(vertical)))
       begin
         currentBurstOffset <= 0;
@@ -109,7 +112,7 @@ module mkOoOBlockToLineDMA (OoOBlockToLineDMA#(OoOBlockAddr#(data,
         burstCount <= burstCount + 1;
       end
 
-    return (baseAddress+zeroExtend(currentBurstOffset));
+    return BlockToLineDMAAddr{baseAddress: unpack(baseAddress+currentBurstOffset)};
   endmethod
 
 endmodule
