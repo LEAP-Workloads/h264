@@ -1,0 +1,2 @@
+def STATS.INTERPOLATOR.REQ_Q_FULL                   "H264 INTERPOLATOR: req q full cycles";
+def STATS.INTERPOLATOR.REQ_Q_EMPTY                  "H264 INTERPOLATOR: req q empty cycles";

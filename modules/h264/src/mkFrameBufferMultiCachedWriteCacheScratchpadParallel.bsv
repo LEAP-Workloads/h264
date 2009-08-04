@@ -267,6 +267,10 @@ module [HASIM_MODULE] mkFrameBuffer();
      loadRespQ1TX.send(loadRespQ1.first);
      loadRespQ1.deq;
      allocateSpace1.deq;
+     if(`FRAME_BUFFER_DEBUG == 1)
+       begin
+         $display("FrameBuffer returning load1 %h",loadRespQ1.first);
+       end
    endrule
 
    mkConnection(connectionToGet(loadReqQ2RX),fifoToPut(loadReqQ2));  
@@ -275,6 +279,10 @@ module [HASIM_MODULE] mkFrameBuffer();
      loadRespQ2TX.send(loadRespQ2.first);
      loadRespQ2.deq;
      allocateSpace2.deq;
+    if(`FRAME_BUFFER_DEBUG == 1)
+       begin
+         $display("FrameBuffer returning load2 %h",loadRespQ2.first);
+       end
    endrule
 
    mkConnection(connectionToGet(loadReqQ3RX),fifoToPut(loadReqQ3));  
@@ -283,6 +291,10 @@ module [HASIM_MODULE] mkFrameBuffer();
      loadRespQ3TX.send(loadRespQ3.first);
      loadRespQ3.deq;
      allocateSpace3.deq;
+     if(`FRAME_BUFFER_DEBUG == 1)
+       begin
+         $display("FrameBuffer returning load3 %h",loadRespQ3.first);
+       end
    endrule
 
    mkConnection(connectionToGet(storeReqQRX),fifoToPut(storeReqQ)); 

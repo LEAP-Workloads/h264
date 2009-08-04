@@ -64,12 +64,19 @@ module [HASIM_MODULE] mkSystem ();
    // Instantiate Required connections to controller
    Connection_Send#(CONTROL_MODEL_CYCLE_MSG) link_model_cycle <- mkConnection_Send("model_cycle");
    Connection_Send#(CONTROL_MODEL_COMMIT_MSG) link_model_commit <- mkConnection_Send("model_commits");
+
+
  
    // Cycle counter
    Reg#(Bit#(40)) cyclecount <- mkReg(0);
 
    rule countCycles ( True );
-      if(cyclecount[14:0]==0) $display( "CCLCycleCount %0d", cyclecount );
+      if(cyclecount[16:0]==0) 
+        begin
+          $display( "CCLCycleCount %0d", cyclecount );
+          link_model_cycle.send(0);
+        end
+
       let bscTime <- $time;
       cyclecount <= cyclecount+1; 
       if(bscTime > 6000000000)

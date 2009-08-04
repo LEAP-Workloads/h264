@@ -30,7 +30,6 @@
 `include "soft_connections.bsh"
 `include "hasim_common.bsh"
 `include "h264_types.bsh"
-`include "asim/dict/STATS_INTERPOLATOR.bsh"
 
 import FIFO::*;
 import FIFOF::*;
@@ -95,21 +94,25 @@ endmodule
 // Interpolation Module
 //-----------------------------------------------------------
 
-
+//We ignore these params.
 module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
    
-   FIFOF#(InterpolatorIT) reqfifoLoad <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
+   FIFOF#(InterpolatorIT) reqfifoLoadLuma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
+   FIFOF#(InterpolatorIT) reqfifoLoadChroma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
                                                                                      // pixel requests.
    FIFO#(InterpolatorWT) reqfifoWork1 <- mkSizedFIFO(`REQFIFO_WORK_SIZE); // This is where the memory responses
                                                                                      // come from
+
    Interpolate15to8 interpolate15to8 <- mkInterpolate15to8();
    Interpolate8to15 interpolate8to15 <- mkInterpolate8to15();  
    Reg#(Maybe#(InterpolatorWT)) reqregWork2 <- mkReg(Invalid);
    FIFO#(Vector#(4,Bit#(8))) outfifo <- mkFIFO;
    Reg#(Bool) endOfFrameFlag <- mkReg(False);
 
-   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive(respQ);
-   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send(reqQ);
+   Connection_Receive#(InterpolatorLoadResp) memRespLumaQ <- mkConnection_Receive("mkPrediction_interpolatorLumaMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) memReqLumaQ <- mkConnection_Send("mkPrediction_interpolatorLumaMemReqQ");
+   Connection_Receive#(InterpolatorLoadResp) memRespChromaQ <- mkConnection_Receive("mkPrediction_interpolatorChromaMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) memReqChromaQ <- mkConnection_Send("mkPrediction_interpolatorChromaMemReqQ");
 
 
    Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
@@ -117,12 +120,14 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 
    RFile1#(Bit#(6),Vector#(4,Bit#(15))) workFile  <- mkRFile1Full();
    RFile1#(Bit#(6),Vector#(4,Bit#(8)))  storeFile <- mkRFile1Full();
-   Reg#(Bit#(1)) workFileFlag <- mkReg(0);
+   Reg#(Bit#(1)) workFileFlag <- mkReg(0); // used for double buffering the work file
    RFile1#(Bit#(4),Vector#(4,Bit#(8))) resultFile <- mkRFile1Full();
 
    Reg#(Bit#(1)) loadStage  <- mkReg(0);
-   Reg#(Bit#(2)) loadHorNum <- mkReg(0);
-   Reg#(Bit#(4)) loadVerNum <- mkReg(0);
+   Reg#(Bit#(2)) loadHorNumLuma <- mkReg(0);
+   Reg#(Bit#(4)) loadVerNumLuma <- mkReg(0);
+   Reg#(Bit#(2)) loadHorNumChroma <- mkReg(0);
+   Reg#(Bit#(4)) loadVerNumChroma <- mkReg(0);
 
    Reg#(Bit#(2)) work1MbPart    <- mkReg(0);//only for Chroma
    Reg#(Bit#(2)) work1SubMbPart <- mkReg(0);//only for Chroma
@@ -144,25 +149,19 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
    Reg#(Bit#(2)) outBlockNum <- mkReg(0);
    Reg#(Bit#(2)) outPixelNum <- mkReg(0);
    Reg#(Bool) outDone <- mkReg(False);
-
-   STAT statReqQFull  <- mkStatCounter(`STATS_INTERPOLATOR_REQ_Q_FULL);
-   STAT statReqQEmpty <- mkStatCounter(`STATS_INTERPOLATOR_REQ_Q_EMPTY);
-
-   rule checkLoadQ1Full(!reqfifoLoad.notFull);
-     statReqQFull.incr(); 
-   endrule
-
-   rule checkLoadQ1Empty(!reqfifoLoad.notEmpty);
-     statReqQEmpty.incr(); 
-   endrule
+   
 
    rule sendEndOfFrameReq( endOfFrameFlag );
       endOfFrameFlag <= False;
-      memReqQ.send(IPLoadEndFrame);
+      memReqLumaQ.send(IPLoadEndFrame);
+      memReqChromaQ.send(IPLoadEndFrame);
    endrule
    
+   // Load luma state
+
    
-   rule loadLuma( reqfifoLoad.first() matches tagged IPLuma .reqdata &&& !endOfFrameFlag );
+   
+   rule loadLuma( reqfifoLoadLuma.first() matches tagged IPLuma .reqdata &&& !endOfFrameFlag );
       Bit#(2) xfracl = reqdata.mvhor[1:0];
       Bit#(2) yfracl = reqdata.mvver[1:0];
       Bit#(2) offset = reqdata.mvhor[3:2];
@@ -173,8 +172,8 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
       Bit#(1) horOut = 0;
       Bit#(TAdd#(PicWidthSz,2)) horAddr;
       Bit#(TAdd#(PicHeightSz,4)) verAddr;
-      Bit#(TAdd#(PicWidthSz,12)) horTemp = zeroExtend({reqdata.hor,2'b00}) + zeroExtend({loadHorNum,2'b00}) + (xfracl==3&&(yfracl==1||yfracl==3)&&loadStage==0 ? 1 : 0);
-      Bit#(TAdd#(PicHeightSz,10)) verTemp = zeroExtend(reqdata.ver) + zeroExtend(loadVerNum) + (yfracl==3&&(xfracl==1||xfracl==3)&&loadStage==1 ? 1 : 0);
+      Bit#(TAdd#(PicWidthSz,12)) horTemp = zeroExtend({reqdata.hor,2'b00}) + zeroExtend({loadHorNumLuma,2'b00}) + (xfracl==3&&(yfracl==1||yfracl==3)&&loadStage==0 ? 1 : 0);
+      Bit#(TAdd#(PicHeightSz,10)) verTemp = zeroExtend(reqdata.ver) + zeroExtend(loadVerNumLuma) + (yfracl==3&&(xfracl==1||xfracl==3)&&loadStage==1 ? 1 : 0);
       Bit#(13) mvhortemp = signExtend(reqdata.mvhor[13:2])-(horInter?2:0);
       Bit#(11) mvvertemp = signExtend(reqdata.mvver[11:2])-(verInter?2:0);
       if(mvhortemp[12]==1 && zeroExtend(0-mvhortemp)>horTemp)
@@ -203,7 +202,7 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 	    else
 	       verAddr = truncate(verTemp);
 	 end
-      memReqQ.send(IPLoadLuma {refIdx:reqdata.refIdx,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
+      memReqLumaQ.send(IPLoadLuma {refIdx:reqdata.refIdx,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
       Bool verFirst = twoStage || (yfracl==2&&(xfracl==1||xfracl==3));
       Bit#(2) loadHorNumMax = (reqdata.bt==IP8x8||reqdata.bt==IP8x4 ? 1 : 0) + (horInter ? 2 : (offset2==0 ? 0 : 1));
       Bit#(4) loadVerNumMax = (reqdata.bt==IP8x8||reqdata.bt==IP4x8 ? 7 : 3) + (verInter ? 5 : 0);
@@ -211,27 +210,27 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
       // the memory addresses.
       if(verFirst)
 	 begin
-	    if(loadVerNum < loadVerNumMax)
-	       loadVerNum <= loadVerNum+1;
+	    if(loadVerNumLuma < loadVerNumMax)
+	       loadVerNumLuma <= loadVerNumLuma+1;
 	    else
 	       begin
-		  loadVerNum <= 0;
-		  if(loadHorNum < loadHorNumMax)
+		  loadVerNumLuma <= 0;
+		  if(loadHorNumLuma < loadHorNumMax)
 		     begin
 			if(loadStage == 1)
 			   begin
 			      offset = offset + (xfracl==3 ? 1 : 0);
 			      if(!(offset==1 || (xfracl==3 && offset==2)))
-				 loadHorNum <= loadHorNumMax;
+				 loadHorNumLuma <= loadHorNumMax;
 			      else
 				 begin
-				    loadHorNum <= 0;
+				    loadHorNumLuma <= 0;
 				    loadStage <= 0;
-				    reqfifoLoad.deq();
+				    reqfifoLoadLuma.deq();
 				 end
 			   end
 			else
-			   loadHorNum <= loadHorNum+1;
+			   loadHorNumLuma <= loadHorNumLuma+1;
 		     end
 		  else
 		     begin
@@ -239,33 +238,33 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 			   begin
 			      offset = offset + (xfracl==3 ? 1 : 0);
 			      if((xfracl==3 ? offset<3 : offset<2))
-				 loadHorNum <= 0;
+				 loadHorNumLuma <= 0;
 			      else
-				 loadHorNum <= loadHorNumMax+1;
+				 loadHorNumLuma <= loadHorNumMax+1;
 			      loadStage <= 1;
 			   end
 			else
 			   begin
-			      loadHorNum <= 0;
+			      loadHorNumLuma <= 0;
 			      loadStage <= 0;
-			      reqfifoLoad.deq();
+			      reqfifoLoadLuma.deq();
 			   end
 		     end
 	       end
 	 end
       else
 	 begin
-	    if(loadHorNum < loadHorNumMax)
-	       loadHorNum <= loadHorNum+1;
+	    if(loadHorNumLuma < loadHorNumMax)
+	       loadHorNumLuma <= loadHorNumLuma+1;
 	    else
 	       begin
-		  loadHorNum <= 0;
-		  if(loadVerNum < loadVerNumMax)
-		     loadVerNum <= loadVerNum+1;
+		  loadHorNumLuma <= 0;
+		  if(loadVerNumLuma < loadVerNumMax)
+		     loadVerNumLuma <= loadVerNumLuma+1;
 		  else
 		     begin
-			loadVerNum <= 0;
-			reqfifoLoad.deq();
+			loadVerNumLuma <= 0;
+			reqfifoLoadLuma.deq();
 		     end
 	       end
 	 end
@@ -274,20 +273,20 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 
     if(`INTERPOLATOR_DEBUG == 1)
       begin
-        $display( "Trace interpolator: loadLuma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h HorAddr:%h VerAddr%h", xfracl, yfracl, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+        $display( "Trace interpolator: loadLuma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h HorAddr:%h VerAddr%h", xfracl, yfracl, loadHorNumLuma, loadVerNumLuma, reqdata.refIdx, horAddr, verAddr);
       end
    endrule   
 
 
-   rule loadChroma( reqfifoLoad.first() matches tagged IPChroma .reqdata &&& !endOfFrameFlag );
+   rule loadChroma( reqfifoLoadChroma.first() matches tagged IPChroma .reqdata &&& !endOfFrameFlag );
       Bit#(3) xfracc = reqdata.mvhor[2:0];
       Bit#(3) yfracc = reqdata.mvver[2:0];
       Bit#(2) offset = reqdata.mvhor[4:3]+{reqdata.hor[0],1'b0};
       Bit#(1) horOut = 0;
       Bit#(TAdd#(PicWidthSz,1)) horAddr;
       Bit#(TAdd#(PicHeightSz,3)) verAddr;
-      Bit#(TAdd#(PicWidthSz,11)) horTemp = zeroExtend({reqdata.hor,1'b0}) + zeroExtend({loadHorNum,2'b00});
-      Bit#(TAdd#(PicHeightSz,9)) verTemp = zeroExtend(reqdata.ver) + zeroExtend(loadVerNum);
+      Bit#(TAdd#(PicWidthSz,11)) horTemp = zeroExtend({reqdata.hor,1'b0}) + zeroExtend({loadHorNumChroma,2'b00});
+      Bit#(TAdd#(PicHeightSz,9)) verTemp = zeroExtend(reqdata.ver) + zeroExtend(loadVerNumChroma);
       if(reqdata.mvhor[13]==1 && zeroExtend(0-reqdata.mvhor[13:3])>horTemp)
 	 begin
 	    horAddr = 0;
@@ -316,28 +315,33 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 	       verAddr = truncate(verTemp);
 	 end
 
-      memReqQ.send(IPLoadChroma {refIdx:reqdata.refIdx,uv:reqdata.uv,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
+      memReqChromaQ.send(IPLoadChroma {refIdx:reqdata.refIdx,uv:reqdata.uv,horOutOfBounds:horOut,hor:horAddr,ver:verAddr});
       Bit#(2) loadHorNumMax = (reqdata.bt==IP4x8||reqdata.bt==IP4x4 ? (offset[1]==0||(xfracc==0&&offset!=3) ? 0 : 1) : ((reqdata.bt==IP16x16||reqdata.bt==IP16x8 ? 1 : 0) + (xfracc==0&&offset==0 ? 0 : 1)));
       Bit#(4) loadVerNumMax = (reqdata.bt==IP16x16||reqdata.bt==IP8x16 ? 7 : (reqdata.bt==IP16x8||reqdata.bt==IP8x8||reqdata.bt==IP4x8 ? 3 : 1)) + (yfracc==0 ? 0 : 1);
-      if(loadHorNum < loadHorNumMax)
-	 loadHorNum <= loadHorNum+1;
+
+      if(loadHorNumChroma < loadHorNumMax)
+	 loadHorNumChroma <= loadHorNumChroma+1;
       else
 	 begin
-	    loadHorNum <= 0;
-	    if(loadVerNum < loadVerNumMax)
-	       loadVerNum <= loadVerNum+1;
+	    loadHorNumChroma <= 0;
+	    if(loadVerNumChroma < loadVerNumMax)
+	       loadVerNumChroma <= loadVerNumChroma+1;
 	    else
 	       begin
-		  loadVerNum <= 0;
-		  reqfifoLoad.deq();
+		  loadVerNumChroma <= 0;
+		  reqfifoLoadChroma.deq();
 	       end
 	 end
     if(`INTERPOLATOR_DEBUG == 1)
       begin
-        $display( "Trace interpolator: loadChroma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h horAddr: %h verAddr: %h", xfracc, yfracc, loadHorNum, loadVerNum, reqdata.refIdx, horAddr, verAddr);
+        $display( "Trace interpolator: loadChroma xfrac: %h yfrac: %h Hor: %h Ver: %h refIdx: %h horAddr: %h verAddr: %h", xfracc, yfracc, loadHorNumChroma, loadVerNumChroma, reqdata.refIdx, horAddr, verAddr);
       end
    endrule
    
+
+
+
+
 
    rule work1Luma ( reqfifoWork1.first() matches tagged IPWLuma .reqdata &&& !work1Done );
       let xfracl = reqdata.xFracL;
@@ -346,9 +350,9 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
       let blockT = reqdata.bt;
       Bool twoStage = (xfracl==1||xfracl==3) && (yfracl==1||yfracl==3); // are we dealing with a quarter sample
       Vector#(20,Bit#(8)) work1Vector8Next = work1Vector8; // This must die.
-      if(memRespQ.receive() matches tagged IPLoadResp .tempreaddata)
+      if(memRespLumaQ.receive() matches tagged IPLoadResp .tempreaddata)
 	 begin
-	    memRespQ.deq();
+	    memRespLumaQ.deq();
 	    Vector#(4,Bit#(8)) readdata = replicate(0);
 	    readdata[0] = tempreaddata[7:0];
 	    readdata[1] = tempreaddata[15:8];
@@ -698,9 +702,9 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
       let offset = reqdata.offset;
       let blockT = reqdata.bt;
       Vector#(20,Bit#(8)) work1Vector8Next = work1Vector8;
-      if(memRespQ.receive() matches tagged IPLoadResp .tempreaddata)
+      if(memRespChromaQ.receive() matches tagged IPLoadResp .tempreaddata)
 	 begin
-	    memRespQ.deq();
+	    memRespChromaQ.deq();
 	    Vector#(4,Bit#(8)) readdata = replicate(0);
 	    readdata[0] = tempreaddata[7:0];
 	    readdata[1] = tempreaddata[15:8];
@@ -722,7 +726,8 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 	    tempWork8[4] = readdata[offset];
 
             // deals with the row major offsets
-	    if((blockT==IP16x8 || blockT==IP16x16) && work1HorNum==(xfracc==0&&offset==0 ? 1 : 2))
+	    if((blockT==IP16x8 || blockT==IP16x16) && 
+               work1HorNum == ((xfracc==0 && offset==0) ? 1 : 2))
 	       begin
 		  for(Integer ii=0; ii<5; ii=ii+1)
 		     begin
@@ -740,11 +745,13 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 			   work1Vector8Next[ii+4] = tempWork8[ii];
 		     end
 	       end
+
 	    if(yfracc==0)
 	       begin
 		  for(Integer ii=0; ii<5; ii=ii+1)
 		     tempPrev8[ii] = tempWork8[ii];
 	       end
+
             // Apply filter?
 	    for(Integer ii=0; ii<4; ii=ii+1)
 	       begin
@@ -780,6 +787,7 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 			   resultReadyFlag = True;
 		     end
 	       end
+
 	    if(resultReadyFlag)
 	       begin
 		  Bit#(1) horAddr = ((blockT==IP4x8 || blockT==IP4x4) ? 0 : truncate(((xfracc==0 && offset==0) ? work1HorNum : work1HorNum-1)));
@@ -789,6 +797,7 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
 		  verAddr = verAddr + ((blockT==IP8x4&&work1SubMbPart==1)||(blockT==IP4x4&&work1SubMbPart[1]==1) ? 2 : 0);
 		  storeFile.upd({workFileFlag,1'b0,verAddr,horAddr},tempResult8);
 	       end
+
 	    Bit#(2) workHorNumMax = (blockT==IP4x8||blockT==IP4x4 ? (offset[1]==0||(xfracc==0&&offset!=3) ? 0 : 1) : ((blockT==IP16x16||blockT==IP16x8 ? 1 : 0) + (xfracc==0&&offset==0 ? 0 : 1)));
 	    Bit#(4) workVerNumMax = (blockT==IP16x16||blockT==IP8x16 ? 7 : (blockT==IP16x8||blockT==IP8x8||blockT==IP4x8 ? 3 : 1)) + (yfracc==0 ? 0 : 1);
 	    if(work1HorNum < workHorNumMax)
@@ -923,11 +932,23 @@ module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator 
    endmethod
    
    method Action request( InterpolatorIT inputdata );
-      reqfifoLoad.enq(inputdata);
+     
       if(inputdata matches tagged IPLuma .indata)
-	 reqfifoWork1.enq(IPWLuma {xFracL:indata.mvhor[1:0],yFracL:indata.mvver[1:0],offset:indata.mvhor[3:2],bt:indata.bt});
+        begin
+          reqfifoWork1.enq(IPWLuma {xFracL:indata.mvhor[1:0],
+                                    yFracL:indata.mvver[1:0],
+                                    offset:indata.mvhor[3:2],
+                                    bt:indata.bt});
+          reqfifoLoadLuma.enq(inputdata);
+        end
       else if(inputdata matches tagged IPChroma .indata)
-	 reqfifoWork1.enq(IPWChroma {xFracC:indata.mvhor[2:0],yFracC:indata.mvver[2:0],offset:indata.mvhor[4:3]+{indata.hor[0],1'b0},bt:indata.bt});
+        begin
+          reqfifoWork1.enq(IPWChroma {xFracC:indata.mvhor[2:0],
+                                      yFracC:indata.mvver[2:0],
+                                      offset:indata.mvhor[4:3]+{indata.hor[0],1'b0},
+                                      bt:indata.bt});
+          reqfifoLoadChroma.enq(inputdata);
+        end
    endmethod
 
    method Vector#(4,Bit#(8)) first();

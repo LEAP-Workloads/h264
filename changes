@@ -262,3 +262,37 @@ Directory modules/h264/src
 
 Work on Block DMA support, update of write cached entities.
 
+
+----------
+keflemin    Date: Tue Aug  4 10:36:17 EDT 2009  CSN: CSN-h264-148
+                  Tue Aug  4 14:36:17 UTC 2009
+
+
+Directory tools/decoder/bin
+ ldecod.exe                Locally Modified          147 
+
+Directory tools/decoder/ldecod
+ dependencies              Locally Modified          147 
+
+Directory config/pm/h264
+ h264_decoder.apm          Locally Modified          147 
+ h264_decoder_synth.apm    Locally Modified          147 
+
+Directory modules/h264/src
+ Interpolator.dic          Locally Added               0 
+ mkFrameBufferMultiCachedWriteCacheScratchpadParallel.bsv Locally Modified          147 
+ mkTH.bsv                  Locally Modified          147 
+ h264_interpolator.awb     Locally Modified          147 
+ mkInterpolator.bsv        Locally Modified          147 
+ h264_multi_scratchpad_coalesced_frame_buffer.awb Locally Modified          147 
+ mkFrameBufferCoalescedMultiScratchpad.bsv Locally Modified          147 
+ mkBufferControlCoalesced64.bsv Locally Modified          147 
+ mkInterpolatorSplitMemory.bsv Locally Added               0 
+ mkFrameBufferScratchpad.dic Locally Modified          147 
+ mkBufferControlParallelCoalesced64.bsv Locally Added               0 
+ mkFrameBufferCoalescedMultiScratchpadParallel.bsv Locally Added               0 
+ h264_interpolator_split.awb Locally Added               0 
+ h264_buffer_control_coalesced_parallel.awb Locally Added               0 
+
+
+Added memory coalescing

@@ -4,13 +4,13 @@
 
 %AWB_START
 
-%name H264 interpolator module
-%desc H264 interpolator module
+%name H264 parallel request interpolator module
+%desc H264 parallel request interpolator module
 %provides h264_interpolator
 
 %attributes h264
 
-%public mkInterpolator.bsv IInterpolator.bsv Interpolator.dic
+%public mkInterpolatorSplitMemory.bsv IInterpolator.bsv Interpolator.dic
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
 
