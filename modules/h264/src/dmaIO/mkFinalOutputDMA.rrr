@@ -1,0 +1,10 @@
+#include "asim/provides/hasim_common.h"
+
+service MKFINALOUTPUTRRR
+{
+    server sw (cpp, method) <- hw (bsv, connection) 
+    {
+       method SendControl (in UINT32[32] ctrl, in UINT64[64] timestamp, out UINT64[64] bufferPointer);
+    };
+
+ };

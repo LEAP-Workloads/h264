@@ -70,12 +70,14 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
                                  `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
   
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,2048))
+  NumTypeParam#(2048) rasterCacheSize = 0;
+  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-                = mkCacheDirectMapped(source,False,rasterStats,rasterCacheLog);
+                = mkCacheDirectMapped(source,rasterCacheSize,
+                                      False,rasterStats,rasterCacheLog);
      
  
   //the inter cache does need stats and a large cache.
@@ -91,12 +93,14 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
   
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
+  NumTypeParam#(8192) interCacheSize = 0;
+  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,False,interStats,interCacheLog);
+            = mkCacheDirectMapped(source,interCacheSize,
+                                  False,interStats,interCacheLog);
 
   // Make constructor list here
   let constructors = cons(mkRasterCache, cons(mkInterCache,nil));

@@ -6,14 +6,14 @@
 
 %name H264 coalesced multi scratchpad frame buffer
 %desc coalesced multi scratchpad based memory
-%provides h264_frame_buffer_coalesced_64
+%provides h264_frame_buffer_coalesced_64_parallel
 
 %attributes h264
 
 %param SYNTH_BOUNDARY mkFrameBuffer "synth boundary names"
 
 * I get the feeling that I'll want to split some of this out eventually
-%sources -t BSV  -v PUBLIC IFrameBuffer.bsv mkFrameBufferCoalescedMultiScratchpad.bsv FrameBufferStats.bsv
+%sources -t BSV  -v PUBLIC IFrameBuffer.bsv mkFrameBufferCoalescedMultiScratchpadParallel.bsv FrameBufferStats.bsv
 %public mkFrameBufferScratchpad.dic
 
 %param  SCRATCHPAD_DEBUG  0 "Enable Scratchpad Debug"
