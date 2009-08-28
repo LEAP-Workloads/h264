@@ -7,6 +7,7 @@ SaveParameters=0
 Description=H264 Decoder
 Name=H264 Decoder
 Class=Asim::Model
+DefaultBenchmark=0
 
 [Model]
 DefaultAttributes=h264 bluespec
@@ -131,7 +132,7 @@ File=modules/h264/src/h264_h264_software_system.awb
 Packagehint=h264
 
 [H264 coalesced multi scratchpad frame buffer]
-File=modules/h264/src/h264_multi_scratchpad_coalesced_frame_buffer.awb
+File=modules/h264/src/h264_multi_scratchpad_coalesced_frame_buffer_parallel.awb
 Packagehint=h264
 
 [H264 coalescing parallel buffer control module/Requires]
@@ -145,7 +146,4 @@ Packagehint=h264
 File=modules/h264/src/h264_interpolator_split.awb
 Packagehint=h264
 
-[H264 coalesced multi scratchpad frame buffer/Params]
-FRAME_BUFFER_DEBUG=1
-SCRATCHPAD_DEBUG=1
 

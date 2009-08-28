@@ -296,3 +296,24 @@ Directory modules/h264/src
 
 
 Added memory coalescing
+
+----------
+mpellaue    Date: Fri Aug 28 11:41:14 EDT 2009  CSN: CSN-h264-150
+                  Fri Aug 28 15:41:14 UTC 2009
+
+
+Directory config/pm/h264
+ h264_decoder.apm          Locally Modified          149 
+
+Directory modules/h264/src
+ FrameBufferStats.bsv      Locally Modified          149 
+ mkFrameBufferCoalescedMultiScratchpadParallel.bsv Locally Modified          149 
+
+
+* Re-enable stats in the H264 "multi-memory" scratchpad.
+
+* There was a missing module in the APM file so I filled it in with the only
+  available option. Perhaps a module was not added to the repository? The other
+  H264 APMs are all complete.
+  
+Michael P.

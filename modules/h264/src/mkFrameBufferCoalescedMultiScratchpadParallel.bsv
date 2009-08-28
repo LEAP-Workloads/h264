@@ -64,19 +64,13 @@ module [HASIM_MODULE] mkFrameBuffer();
                                mkDebugFile(rasterCacheFilename):
                                mkDebugFileNull(rasterCacheFilename); 
 
-  RL_CACHE_STATS rasterStats <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
-  
   NumTypeParam#(2048) rasterCacheSize = 0; 
   function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-                = mkCacheDirectMapped(source,rasterCacheSize,False,rasterStats,rasterCacheLog);
+                = mkCacheDirectMapped(source,rasterCacheSize,False,rasterCacheLog);
      
  
   //the inter caches doe need stats and a large cache.
@@ -87,18 +81,13 @@ module [HASIM_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheLumaFilename):
                                    mkDebugFileNull(interCacheLumaFilename); 
 
-  RL_CACHE_STATS interStatsLuma <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
   NumTypeParam#(8192) interCacheLumaSize = 0;
   function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCacheLuma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,interCacheLumaSize,False,interStatsLuma,interCacheLumaLog);
+            = mkCacheDirectMapped(source,interCacheLumaSize,False,interCacheLumaLog);
 
   // Chroma cache
   String interCacheChromaFilename = "InterCacheChromaDebug";
@@ -107,19 +96,13 @@ module [HASIM_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheChromaFilename):
                                    mkDebugFileNull(interCacheChromaFilename); 
 
-  RL_CACHE_STATS interStatsChroma <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
-
   NumTypeParam#(4096) interCacheChromaSize = 0; 
   function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCacheChroma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,interCacheChromaSize,True,interStatsChroma,interCacheChromaLog);
+            = mkCacheDirectMapped(source,interCacheChromaSize,True,interCacheChromaLog);
 
   // Make constructor list here
   let constructors = cons(mkRasterCache, cons(mkInterCacheLuma, cons(mkInterCacheChroma,nil)));
@@ -129,9 +112,7 @@ module [HASIM_MODULE] mkFrameBuffer();
   DEBUG_FILE writeCacheLog <- (`SCRATCHPAD_DEBUG == 1)?
                               mkDebugFile(writeCacheFilename):
                               mkDebugFileNull(writeCacheFilename); 
-
-  RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
-
+ 
   function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
@@ -140,14 +121,38 @@ module [HASIM_MODULE] mkFrameBuffer();
             = mkNullCacheDirectMapped(source,writeCacheLog);
 
 
+   // Define stat constructors for each cache.
+   let mkRasterStats = mkBasicRLCacheStats(
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_HIT,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_MISS,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
+                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
+  
+   let mkLumaStats = mkBasicRLCacheStats(
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
+
+   let mkChromaStats = mkBasicRLCacheStats(
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
+
+   let stat_constructors = cons(mkRasterStats, cons(mkLumaStats, cons(mkChromaStats, nil)));
+
 
   MEMORY_MULTI_READ_IFC#(3,FrameBufferContainerAddr, 
                          Vector#(2,FrameBufferData)) memory <- 
       mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, 
                                                 0,
+                                                mkNullRLCacheStats,
                                                 mkWriteCache,
                                                 replicate(2),
+                                                stat_constructors,
                                                 constructors);
+  
   
    // Instantiate frame buffer state. Some of these fifos may be largish
    FIFO#(Bit#(1)) allocateSpace1 <- mkSizedFIFO(32);

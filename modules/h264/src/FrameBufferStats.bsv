@@ -26,40 +26,33 @@
 `include "scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
 
-module [HASIM_MODULE] mkBasicRLCacheStats#(STATS_DICT_TYPE idLoadHit,
+module [HASIM_MODULE] mkBasicRLCacheStats#(
+                            STATS_DICT_TYPE idLoadHit,
                             STATS_DICT_TYPE idLoadMiss,
                             STATS_DICT_TYPE idWriteHit,
-                            STATS_DICT_TYPE idWriteMiss)
+                            STATS_DICT_TYPE idWriteMiss,
+                            RL_CACHE_STATS stats)
     // interface:
-    (RL_CACHE_STATS);
+    ();
 
     STAT statLoadHit <- mkStatCounter(idLoadHit);
     STAT statLoadMiss <- mkStatCounter(idLoadMiss);
     STAT statWriteHit <- mkStatCounter(idWriteHit);
     STAT statWriteMiss <- mkStatCounter(idWriteMiss);
     
-    method Action readHit();
-      statLoadHit.incr;
-    endmethod
+    rule readHit (stats.readHit());
+      statLoadHit.incr();
+    endrule
 
-    method Action readMiss();
-      statLoadMiss.incr;
-    endmethod
+    rule readMiss (stats.readMiss());
+      statLoadMiss.incr();
+    endrule
 
-    method Action writeHit();
-      statWriteHit.incr;
-    endmethod
+    rule writeHit (stats.writeHit());
+      statWriteHit.incr();
+    endrule
 
-    method Action writeMiss();
-      statWriteMiss.incr;
-    endmethod
-
-    method Action invalEntry();
-    endmethod
-
-    method Action dirtyEntryFlush();
-    endmethod
-
-    method Action forceInvalLine();
-    endmethod
+    rule writeMiss (stats.writeMiss());
+      statWriteMiss.incr();
+    endrule
 endmodule
