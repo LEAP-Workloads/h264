@@ -27,9 +27,9 @@
 //
 //
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 import FIFOF::*;
@@ -95,7 +95,7 @@ endmodule
 //-----------------------------------------------------------
 
 //We ignore these params.
-module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
+module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
    
    FIFOF#(InterpolatorIT) reqfifoLoadLuma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
    FIFOF#(InterpolatorIT) reqfifoLoadChroma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector

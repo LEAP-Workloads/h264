@@ -27,10 +27,10 @@
 //
 //
 
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
 
-`include "h264_types.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 
@@ -43,7 +43,7 @@ import GetPut::*;
 // NAL Unwrapper Module
 //-----------------------------------------------------------
 
-module [HASIM_MODULE] mkNalUnwrap( INalUnwrap );
+module [CONNECTED_MODULE] mkNalUnwrap( INalUnwrap );
 
    FIFO#(InputGenOT)  infifo    <- mkFIFO;
    FIFO#(NalUnwrapOT) outfifo   <- mkFIFO;

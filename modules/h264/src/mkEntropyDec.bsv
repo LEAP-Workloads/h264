@@ -27,10 +27,10 @@
 //
 //
 
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
 
-`include "h264_types.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 
@@ -110,7 +110,7 @@ endfunction
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkEntropyDec();
+module [CONNECTED_MODULE] mkEntropyDec();
 
    Connection_Send#(EntropyDecOT) outfifo <- mkConnection_Send("mkPrediction_infifo");
    Connection_Send#(EntropyDecOT_InverseTrans) outfifo_ITB <- mkConnection_Send("mkInverseTransform_infifo");

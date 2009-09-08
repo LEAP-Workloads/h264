@@ -28,12 +28,13 @@
 //
 
 
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/mem_services.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
-`include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
+`include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_decoder_types.bsh"
 
 
 import FIFO::*;
@@ -213,7 +214,7 @@ endfunction
 // Deblocking Filter Module
 //-----------------------------------------------------------
 
-module [HASIM_MODULE] mkDeblockFilter( );
+module [CONNECTED_MODULE] mkDeblockFilter( );
 
    // Instantiate Memories.
    MEMORY_IFC#(Bit#(TAdd#(PicWidthSz,5)),Bit#(32))  dataMem      <- mkBRAM();

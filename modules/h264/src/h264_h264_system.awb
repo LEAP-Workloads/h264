@@ -14,8 +14,6 @@
 %requires h264_output
 %requires h264_memory_unit
 
-*** ugly, and deeply troubling
-%requires funcp_base_types
 
 
 
@@ -23,6 +21,5 @@
 
 %public mkTH.bsv
 
-%param SMART_SYNTH_BOUNDARY 1 "turn on synth"
 
 %AWB_END

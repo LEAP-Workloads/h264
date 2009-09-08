@@ -28,13 +28,15 @@
 //
 //
 
-`include "asim/provides/platform_interface.bsh"
-`include "asim/provides/hasim_common.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/mem_services.bsh"
+`include "asim/provides/common_services.bsh"
 `include "asim/provides/soft_connections.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
-`include "scratchpad_memory.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
 
 
@@ -51,7 +53,7 @@ import FrameBufferStats::*;
 // Main module
 //----------------------------------------------------------------------
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
   //-----------------------------------------------------------
   // State
   
@@ -65,7 +67,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                mkDebugFileNull(rasterCacheFilename); 
 
   NumTypeParam#(2048) rasterCacheSize = 0; 
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -82,7 +84,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                    mkDebugFileNull(interCacheLumaFilename); 
 
   NumTypeParam#(8192) interCacheLumaSize = 0;
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCacheLuma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -97,7 +99,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                    mkDebugFileNull(interCacheChromaFilename); 
 
   NumTypeParam#(4096) interCacheChromaSize = 0; 
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCacheChroma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -113,7 +115,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                               mkDebugFile(writeCacheFilename):
                               mkDebugFileNull(writeCacheFilename); 
  
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),

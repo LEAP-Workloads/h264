@@ -28,10 +28,10 @@
 //
 
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
 
-`include "h264_types.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -174,7 +174,7 @@ endfunction
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkInverseTrans();
+module [CONNECTED_MODULE] mkInverseTrans();
 
    FIFO#(EntropyDecOT_InverseTrans) infifo  <- mkSizedFIFO(inverseTrans_infifo_size);
    FIFO#(InverseTransOT)            outfifo <- mkFIFO;

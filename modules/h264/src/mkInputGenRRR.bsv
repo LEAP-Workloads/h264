@@ -27,9 +27,9 @@
 //
 //
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/h264_types.bsh"
 
 `include "asim/rrr/remote_client_stub_MKINPUTGENRRR.bsh"
 
@@ -60,7 +60,7 @@ typedef enum {
   EndOfFile
 } InputState deriving (Bits,Eq);
 
-module [HASIM_MODULE] mkInputGen( IInputGen );
+module [CONNECTED_MODULE] mkInputGen( IInputGen );
 
    ClientStub_MKINPUTGENRRR client_stub <- mkClientStub_MKINPUTGENRRR();
 

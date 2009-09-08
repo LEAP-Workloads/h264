@@ -28,10 +28,10 @@
 //
 //
 
-`include "platform_interface.bsh"
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import RegFile::*;
 import GetPut::*;
@@ -45,7 +45,7 @@ import FIFO::*;
 
 typedef Empty IMemEDConnection#(numeric type index_size, numeric type data_size);
 
-module [HASIM_MODULE] mkMemEDConnection#(String reqQName, String respQName) (IMemEDConnection#(index_size,data_size))
+module [CONNECTED_MODULE] mkMemEDConnection#(String reqQName, String respQName) (IMemEDConnection#(index_size,data_size))
    provisos (Bits#(MemReq#(index_size,data_size),mReqLen),
 	     Bits#(MemResp#(data_size),mRespLen),
              Transmittable#(MemResp#(data_size)),

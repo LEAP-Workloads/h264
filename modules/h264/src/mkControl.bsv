@@ -27,9 +27,9 @@
 //
 //
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 import RegFile::*;
@@ -41,7 +41,7 @@ import GetPut::*;
 // dummy control module
 //-----------------------------------------------------------
 
-module [HASIM_MODULE] mkControl();
+module [CONNECTED_MODULE] mkControl();
    // External connections
 
    Connection_Send#(H264OutputAddr) nextFrameTX <- mkConnection_Send("mkFinalOutput_NextFrame");

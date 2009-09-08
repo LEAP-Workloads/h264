@@ -27,10 +27,10 @@
 //
 //
 
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
 
-`include "h264_types.bsh"
+`include "asim/provides/h264_types.bsh"
 
 import FIFO::*;
 
@@ -40,7 +40,7 @@ import ClientServer::*;
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkCalc_nC( Calc_nC );
+module [CONNECTED_MODULE] mkCalc_nC( Calc_nC );
 
    Connection_Receive#(MemResp#(20)) memRespQ <- mkConnection_Receive("mkCalc_nc_MemRespQ");
   

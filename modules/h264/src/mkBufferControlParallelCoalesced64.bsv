@@ -26,12 +26,12 @@
 //
 
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
-`include "h264_frame_buffer_coalesced_64_parallel.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/h264_frame_buffer_coalesced_64_parallel.bsh"
 
-`include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
+`include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_decoder_types.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -439,7 +439,7 @@ endmodule
 
 
 
-module [HASIM_MODULE] mkBufferControl ();
+module [CONNECTED_MODULE] mkBufferControl ();
 
   Empty   framebuffer   <- mkFrameBuffer();
 

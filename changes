@@ -317,3 +317,39 @@ Directory modules/h264/src
   H264 APMs are all complete.
   
 Michael P.
+
+----------
+pellauer    Date: Tue Sep  8 15:57:57 EDT 2009  CSN: CSN-h264-151
+                  Tue Sep  8 19:57:57 UTC 2009
+
+
+Directory config/pm/h264
+ h264_decoder.apm          Locally Modified          150 
+
+Directory modules/h264/src
+ mkFinalOutputRRRWide.cpp  Locally Modified          150 
+ mkTH.bsv                  Locally Modified          150 
+ mkH264.bsv                Locally Modified          150 
+ mkFinalOutputRRRWide.rrr  Locally Modified          150 
+ mkFinalOutputRRRWide.bsv  Locally Modified          150 
+ mkDeblockFilter.bsv       Locally Modified          150 
+ mkInputGenRRR.rrr         Locally Modified          150 
+ mkMemEDConnection.bsv     Locally Modified          150 
+ mkInputGenRRR.bsv         Locally Modified          150 
+ mkInverseTrans.bsv        Locally Modified          150 
+ mkEntropyDec.bsv          Locally Modified          150 
+ mkCalc_nC.bsv             Locally Modified          150 
+ mkInterpolatorSplitMemory.bsv Locally Modified          150 
+ h264_h264_system.awb      Locally Modified          150 
+ mkPrediction.bsv          Locally Modified          150 
+ mkBufferControlParallelCoalesced64.bsv Locally Modified          150 
+ FrameBufferStats.bsv      Locally Modified          150 
+ mkFrameBufferCoalescedMultiScratchpadParallel.bsv Locally Modified          150 
+ mkNalUnwrap.bsv           Locally Modified          150 
+ mkControl.bsv             Locally Modified          150 
+
+
+* H264 is now using the new HW/SW Hybrid application setup.
+* Fixed includes to point to the new common_services and mem_services.
+
+Michael P.

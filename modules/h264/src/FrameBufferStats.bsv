@@ -20,13 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-`include "asim/provides/platform_interface.bsh"
-`include "asim/provides/hasim_common.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/common_services.bsh"
 `include "asim/provides/soft_connections.bsh"
-`include "scratchpad_memory.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
 
-module [HASIM_MODULE] mkBasicRLCacheStats#(
+module [CONNECTED_MODULE] mkBasicRLCacheStats#(
                             STATS_DICT_TYPE idLoadHit,
                             STATS_DICT_TYPE idLoadMiss,
                             STATS_DICT_TYPE idWriteHit,

@@ -28,12 +28,12 @@
 //
 
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
 
-`include "h264_interpolator.bsh"
-`include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
+`include "asim/provides/h264_interpolator.bsh"
+`include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_decoder_types.bsh"
 
 import FIFO::*;
 import FIFOF::*;
@@ -163,7 +163,7 @@ endfunction
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkPrediction ();
+module [CONNECTED_MODULE] mkPrediction ();
 
    Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkPrediction_infifo");
    Connection_Receive#(InverseTransOT) infifo_ITB <- mkConnection_Receive("mkPrediction_infifo_ITB");

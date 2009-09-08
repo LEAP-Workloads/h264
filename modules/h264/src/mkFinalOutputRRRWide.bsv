@@ -27,9 +27,9 @@
 //
 //
 
-`include "soft_connections.bsh"
-`include "hasim_common.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/h264_types.bsh"
 
 `include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
 `include "asim/dict/STATS_FINAL_OUTPUT.bsh"
@@ -56,7 +56,7 @@ typedef enum {
 typedef 4 WordsPerBurst;
 
 
-module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
+module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    // External connections
    ClientStub_MKFINALOUTPUTRRR client_stub <- mkClientStub_MKFINALOUTPUTRRR();
 

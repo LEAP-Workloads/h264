@@ -28,25 +28,25 @@
 
 
 
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/soft_connections.bsh"
 
 // Include all of the decoder modules here
-`include "h264_types.bsh"
-`include "h264_entropy_decoder.bsh"
-`include "h264_inverse_transform.bsh"
-`include "h264_prediction.bsh"
-`include "h264_deblocking.bsh"
-`include "h264_buffer_control.bsh"
-`include "h264_control.bsh"
-`include "h264_nal_unwrap.bsh"
+`include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_entropy_decoder.bsh"
+`include "asim/provides/h264_inverse_transform.bsh"
+`include "asim/provides/h264_prediction.bsh"
+`include "asim/provides/h264_deblocking.bsh"
+`include "asim/provides/h264_buffer_control.bsh"
+`include "asim/provides/h264_control.bsh"
+`include "asim/provides/h264_nal_unwrap.bsh"
  
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
 
 //(* synthesize *)
-module [HASIM_MODULE] mkH264( IH264 );
+module [CONNECTED_MODULE] mkH264( IH264 );
 
    // Instantiate the modules
 
