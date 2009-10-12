@@ -20,18 +20,19 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#include "asim/provides/virtual_platform.h"
 #include "platforms-module.h"
 
-typedef class SYSTEM_CLASS* SYSTEM;
-class SYSTEM_CLASS
+typedef class CONNECTED_APPLICATION_CLASS* CONNECTED_APPLICATION;
+class CONNECTED_APPLICATION_CLASS : public PLATFORMS_MODULE_CLASS 
 {
   private:
     static pthread_mutex_t lock;
     static pthread_cond_t  cond;
 
   public:
-    SYSTEM_CLASS();
-    ~SYSTEM_CLASS();
+    CONNECTED_APPLICATION_CLASS(VIRTUAL_PLATFORM vp);
+    ~CONNECTED_APPLICATION_CLASS();
 
     static void EndSimulation();
     // main

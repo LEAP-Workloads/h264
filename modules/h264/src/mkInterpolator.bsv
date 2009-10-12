@@ -28,9 +28,9 @@
 //
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/STATS_INTERPOLATOR.bsh"
+`include "asim/provides/stats_service.bsh"
 
 import FIFO::*;
 import FIFOF::*;
@@ -96,7 +96,7 @@ endmodule
 //-----------------------------------------------------------
 
 
-module [HASIM_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
+module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
    
    FIFOF#(InterpolatorIT) reqfifoLoad <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
                                                                                      // pixel requests.

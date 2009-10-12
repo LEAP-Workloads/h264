@@ -67,7 +67,7 @@ typedef enum {
 
 typedef 4 WordsPerBurst;
 
-module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
+module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    // External connections
    ClientStub_MKFINALOUTPUTRRR client_stub <- mkClientStub_MKFINALOUTPUTRRR();
 

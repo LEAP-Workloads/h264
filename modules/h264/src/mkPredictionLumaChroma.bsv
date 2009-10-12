@@ -28,7 +28,6 @@
 
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
 
 `include "h264_interpolator.bsh"
 `include "h264_types.bsh"
@@ -162,7 +161,7 @@ endfunction
 
  
 
-module [HASIM_MODULE] mkPrediction(  );
+module [CONNECTED_MODULE] mkPrediction(  );
 
    Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkPrediction_infifo");
    Connection_Receive#(InverseTransOT) infifo_ITB <- mkConnection_Receive("mkPrediction_infifo_ITB");

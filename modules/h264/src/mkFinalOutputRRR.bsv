@@ -28,7 +28,6 @@
 //
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
 `include "h264_types.bsh"
 
 `include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
@@ -59,7 +58,7 @@ typedef enum {
   WaitForResp
 } FinalOutputState deriving (Bits,Eq);
 
-module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
+module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    // External connections
    ClientStub_MKFINALOUTPUTRRR client_stub <- mkClientStub_MKFINALOUTPUTRRR();
 

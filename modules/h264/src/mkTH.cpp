@@ -15,18 +15,18 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#include "asim/provides/starter.h"
+#include "asim/provides/connected_application.h"
 
 #include "mkTH.h"
 
 
 using namespace std;
 
-pthread_mutex_t SYSTEM_CLASS::lock;
-pthread_cond_t  SYSTEM_CLASS::cond;
+pthread_mutex_t CONNECTED_APPLICATION_CLASS::lock;
+pthread_cond_t  CONNECTED_APPLICATION_CLASS::cond;
 
 // constructor
-SYSTEM_CLASS::SYSTEM_CLASS()
+CONNECTED_APPLICATION_CLASS::CONNECTED_APPLICATION_CLASS(VIRTUAL_PLATFORM vp)
 {
   printf("SYSTEM_CLASS_CONSTRUCTOR\n");
   fflush(stdout);
@@ -35,11 +35,11 @@ SYSTEM_CLASS::SYSTEM_CLASS()
 }
 
 // destructor
-SYSTEM_CLASS::~SYSTEM_CLASS()
+CONNECTED_APPLICATION_CLASS::~CONNECTED_APPLICATION_CLASS()
 {
 }
 
-void SYSTEM_CLASS::EndSimulation()
+void CONNECTED_APPLICATION_CLASS::EndSimulation()
 {
   printf("EndSimulation Called\n");
   fflush(stdout);
@@ -52,7 +52,7 @@ void SYSTEM_CLASS::EndSimulation()
 
 // main
 void
-SYSTEM_CLASS::Main()
+CONNECTED_APPLICATION_CLASS::Main()
 {
   printf("Hello world\n");
 
@@ -63,7 +63,7 @@ SYSTEM_CLASS::Main()
   printf("EndSimulation Main is awake\n");
   fflush(stdout);
 
-  STARTER_SERVER_CLASS::GetInstance()->EndSim(1);
+  //STARTER_SERVER_CLASS::GetInstance()->EndSim(1);
   // And now we are done.
 
   printf("EndSimulation Stats dump complete\n");

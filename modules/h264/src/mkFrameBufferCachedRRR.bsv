@@ -59,7 +59,7 @@ typedef enum {
 
 
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State

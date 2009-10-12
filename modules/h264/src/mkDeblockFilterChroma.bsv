@@ -37,7 +37,7 @@
 `include "h264_memory_unit.bsh"
 
 
-module [HASIM_MODULE] mkDeblockFilterChroma( );
+module [CONNECTED_MODULE] mkDeblockFilterChroma( );
 
    Connection_Receive#(PredictionOT) infifo <- mkConnection_Receive("mkDeblocking_infifoChroma");
    Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifoChroma"); 

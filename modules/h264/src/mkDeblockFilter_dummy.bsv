@@ -27,7 +27,6 @@
 //
 //
 
-`include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
 `include "h264_types.bsh"
@@ -63,7 +62,7 @@ import ClientServer::*;
 //-----------------------------------------------------------
 
 
-module [HASIM_MODULE] mkDeblockFilter ();
+module [CONNECTED_MODULE] mkDeblockFilter ();
 
    Connection_Receive#(PredictionOT) infifo <- mkConnection_Receive("mkDeblocking_infifo");
    Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifo");  

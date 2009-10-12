@@ -1,5 +1,3 @@
-#include "asim/provides/hasim_common.h"
-
 service MKFINALOUTPUTRRR
 {
     server sw (cpp, method) <- hw (bsv, connection) 

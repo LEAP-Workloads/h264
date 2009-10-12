@@ -28,7 +28,6 @@
 
 
 
-`include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
 // Include all of the decoder modules here
@@ -47,7 +46,7 @@ import GetPut::*;
 import ClientServer::*;
 
 //(* synthesize *)
-module [HASIM_MODULE] mkH264( IH264 );
+module [CONNECTED_MODULE] mkH264( IH264 );
 
    // Instantiate the modules
 

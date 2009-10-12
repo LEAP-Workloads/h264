@@ -310,7 +310,7 @@ endmodule
 
 
 //(* synthesize *)
-module [HASIM_MODULE] mkDeblockFilter( );
+module [CONNECTED_MODULE] mkDeblockFilter( );
 
    // Instantiate Memories.
    MEMORY_IFC#(Bit#(TAdd#(PicWidthSz,5)),Bit#(32))  dataMem      <- mkBRAM();

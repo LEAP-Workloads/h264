@@ -28,7 +28,6 @@
 //
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
 `include "h264_types.bsh"
 
 import RegFile::*;
@@ -39,7 +38,7 @@ import GetPut::*;
 
 `define INPUT_SIZE 10000000 
 
-module [HASIM_MODULE] mkInputGen( IInputGen );
+module [CONNECTED_MODULE] mkInputGen( IInputGen );
 
    Connection_Receive#(H264InputAddr) startFileTX <- mkConnection_Receive("mkInput_StartFile");
 

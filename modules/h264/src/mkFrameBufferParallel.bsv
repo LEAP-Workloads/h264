@@ -28,7 +28,6 @@
 
 
 
-`include "hasim_common.bsh"
 `include "soft_connections.bsh"
 
 
@@ -79,7 +78,7 @@ endmodule
 // Main module
 //----------------------------------------------------------------------
 
-module [HASIM_MODULE] mkFrameBuffer( );
+module [CONNECTED_MODULE] mkFrameBuffer( );
 
   //-----------------------------------------------------------
   // State

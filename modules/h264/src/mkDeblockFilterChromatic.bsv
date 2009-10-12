@@ -303,7 +303,7 @@ endmodule
 
 
 
-module [HASIM_MODULE] mkDeblockFilterChromatic#(ChromaFlag chromaFlag) ( IDeblockFilter );
+module [CONNECTED_MODULE] mkDeblockFilterChromatic#(ChromaFlag chromaFlag) ( IDeblockFilter );
 
    String csStr = (chromaFlag == Luma)?"Luma":"Chroma";
 

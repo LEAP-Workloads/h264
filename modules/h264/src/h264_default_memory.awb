@@ -10,6 +10,6 @@
 
 %attributes h264
 
-%public IMemED.bsv
+%public IMemED.bsv  mkMemEDConnection.bsv
 
 %AWB_END

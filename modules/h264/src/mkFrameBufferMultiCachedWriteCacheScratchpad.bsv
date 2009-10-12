@@ -28,14 +28,21 @@
 //
 //
 
-`include "platform_interface.bsh"
-`include "hasim_common.bsh"
+
 `include "soft_connections.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "scratchpad_memory.bsh"
-
+`include "asim/provides/stats_service.bsh"
+`include "asim/provides/mem_services.bsh"
+`include "asim/provides/librl_bsv_cache.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/fpga_components.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/project_common.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/common_utility_devices.bsh"
 
 import RegFile::*;
 import GetPut::*;
@@ -54,12 +61,12 @@ typedef enum {
   Q2
 } Queue deriving (Bits,Eq);
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State
 
- // we curry the cache constructors here.
+  // we curry the cache constructors here.
 
   // The raster order reader does not need a large cache, stats, and other such things
   String rasterCacheFilename = "RasterCacheDebug";
@@ -70,15 +77,17 @@ module [HASIM_MODULE] mkFrameBuffer();
                                mkDebugFile(rasterCacheFilename):
                                mkDebugFileNull(rasterCacheFilename); 
 
+ 
   RL_CACHE_STATS rasterStats <- mkNullRLCacheStats();
 
-
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
+  NumTypeParam#(16) rasterCacheSize = 0;
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-                = mkCacheDirectMapped(source,False,rasterStats,rasterCacheLog);
+                = mkCacheDirectMapped(source,rasterCacheSize,
+                                      False,rasterCacheLog);
  
   //the inter cache does need stats and a large cache.
   String interCacheFilename = "InterCacheDebug";
@@ -87,19 +96,21 @@ module [HASIM_MODULE] mkFrameBuffer();
                                mkDebugFile(interCacheFilename):
                                mkDebugFileNull(interCacheFilename); 
 
-  RL_CACHE_STATS interStats <- mkBasicRLCacheStats(
+/*  RL_CACHE_STATS interStats <- mkBasicRLCacheStats(
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_MISS,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);*/
 
   // slightly larger to get some locality
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,256)) 
+  NumTypeParam#(256) interCacheSize = 0;
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,False,interStats,interCacheLog);
+            = mkCacheDirectMapped(source,interCacheSize,
+                                  False,interCacheLog);
 
 
 
@@ -114,12 +125,14 @@ module [HASIM_MODULE] mkFrameBuffer();
 
   RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
+  NumTypeParam#(8192) writeCacheSize = 0;
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
                           Bits#(ref_t, ref_t_sz))
-            = mkCacheDirectMapped(source,False,writeStats,writeCacheLog);
+            = mkCacheDirectMapped(source,writeCacheSize,
+                                  False,writeCacheLog);
 
 
 

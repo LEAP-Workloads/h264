@@ -26,7 +26,6 @@
 //
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
 
 
 `include "h264_types.bsh"
@@ -439,7 +438,7 @@ endmodule
 //-----------------------------------------------------------
 
 
-module [HASIM_MODULE] mkBufferControl();
+module [CONNECTED_MODULE] mkBufferControl();
 
    Empty   framebuffer   <- mkFrameBuffer();
 

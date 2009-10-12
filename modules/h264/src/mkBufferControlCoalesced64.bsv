@@ -438,7 +438,7 @@ endmodule
 //-----------------------------------------------------------
 
 
-module [HASIM_MODULE] mkBufferControl();
+module [CONNECTED_MODULE] mkBufferControl();
 
    Empty   framebuffer   <- mkFrameBuffer();
 

@@ -28,7 +28,6 @@
 //
 
 
-`include "hasim_common.bsh"
 `include "soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 
@@ -37,7 +36,7 @@
 `include "h264_memory_unit.bsh"
 
 
-module [HASIM_MODULE] mkDeblockFilterLuma( );
+module [CONNECTED_MODULE] mkDeblockFilterLuma( );
    Connection_Receive#(PredictionOT) infifo <- mkConnection_Receive("mkDeblocking_infifoLuma");
    Connection_Send#(DeblockFilterOT) outfifo <- mkConnection_Send("mkDeblocking_outfifoLuma"); 
 

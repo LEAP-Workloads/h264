@@ -57,7 +57,7 @@ typedef enum {
   Q2
 } Queue deriving (Bits,Eq);
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State

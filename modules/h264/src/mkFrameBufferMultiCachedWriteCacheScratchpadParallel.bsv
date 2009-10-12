@@ -29,7 +29,6 @@
 //
 
 `include "platform_interface.bsh"
-`include "hasim_common.bsh"
 `include "soft_connections.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
@@ -49,7 +48,7 @@ import FrameBufferStats::*;
 // Main module
 //----------------------------------------------------------------------
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State
@@ -66,7 +65,7 @@ module [HASIM_MODULE] mkFrameBuffer();
   RL_CACHE_STATS rasterStats <- mkNullRLCacheStats();
 
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
+  function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -87,7 +86,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
                mkInterCacheLuma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -107,7 +106,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
                mkInterCacheChroma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -126,7 +125,7 @@ module [HASIM_MODULE] mkFrameBuffer();
 
   RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
 
-  function HASIM_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),

@@ -28,14 +28,16 @@
 //
 //
 
-`include "asim/provides/platform_interface.bsh"
-`include "asim/provides/hasim_common.bsh"
+
 `include "asim/provides/soft_connections.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
+`include "asim/provides/project_common.bsh"
+`include "asim/provides/common_service.bsh"
+`include "asim/provides/common_utility_devices.bsh"
 
 
 import RegFile::*;
@@ -51,7 +53,7 @@ import FrameBufferStats::*;
 // Main module
 //----------------------------------------------------------------------
 
-module [HASIM_MODULE] mkFrameBuffer();
+module [CONNECTED_MODULE] mkFrameBuffer();
   //-----------------------------------------------------------
   // State
   
@@ -71,7 +73,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
   
   NumTypeParam#(2048) rasterCacheSize = 0;
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
                mkRasterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),
@@ -94,7 +96,7 @@ module [HASIM_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
   
   NumTypeParam#(8192) interCacheSize = 0;
-  function HASIM_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
+  function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
                mkInterCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
                  provisos(Bits#(addr_t, addr_t_sz),
                           Bits#(mem_t, mem_t_sz),

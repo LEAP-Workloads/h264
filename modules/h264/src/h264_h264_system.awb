@@ -6,7 +6,7 @@
 
 %name H264 System
 %desc H264 System
-%provides hardware_system
+%provides connected_application
 
 %requires h264_decoder
 %requires h264_types
@@ -15,11 +15,11 @@
 %requires h264_memory_unit
 
 
-
-
 %attributes h264
 
 %public mkTH.bsv
+%public mkTH.cpp
+%public mkTH.h
 
 
 %AWB_END

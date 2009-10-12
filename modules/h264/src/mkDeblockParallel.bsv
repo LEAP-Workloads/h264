@@ -37,7 +37,7 @@ import IDeblockFilter::*;
 import Connectable::*;
 import FShow::*;
 
-module [HASIM_MODULE] mkDeblockFilter ();
+module [CONNECTED_MODULE] mkDeblockFilter ();
    // probably want to drill this through at some point...
 
 

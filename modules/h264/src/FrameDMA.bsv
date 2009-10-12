@@ -29,7 +29,7 @@
 
 import DMA::*;
 
-module [HASIM_MODULE] mkFrameDMABlockOrder ();
+module [CONNECTED_MODULE] mkFrameDMABlockOrder ();
 
    Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");

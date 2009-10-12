@@ -439,7 +439,7 @@ endmodule
 
 
 
-module [HASIM_MODULE] mkBufferControl ();
+module [CONNECTED_MODULE] mkBufferControl ();
 
   Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
 

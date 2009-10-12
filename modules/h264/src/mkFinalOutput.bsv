@@ -41,7 +41,7 @@ import GetPut::*;
 // Final Output Module
 //-----------------------------------------------------------
 
-module [HASIM_MODULE] mkFinalOutput( IFinalOutput );
+module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    // External connections
 
    Connection_Receive#(H264OutputAddr) nextFrameRX <- mkConnection_Receive("mkFinalOutput_NextFrame");
