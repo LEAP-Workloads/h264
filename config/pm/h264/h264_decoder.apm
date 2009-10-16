@@ -23,7 +23,7 @@ File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
 [H264 default simulation module]
-File=modules/h264/src/h264_default_memory.awb
+File=modules/h264/src/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
@@ -78,20 +78,12 @@ Packagehint=h264
 File=modules/h264/src/h264_input_rrr.awb
 Packagehint=h264
 
-[H264 output RRR Wide]
-File=modules/h264/src/h264_output_rrr_wide.awb
-Packagehint=h264
-
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[H264 deblocking filter module]
-File=modules/h264/src/h264_deblocking.awb
-Packagehint=h264
-
 [H264 buffer control module/Requires]
-h264_frame_buffer=H264 simulation module
+h264_frame_buffer=H264 scratchpad frame buffer
 
 [Soft Connections Hybrid Application Environment]
 File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
@@ -127,7 +119,7 @@ application_env=Soft Connections Hybrid Application Environment
 [Soft Connections Hybrid Application Environment/Requires]
 platform_services=Platform Services
 soft_connections_lib=Soft Connections Library
-connected_application=Default Software Connected Application
+connected_application=H264 System
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
@@ -137,9 +129,23 @@ Packagehint=hasim
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
-[Default Software Connected Application]
-File=modules/application-env/hybrid/soft-connections/default-sw/connected-application-default-sw.awb
-Packagehint=platforms
 
-[Default Software Connected Application/Requires]
-hardware_system=H264 System
+[H264 buffer control module]
+File=modules/h264/src/h264_buffer_control.awb
+Packagehint=h264
+
+[H264 deblocking filter module (dummy)]
+File=modules/h264/src/h264_deblocking_dummy.awb
+Packagehint=h264
+
+[H264 interpolator module]
+File=modules/h264/src/h264_interpolator.awb
+Packagehint=h264
+
+[H264 scratchpad frame buffer]
+File=modules/h264/src/h264_scratchpad_frame_buffer.awb
+Packagehint=h264
+
+[H264 output RRR Wide]
+File=modules/h264/src/h264_output_rrr_wide.awb
+Packagehint=h264

@@ -28,8 +28,9 @@
 //
 
 
-`include "soft_connections.bsh"
+`include "asim/provides/soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
+`include "asim/provides/common_services.bsh"
 
 `include "h264_types.bsh"
 `include "h264_decoder_types_parallel.bsh"

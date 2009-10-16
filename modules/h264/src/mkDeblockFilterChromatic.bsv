@@ -25,7 +25,7 @@
 //     
 //
 
-`include "hasim_common.bsh"
+`include "asim/provides/common_services.bsh"
 `include "asim/provides/fpga_components.bsh"
 
 `include "h264_decoder_types_parallel.bsh"

@@ -28,7 +28,7 @@
 //
 
 
-`include "hasim_common.bsh"
+`include "asim/provides/common_services.bsh"
 `include "soft_connections.bsh"
 `include "asim/provides/fpga_components.bsh"
 

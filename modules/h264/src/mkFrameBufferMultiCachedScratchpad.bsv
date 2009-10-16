@@ -28,14 +28,20 @@
 //
 //
 
-`include "platform_interface.bsh"
-`include "hasim_common.bsh"
-`include "soft_connections.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "scratchpad_memory.bsh"
+`include "asim/dict/STATS_FRAME_BUFFER.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
+`include "asim/provides/stats_service.bsh"
+`include "asim/provides/mem_services.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
-``include "asim/provides/fpga_components.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/fpga_components.bsh"
+`include "asim/provides/project_common.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/common_utility_devices.bsh"
 
 
 

@@ -26,7 +26,7 @@
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
 
-module [CONNECTED_MODULE] mkBasicRLCacheStats#(
+module [CONNECTED_MODULE] mkBasicScratchpadCacheStats#(
                             STATS_DICT_TYPE idLoadHit,
                             STATS_DICT_TYPE idLoadMiss,
                             STATS_DICT_TYPE idWriteHit,
@@ -55,4 +55,12 @@ module [CONNECTED_MODULE] mkBasicRLCacheStats#(
     rule writeMiss (stats.writeMiss());
       statWriteMiss.incr();
     endrule
+endmodule
+
+
+module [CONNECTED_MODULE] mkNullScratchpadCacheStats#(RL_CACHE_STATS stats)
+    // interface:
+    ();
+
+
 endmodule

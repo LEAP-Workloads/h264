@@ -29,11 +29,11 @@
 //
 
 
-`include "soft_connections.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
-`include "scratchpad_memory.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/stats_service.bsh"
 `include "asim/provides/mem_services.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
@@ -78,7 +78,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFileNull(rasterCacheFilename); 
 
  
-  RL_CACHE_STATS rasterStats <- mkNullRLCacheStats();
+  SCRATCHPAD_STATS_CONSTRUCTOR mkRasterStats = mkNullScratchpadCacheStats;
 
   NumTypeParam#(16) rasterCacheSize = 0;
   function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
@@ -96,11 +96,11 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFile(interCacheFilename):
                                mkDebugFileNull(interCacheFilename); 
 
-/*  RL_CACHE_STATS interStats <- mkBasicRLCacheStats(
+  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStats = mkBasicScratchpadCacheStats(
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_MISS,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);*/
+                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
 
   // slightly larger to get some locality
   NumTypeParam#(256) interCacheSize = 0;
@@ -115,7 +115,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
 
 
   // Make constructor list here
-  let constructors = cons(mkRasterCache, cons(mkInterCache,nil));
+
 
   // Write cache constructor
   String writeCacheFilename = "writeCacheDebug";
@@ -123,7 +123,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                               mkDebugFile(writeCacheFilename):
                               mkDebugFileNull(writeCacheFilename); 
 
-  RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
+  SCRATCHPAD_STATS_CONSTRUCTOR mkWriteStats = mkNullScratchpadCacheStats();
 
   NumTypeParam#(8192) writeCacheSize = 0;
   function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
@@ -135,14 +135,18 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                   False,writeCacheLog);
 
 
+  let cacheConstructors = cons(mkRasterCache, cons(mkInterCache,nil));  
+  let statsConstructors = cons(mkRasterStats, cons(mkInterStats,nil));  
 
  
   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddr, FrameBufferData) memory <- 
       mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER,
                                                 0,
+                                                mkWriteStats,
                                                 mkWriteCache, 
                                                 replicate(1),
-                                                constructors);
+                                                statsConstructors, 
+                                                cacheConstructors);
   
   
    FIFO#(Bit#(0)) allocateSpace1 <- mkSizedFIFO(32);

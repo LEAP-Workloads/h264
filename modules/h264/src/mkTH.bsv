@@ -43,7 +43,7 @@ import ClientServer::*;
 `include "asim/provides/h264_memory_unit.bsh"
 `include "asim/provides/h264_decoder.bsh"
 
-module [CONNECTED_MODULE] mkSystem ();
+module [CONNECTED_MODULE] mkConnectedApplication ();
 
    // Instantiate the modules
 

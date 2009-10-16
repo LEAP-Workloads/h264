@@ -7,28 +7,16 @@ SaveParameters=0
 Description=H264 Decoder
 Name=H264 Decoder
 Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
 
 [Model]
 DefaultAttributes=h264 bluespec
-model=HAsim Hybrid Model Foundation
+model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=platforms
-
-[Hasim Common Library]
-File=config/pm/hasim/submodels/common/hasim_common.apm
-Packagehint=hasim
-
-[HAsim Hybrid Model Foundation]
-File=modules/model/hasim_model.awb
-Packagehint=hasim
-
-[HAsim Hybrid Model Foundation/Requires]
-hasim_common=Hasim Common Library
-system=Hybrid System foundation
-hasim_controller=Hasim Standard Controller
-fpgaenv=FPGA Environment
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -45,10 +33,9 @@ Packagehint=h264
 [H264 System/Requires]
 h264_decoder=H264 decoder module with parallel backend
 h264_input=H264 RRR input module
-h264_output=H264 output RRR Wide
+h264_output=H264 output RRR
 h264_memory_unit=H264 default simulation module
 h264_types=H264 types
-funcp_base_types=Functional Partition Base Types
 
 [H264 nal unwrap module]
 File=modules/h264/src/h264_nal_unwrap.awb
@@ -59,7 +46,7 @@ File=modules/h264/src/h264_inverse_transform.awb
 Packagehint=h264
 
 [H264 types]
-File=modules/h264/src/h264_types.awb
+File=modules/h264/src/h264_system_types.awb
 Packagehint=h264
 
 [H264 default control module]
@@ -68,14 +55,6 @@ Packagehint=h264
 
 [H264 RRR input module]
 File=modules/h264/src/h264_input_rrr.awb
-Packagehint=h264
-
-[FPGA Environment/Params]
-CENTRAL_CACHE_DEBUG_ENABLE=0
-SRATCHPAD_MEMORY_DEBUG_ENABLE=0
-
-[H264 output RRR Wide]
-File=modules/h264/src/h264_output_rrr_wide.awb
 Packagehint=h264
 
 [H264 decoder module with parallel backend]
@@ -113,17 +92,6 @@ h264_deblocking_chroma=H264 Chroma specialized deblocking filter
 File=modules/h264/src/h264_deblocking_chroma.awb
 Packagehint=h264
 
-[H264 Inter/Intra prediction module Pseudo Parallel/Requires]
-h264_interpolator=H264 interpolator module
-
-[H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
-Packagehint=h264
-
-[H264 Inter/Intra prediction module Pseudo Parallel]
-File=modules/h264/src/h264_prediction_parallel_pseudo.awb
-Packagehint=h264
-
 [H264 buffer control module parallel]
 File=modules/h264/src/h264_buffer_control_parallel.awb
 Packagehint=h264
@@ -132,26 +100,47 @@ Packagehint=h264
 File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer_parallel.awb
 Packagehint=h264
 
-[Hasim Standard Controller]
-File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
+[Soft Connections Library]
+File=config/pm/hasim/submodels/common/soft-connections-lib.apm
 Packagehint=hasim
 
-[H264 Luma-Chroma Frame-buffer Multi-read/write-cached/Params]
-SCRATCHPAD_DEBUG=0
+[HW/SW Hybrid Project Foundation]
+File=modules/project/project-hybrid.awb
+Packagehint=platforms
 
+[Soft Connections Hybrid Application Environment]
+File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
+Packagehint=platforms
 
-[Hybrid System foundation/Requires]
-software_system=H264 Software System
-hardware_system=H264 System
+[HW/SW Hybrid Project Foundation/Requires]
+project_common=Hybrid Project Common Utilities
+fpgaenv=FPGA Environment
+application_env=Soft Connections Hybrid Application Environment
 
-[Hybrid System foundation]
-File=modules/model/hybrid_system.awb
+[Soft Connections Hybrid Application Environment/Requires]
+platform_services=Platform Services
+soft_connections_lib=Soft Connections Library
+connected_application=H264 System
+
+[Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
 Packagehint=hasim
 
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
+[Platform Services]
+File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
-[H264 Software System]
-File=modules/h264/src/h264_h264_software_system.awb
+[H264 output RRR]
+File=modules/h264/src/h264_output_rrr.awb
+Packagehint=h264
+
+[H264 Inter/Intra prediction module Pseudo Parallel/Requires]
+h264_interpolator=H264 parallel request interpolator module
+
+[H264 Inter/Intra prediction module Pseudo Parallel]
+File=modules/h264/src/h264_prediction_parallel_pseudo.awb
+Packagehint=h264
+
+[H264 parallel request interpolator module]
+File=modules/h264/src/h264_interpolator_split.awb
 Packagehint=h264

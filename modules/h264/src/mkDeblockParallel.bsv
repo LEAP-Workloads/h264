@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-`include "hasim_common.bsh"
+`include "asim/provides/common_services.bsh"
 `include "soft_connections.bsh"
 
 `include "h264_decoder_types_parallel.bsh"

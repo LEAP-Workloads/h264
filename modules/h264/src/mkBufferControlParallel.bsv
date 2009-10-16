@@ -27,8 +27,7 @@
 
 
 `include "soft_connections.bsh"
-`include "hasim_common.bsh"
-
+`include "asim/provides/common_services.bsh"
 
 `include "h264_types.bsh"
 `include "h264_decoder_types_parallel.bsh"

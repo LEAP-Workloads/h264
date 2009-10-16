@@ -28,12 +28,21 @@
 //
 //
 
-`include "platform_interface.bsh"
-`include "soft_connections.bsh"
-`include "h264_types.bsh"
+`include "asim/provides/soft_connections.bsh"
+`include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER.bsh"
-`include "scratchpad_memory.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
+`include "asim/provides/stats_service.bsh"
+`include "asim/provides/mem_services.bsh"
+`include "asim/provides/librl_bsv_cache.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/fpga_components.bsh"
+`include "asim/provides/project_common.bsh"
+`include "asim/provides/platform_services.bsh"
+`include "asim/provides/common_services.bsh"
+`include "asim/provides/common_utility_devices.bsh"
+
 
 
 import RegFile::*;
@@ -62,7 +71,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFile(rasterCacheFilename):
                                mkDebugFileNull(rasterCacheFilename); 
 
-  RL_CACHE_STATS rasterStats <- mkNullRLCacheStats();
+  SCRATCHPAD_STATS_CONSTRUCTOR mkRasterStats = mkNullScratchpadCacheStats();
 
 
   function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,16))
@@ -80,7 +89,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheLumaFilename):
                                    mkDebugFileNull(interCacheLumaFilename); 
 
-  RL_CACHE_STATS interStatsLuma <- mkBasicRLCacheStats(
+  SCRATCHPAD_STATS_CONSTRUCTOR interStatsLuma = mkBasicScratchpadCacheStats(
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
@@ -100,7 +109,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheChromaFilename):
                                    mkDebugFileNull(interCacheChromaFilename); 
 
-  RL_CACHE_STATS interStatsChroma <- mkBasicRLCacheStats(
+  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStatsChroma = mkBasicScratchpadCacheStats(
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
@@ -115,7 +124,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
 
 
   // Make constructor list here
-  let constructors = cons(mkRasterCache, cons(mkInterCacheLuma, cons(mkInterCacheChroma,nil)));
+  let cacheConstructors = cons(mkRasterCache, cons(mkInterCacheLuma, cons(mkInterCacheChroma,nil)));
+  let statsConstructors = cons(mkRasterStats, cons(mkInterStatsLuma, cons(mkInterStatsChroma,nil)));
 
  // Write cache constructor
   String writeCacheFilename = "writeCacheDebug";
@@ -123,7 +133,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                               mkDebugFile(writeCacheFilename):
                               mkDebugFileNull(writeCacheFilename); 
 
-  RL_CACHE_STATS writeStats <- mkNullRLCacheStats();
+  SCRATCHPAD_STATS_CONSTRUCTOR writeStats = mkNullRLCacheStats;
 
   function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,8192)) 
                mkWriteCache(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
@@ -138,9 +148,11 @@ module [CONNECTED_MODULE] mkFrameBuffer();
   MEMORY_MULTI_READ_IFC#(3,FrameBufferAddr, FrameBufferData) memory <- 
       mkMultiReadMultiCacheWriteCacheScratchpad(`VDEV_SCRATCH_FRAME_BUFFER,
                                                 0,
+                                                mkWriteStats,
                                                 mkWriteCache, 
                                                 replicate(1),
-                                                constructors);
+                                                statsConstructors,
+                                                cacheConstructors);
   
   
    FIFO#(Bit#(0)) allocateSpace1 <- mkSizedFIFO(32);
