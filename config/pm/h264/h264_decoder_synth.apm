@@ -135,3 +135,5 @@ Packagehint=hasim
 File=modules/h264/src/h264_buffer_control.awb
 Packagehint=h264
 
+[FPGA Environment/Params]
+MODEL_CLOCK_MULTIPLIER=1
