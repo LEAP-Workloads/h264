@@ -15,7 +15,7 @@ DefaultAttributes=h264 bluespec
 model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-htg-v5-pcie-synplify.apm
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-htg-v5-pcie.apm
 Packagehint=platforms
 
 [H264 System]
@@ -136,4 +136,4 @@ File=modules/h264/src/h264_buffer_control.awb
 Packagehint=h264
 
 [FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=1
+MODEL_CLOCK_MULTIPLIER=2
