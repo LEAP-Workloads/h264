@@ -39,8 +39,8 @@
 `include "asim/provides/librl_bsv_cache.bsh"
 `include "asim/provides/librl_bsv_base.bsh"
 `include "asim/provides/fpga_components.bsh"
-`include "asim/provides/platform_services.bsh"
 `include "asim/provides/project_common.bsh"
+`include "asim/provides/platform_services.bsh"
 `include "asim/provides/common_services.bsh"
 `include "asim/provides/common_utility_devices.bsh"
 
