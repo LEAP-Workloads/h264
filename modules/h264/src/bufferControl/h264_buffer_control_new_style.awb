@@ -4,8 +4,8 @@
 
 %AWB_START
 
-%name H264 buffer control module
-%desc H264 buffer control module
+%name H264 buffer control module, with new output style
+%desc H264 buffer control module, with new output style
 %provides h264_buffer_control
 
 %attributes h264
@@ -13,7 +13,7 @@
 %requires h264_frame_buffer
 %requires processor_library
 
-%public mkBufferControl.bsv IBufferControl.bsv
+%public mkBufferControlNewOutput.bsv IBufferControl.bsv BufferControlCommon.bsv
 
 %param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
 

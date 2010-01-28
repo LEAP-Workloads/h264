@@ -1,0 +1,3 @@
+def VDEV.SCRATCH.FRAME_BUFFER_Y     "scratch_frame_buffer_y";
+def VDEV.SCRATCH.FRAME_BUFFER_U     "scratch_frame_buffer_u";
+def VDEV.SCRATCH.FRAME_BUFFER_V     "scratch_frame_buffer_v";

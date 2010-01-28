@@ -25,12 +25,12 @@
 //
 //
 
-`include "soft_connections.bsh"
+`include "asim/provides/soft_connections.bsh"
 
 
-`include "h264_types.bsh"
-`include "h264_decoder_types.bsh"
-`include "h264_frame_buffer.bsh"
+`include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_decoder_types.bsh"
+`include "asim/provides/h264_frame_buffer.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -56,12 +56,10 @@ module [CONNECTED_MODULE] mkBufferControl();
    Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
    Connection_Send#(InterpolatorLoadResp) inLoadRespQ <- mkConnection_Send("mkPrediction_interpolatorMemRespQ");
    Connection_Receive#(InterpolatorLoadReq) inLoadReqQ <- mkConnection_Receive("mkPrediction_interpolatorMemReqQ");
-   Connection_Send#(FrameBufferLoadReq) loadReqQ1 <- mkConnection_Send("frameBuffer_LoadReqQ1");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQ1 <- mkConnection_Receive("frameBuffer_LoadRespQ1");
    Connection_Send#(FrameBufferLoadReq) loadReqQ2 <- mkConnection_Send("frameBuffer_LoadReqQ2");
    Connection_Receive#(FrameBufferLoadResp) loadRespQ2 <- mkConnection_Receive("frameBuffer_LoadRespQ2");
    Connection_Send#(FrameBufferStoreReq) storeReqQ <- mkConnection_Send("frameBuffer_StoreReqQ");
-   Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
+
 
 
    FIFO#(Bit#(2)) inLoadOutOfBounds <- mkSizedFIFO(64);
@@ -84,17 +82,13 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(Bool) newInputFrame    <- mkReg(True);
    Reg#(Bool) noMoreInput      <- mkReg(False);
    Reg#(Bool) inputframedone   <- mkReg(False);
-   Reg#(Outprocess) outprocess <- mkReg(Idle);
-   Reg#(Bool) outputframedone  <- mkReg(True);
 
    Reg#(Bit#(5)) inSlot <- mkReg(0);
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
-   Reg#(Bit#(5)) outSlot <- mkReg(31);
-   Reg#(Bit#(FrameBufferSz)) outAddrBase <- mkReg(0);
-   Reg#(Bit#(TAdd#(PicAreaSz,7))) outReqCount <- mkReg(0);
-   Reg#(Bit#(TAdd#(PicAreaSz,7))) outRespCount <- mkReg(0);
-   
-   FreeSlots freeSlots <- mkFreeSlots();//may include outSlot (have to make sure it's not used)
+
+
+   OutputControl outputControl <- mkOutputControl;    
+   FreeSlots freeSlots <- mkFreeSlots(outputControl.find);//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
    RFile1#(Bit#(5),Bit#(5)) refPicList <- mkRFile1(0,maxRefFrames-1);
@@ -159,14 +153,14 @@ module [CONNECTED_MODULE] mkBufferControl();
 		     begin
 			infifo.deq();
 			picWidth <= xdata;
-                        outfifo.send(tagged SPSpic_width_in_mbs xdata);
+                        outputControl.enq(tagged SPSpic_width_in_mbs xdata);
 		     end
 		  tagged SPSpic_height_in_map_units .xdata :
 		     begin
 			infifo.deq();
 			picHeight <= xdata;
 			frameinmb <= zeroExtend(picWidth)*zeroExtend(xdata);
-                        outfifo.send(tagged SPSpic_height_in_map_units xdata);
+                        outputControl.enq(tagged SPSpic_height_in_map_units xdata);
 		     end
 		  tagged PPSnum_ref_idx_l0_active .xdata :
 		     begin
@@ -175,7 +169,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 		     end
 		  tagged SHfirst_mb_in_slice .xdata :
 		     begin
-			if(adjustFreeSlots == 0) 
+			if(adjustFreeSlots == 0) // Use SFIFO here 
 			   begin
 			      infifo.deq();
 			      newInputFrame <= False;
@@ -185,10 +179,11 @@ module [CONNECTED_MODULE] mkBufferControl();
 			      refPicListCount <= 0;
 			      if(newInputFrame)
 				 begin
-				    inSlot <= freeSlots.first(outSlot);
-				    inAddrBase <= (zeroExtend(freeSlots.first(outSlot))*zeroExtend(frameinmb)*3)<<5;
+				    inSlot <= freeSlots.first; //Use SFIFO - this call to first should probably take a function ...
+                                    outputControl.enq(tagged Slot (freeSlots.first));
+				    inAddrBase <= (zeroExtend(freeSlots.first)*zeroExtend(frameinmb)*3)<<5; // This is pretty heavyweight
 				 end
-			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %h %0d", freeSlots.first(outSlot), outSlot, (newInputFrame ? 1 : 0));
+			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
 			   end
 			else
 			   donotfire.doNotFire();
@@ -367,8 +362,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 		  default: 
                      begin
                        $display("WARNING: Why are we in this clause");
-                       infifo.deq();
-                     end
+                       infifo.deq();                     end
 	       endcase
 	    end
 	 tagged DFBLuma .indata :
@@ -501,63 +495,12 @@ module [CONNECTED_MODULE] mkBufferControl();
 	 end
    endrule
 
-   
-   rule outputingReq ( outprocess != Idle );
-      if(outprocess==Y)
-	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}-1)
-	       outprocess <= U;
-	    outReqCount <= outReqCount+1;
-	 end
-      else if(outprocess==U)
-	 begin
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{3'b000,frameinmb,4'b0000}-1)
-	       outprocess <= V;
-	    outReqCount <= outReqCount+1;
-	 end
-      else
-	 begin
-	    //$display( "TRACE BufferControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
-	    if(outReqCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-	       outprocess <= Idle;
-	    outReqCount <= outReqCount+1;
-	 end
-   endrule
-   
-
-   rule outputingResp ( !outputframedone );
-      if(loadRespQ1.receive() matches tagged FBLoadResp .xdata)
-	 begin
-	    loadRespQ1.deq();
-	    outfifo.send(tagged YUV xdata);
-	    if(outRespCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
-               begin 
-	         outputframedone <= True;
-                 $display("EndOfFrame total data: %d", outRespCount);
-               end
-	    outRespCount <= outRespCount+1;
-	 end
-   endrule
-
-
-   rule goToNextFrame ( outputframedone && inputframedone && inLoadReqQ.receive()==IPLoadEndFrame );
-      inputframedone <= False;
-      outprocess <= Y;
-      outputframedone <= False;
-      outSlot <= inSlot;
-      outAddrBase <= inAddrBase;
-      outReqCount <= 0;
-      outRespCount <= 0;
-      loadReqQ1.send(FBEndFrameSync);
-      loadReqQ2.send(FBEndFrameSync);
-      storeReqQ.send(FBEndFrameSync);
+   rule goToNextFrame ( inputframedone && inLoadReqQ.receive()==IPLoadEndFrame );
+      inputframedone <= False;      
       inLoadReqQ.deq();
       lockInterLoads <= True;
       $display("BufferControl Sending EndOfFrame");
-      outfifo.send(EndOfFrame);
+      
    endrule
 
 
@@ -567,11 +510,10 @@ module [CONNECTED_MODULE] mkBufferControl();
 
    
    //This may not be right...
-   rule theEndOfFile ( outputframedone && noMoreInput );
+   rule theEndOfFile (noMoreInput);
      $display("BufferControl Sending EndOfFile");
      noMoreInput <= False;
-     outputframedone <= False;
-     outfifo.send(EndOfFile);
+     outputControl.enq(EndOfFile);
    endrule
 
 

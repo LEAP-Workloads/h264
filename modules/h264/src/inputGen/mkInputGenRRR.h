@@ -33,7 +33,7 @@ class MKINPUTGENRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Init(PLATFORMS_MODULE);
     void Uninit();
     void Cleanup();
-    void Poll();
+    bool Poll();
 
     //
     // RRR service methods

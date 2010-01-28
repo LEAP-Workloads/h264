@@ -429,9 +429,11 @@ endmodule
 
 
 //-----------------------------------------------------------
-// Helper functions
+// Local definitions
 
-
+// Use FrameBufferSz to define the luma/chroma sizes
+typedef Bit#(TSub#(FrameBufferSz, 1)) FrameBufferAddrLuma;
+typedef Bit#(TSub#(FrameBufferSz, 2)) FrameBufferAddrChroma;
 
 //-----------------------------------------------------------
 // Buffer Controller  Module
@@ -441,7 +443,10 @@ endmodule
 
 module [CONNECTED_MODULE] mkBufferControl ();
 
-  Empty   framebuffer   <- mkFrameBuffer();
+  MEMORY_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
+  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
+  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
+
 
   Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
 
@@ -449,17 +454,6 @@ module [CONNECTED_MODULE] mkBufferControl ();
    Connection_Receive#(InterpolatorLoadReq) inLoadReqQLuma <- mkConnection_Receive("mkPrediction_interpolatorLumaMemReqQ");
    Connection_Send#(InterpolatorLoadResp) inLoadRespQChroma <- mkConnection_Send("mkPrediction_interpolatorChromaMemRespQ");
    Connection_Receive#(InterpolatorLoadReq) inLoadReqQChroma <- mkConnection_Receive("mkPrediction_interpolatorChromaMemReqQ");
-
-
-
-  // Connections to Frame Buffer
-   Connection_Send#(FrameBufferLoadReq) loadReqQ1 <- mkConnection_Send("frameBuffer_LoadReqQ1");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQ1 <- mkConnection_Receive("frameBuffer_LoadRespQ1");
-   Connection_Send#(FrameBufferLoadReq) loadReqQInLuma <- mkConnection_Send("frameBuffer_LoadReqQLuma");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQInLuma <- mkConnection_Receive("frameBuffer_LoadRespQLuma");
- Connection_Send#(FrameBufferLoadReq) loadReqQInChroma <- mkConnection_Send("frameBuffer_LoadReqQChroma");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQInChroma <- mkConnection_Receive("frameBuffer_LoadRespQChroma");
-   Connection_Send#(FrameBufferStoreReq) storeReqQ <- mkConnection_Send("frameBuffer_StoreReqQ");
 
 
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
@@ -810,18 +804,23 @@ module [CONNECTED_MODULE] mkBufferControl ();
                                                                                                 addr, 
                                                                                                 indata.data);
                  end
-	       storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
+               // Need to store adjacent values between iters.
+               frameBufferY.write(inAddrBase+zeroExtend(addr), indata.data);
+	       //storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
 	    end
 	 tagged DFBChroma .indata :
 	    begin
 	       infifo.deq();
 	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(indata.hor,
                                                                     indata.ver);
-	       Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
-	       Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
-	       if(indata.uv == 1)
-		  vOffset = {frameinmb,4'b0000};
-	       storeReqQ.send(FBStoreReq {addr:(inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)),data:indata.data});
+	       if(indata.uv == 0)
+                 begin
+                   frameBufferU.write(inAddrBase+zeroExtend(addr), indata.data);
+                 end 
+               else 
+                 begin
+                   frameBufferV.write(inAddrBase+zeroExtend(addr), indata.data);
+                 end
 
                if(`DEBUG_BUFFER_CONTROL == 1) 
                  begin
@@ -1020,6 +1019,9 @@ module [CONNECTED_MODULE] mkBufferControl ();
               end
 
 	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(addr)));
+            frameBufferY.readReq(outAddrBase+zeroExtend(addr));
+            XXX need to add some buffering controls here to ensure that we don't over subscribe the memory system
+            XXX need to think about the stream ordering, which we may lose if we are not careful.
 	 end
       else if(outprocess==U)
 	 begin
@@ -1043,7 +1045,8 @@ module [CONNECTED_MODULE] mkBufferControl ();
               begin
                 $display("BufferControl Output U: %h hor: %d ver: %d",addr,outputHorIndex,outputVerIndex);
               end
-
+            XXX this is also shared, unfortunately, so we must manage it as well.
+            frameBufferU.readReq(outAddrBase + zeroExtend(addr));
 	    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(chromaOffset)+zeroExtend(addr)));
 	 end
       else
@@ -1069,6 +1072,7 @@ module [CONNECTED_MODULE] mkBufferControl ();
 
              Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
              Bit#(TAdd#(PicAreaSz,4)) vOffset = {frameinmb,4'b0000};
+             frameBufferV.readReq(outAddrBase + zeroExtend(addr));
              loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(vOffset)+zeroExtend(chromaOffset)+
                                        zeroExtend(addr)));
 	 end
@@ -1097,6 +1101,7 @@ module [CONNECTED_MODULE] mkBufferControl ();
       outSlot <= inSlot;
       outAddrBase <= inAddrBase;
       outRespCount <= 0;
+      XXX Need to sync the frames in my own buffers
       loadReqQ1.send(FBEndFrameSync);
       loadReqQInLuma.send(FBEndFrameSync);
       loadReqQInChroma.send(FBEndFrameSync);

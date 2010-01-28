@@ -4,13 +4,14 @@
 
 %AWB_START
 
-%name H264 coalescing parallel buffer control module
+%name H264 split coalescing parallel buffer control module
 %desc Uses three backing scratchpads to achieve memory separation. 
 %provides h264_buffer_control
 
 %attributes h264
 
 %public mkBufferControlParallelCoalesced64Split.bsv IBufferControl.bsv
+%public BufferControlSplit.dic
 
 %param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
 

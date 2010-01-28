@@ -52,9 +52,10 @@ MKFINALOUTPUTRRR_SERVER_CLASS::Cleanup()
 }
 
 // poll
-void
+bool
 MKFINALOUTPUTRRR_SERVER_CLASS::Poll()
 {
+  return false;
 }
 
 //

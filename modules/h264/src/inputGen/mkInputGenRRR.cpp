@@ -52,9 +52,10 @@ MKINPUTGENRRR_SERVER_CLASS::Cleanup()
 }
 
 // poll
-void
+bool
 MKINPUTGENRRR_SERVER_CLASS::Poll()
 {
+  return false;
 }
 
 //
