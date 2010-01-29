@@ -83,7 +83,7 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(Bool) noMoreInput      <- mkReg(False);
    Reg#(Bool) inputframedone   <- mkReg(False);
 
-   Reg#(Bit#(5)) inSlot <- mkReg(0);
+   Reg#(SlotNum) inSlot <- mkReg(0);
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
 
 
@@ -180,7 +180,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 			      if(newInputFrame)
 				 begin
 				    inSlot <= freeSlots.first; //Use SFIFO - this call to first should probably take a function ...
-                                    outputControl.enq(tagged Slot (freeSlots.first));
+                                    
 				    inAddrBase <= (zeroExtend(freeSlots.first)*zeroExtend(frameinmb)*3)<<5; // This is pretty heavyweight
 				 end
 			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
@@ -390,6 +390,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 	 tagged EndOfFrame :
 	    begin
 	       infifo.deq();
+               outputControl.enq(tagged Slot inSlot); // must wait till end of frame
 	       $display( "INFO Buffer Control: EndOfFrame reached");
 	       inputframedone <= True;
 	       newInputFrame <= True;
