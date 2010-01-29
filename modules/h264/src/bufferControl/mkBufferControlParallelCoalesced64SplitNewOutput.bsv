@@ -31,7 +31,6 @@
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
 `include "asim/provides/h264_frame_buffer.bsh"
-`include "asim/provides/h264_output_control.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -51,16 +50,51 @@ import ClientServer::*;
 
 module [CONNECTED_MODULE] mkBufferControl();
 
-   Empty   framebuffer   <- mkFrameBuffer();
+   // some generally useful helper functions   
+   // We want to interleave adjacent rows.
+   function  calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);   
+       
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(Bit#(TAdd#(PicHeightSz,3)),Bit#(1)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,6)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(hor) * 2 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 8);
 
-   // Mass of soft connections
+     return addr;
+   endfunction
+
+
+   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);     
+     // Chop off the low order bits to get the coalescing
+     Tuple2#(Bit#(TAdd#(PicHeightSz,2)),Bit#(1)) verBits = split(ver);
+     match {.verHigh,.verLow} = verBits;
+     
+     // throw low 2 bits of ver on hor...
+     Bit#(TAdd#(PicAreaSz,4)) addr =  zeroExtend(verLow) + 
+                                      zeroExtend(hor) * 2 + 
+                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 4);
+     return addr;
+   endfunction
+
+
+   // We use three mem interfaces here
+
+   MEMORY_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
+   MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
+   MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
+
+
+   // Soft connections
+
    Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
-   Connection_Send#(InterpolatorLoadResp) inLoadRespQ <- mkConnection_Send("mkPrediction_interpolatorMemRespQ");
-   Connection_Receive#(InterpolatorLoadReq) inLoadReqQ <- mkConnection_Receive("mkPrediction_interpolatorMemReqQ");
-   Connection_Send#(FrameBufferLoadReq) loadReqQ2 <- mkConnection_Send("frameBuffer_LoadReqQ2");
-   Connection_Receive#(FrameBufferLoadResp) loadRespQ2 <- mkConnection_Receive("frameBuffer_LoadRespQ2");
-   Connection_Send#(FrameBufferStoreReq) storeReqQ <- mkConnection_Send("frameBuffer_StoreReqQ");
 
+   Connection_Send#(InterpolatorLoadResp) inLoadRespQLuma <- mkConnection_Send("mkPrediction_interpolatorLumaMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) inLoadReqQLuma <- mkConnection_Receive("mkPrediction_interpolatorLumaMemReqQ");
+   Connection_Send#(InterpolatorLoadResp) inLoadRespQChroma <- mkConnection_Send("mkPrediction_interpolatorChromaMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) inLoadReqQChroma <- mkConnection_Receive("mkPrediction_interpolatorChromaMemReqQ");
 
 
    FIFO#(Bit#(2)) inLoadOutOfBounds <- mkSizedFIFO(64);
@@ -372,21 +406,41 @@ module [CONNECTED_MODULE] mkBufferControl();
 	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
 	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
                                                                     indata.ver);
-               $display("TRACE BufferControl: Luma Store: addr:%h",addr);
-	       storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
+               if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Luma Store: hor: %d ver: %d addr:%h data:%h", indata.hor, 
+                                                                                                indata.ver, 
+                                                                                                addr, 
+                                                                                                indata.data);
+                 end
+
+               frameBufferY.write(inAddrBase+zeroExtend(addr), indata.data);
 	    end
 	 tagged DFBChroma .indata :
 	    begin
 	       infifo.deq();
 	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(indata.hor,
                                                                     indata.ver);
-	       Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
-	       Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
-	       if(indata.uv == 1)
-		  vOffset = {frameinmb,4'b0000};
-	       storeReqQ.send(FBStoreReq {addr:(inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)),data:indata.data});
-               $display("TRACE BufferControl: Chroma Store: UV: %h addr:%h",indata.uv, addr);
-	       //$display( "TRACE Buffer Control: input Chroma %0d %0h %h %h %h %h", indata.uv, indata.ver, indata.hor, indata.data, addr, (inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
+
+	       if(indata.uv == 0)
+                 begin
+                   frameBufferU.write(inAddrBase+zeroExtend(addr), indata.data);
+                 end 
+               else 
+                 begin
+                   frameBufferV.write(inAddrBase+zeroExtend(addr), indata.data);
+                 end
+
+               if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Chroma Store: hor: %d, ver %d, UV: %h addr:%h data:%h",
+                            indata.hor, 
+                            indata.ver, 
+                            indata.uv, 
+                            addr, 
+                            indata.data);
+                 end
+
 	    end
 	 tagged EndOfFrame :
 	    begin

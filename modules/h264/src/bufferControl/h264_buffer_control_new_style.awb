@@ -11,7 +11,7 @@
 %attributes h264
 
 %requires h264_frame_buffer
-%requires processor_library
+%requires h264_output_control
 
 %public mkBufferControlNewOutput.bsv IBufferControl.bsv BufferControlCommon.bsv
 

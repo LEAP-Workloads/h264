@@ -1,0 +1,19 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 output control module
+%desc H264 output control module
+%provides h264_output_control
+
+%attributes h264
+
+%requires processor_library
+
+%public mkOutputControl.bsv OutputControlCommon.bsv
+
+
+%AWB_END
+
