@@ -147,9 +147,16 @@ File=modules/h264/src/bufferControl/h264_buffer_control_new_style.awb
 Packagehint=h264
 
 [H264 buffer control module, with new output style/Requires]
-processor_library=Processor Library
 h264_frame_buffer=H264 simulation module
+h264_output_control=H264 output control module
 
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
+
+[H264 output control module]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control.awb
+Packagehint=h264
+
+[H264 output control module/Requires]
+processor_library=Processor Library
