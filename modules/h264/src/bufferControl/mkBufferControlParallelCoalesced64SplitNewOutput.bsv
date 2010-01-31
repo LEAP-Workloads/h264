@@ -26,11 +26,14 @@
 //
 
 `include "asim/provides/soft_connections.bsh"
-
+`include "asim/provides/scratchpad_memory.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/mem_services.bsh"
 
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
-`include "asim/provides/h264_frame_buffer.bsh"
+`include "asim/dict/VDEV_SCRATCH.bsh"
+`include "asim/provides/h264_output_control_split.bsh"
 
 import FIFO::*;
 import Vector::*;
@@ -50,52 +53,20 @@ import ClientServer::*;
 
 module [CONNECTED_MODULE] mkBufferControl();
 
-   // some generally useful helper functions   
-   // We want to interleave adjacent rows.
-   function  calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);   
-       
-     // Chop off the low order bits to get the coalescing
-     Tuple2#(Bit#(TAdd#(PicHeightSz,3)),Bit#(1)) verBits = split(ver);
-     match {.verHigh,.verLow} = verBits;
-     
-     // throw low 2 bits of ver on hor...
-     Bit#(TAdd#(PicAreaSz,6)) addr =  zeroExtend(verLow) + 
-                                      zeroExtend(hor) * 2 + 
-                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 8);
-
-     return addr;
-   endfunction
-
-
-   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);     
-     // Chop off the low order bits to get the coalescing
-     Tuple2#(Bit#(TAdd#(PicHeightSz,2)),Bit#(1)) verBits = split(ver);
-     match {.verHigh,.verLow} = verBits;
-     
-     // throw low 2 bits of ver on hor...
-     Bit#(TAdd#(PicAreaSz,4)) addr =  zeroExtend(verLow) + 
-                                      zeroExtend(hor) * 2 + 
-                                      (zeroExtend(verHigh)*zeroExtend(picWidth) * 4);
-     return addr;
-   endfunction
-
 
    // We use three mem interfaces here
 
-   MEMORY_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
-   MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
-   MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, FrameBufferData)   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
 
 
    // Soft connections
 
    Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
 
-   Connection_Send#(InterpolatorLoadResp) inLoadRespQLuma <- mkConnection_Send("mkPrediction_interpolatorLumaMemRespQ");
-   Connection_Receive#(InterpolatorLoadReq) inLoadReqQLuma <- mkConnection_Receive("mkPrediction_interpolatorLumaMemReqQ");
-   Connection_Send#(InterpolatorLoadResp) inLoadRespQChroma <- mkConnection_Send("mkPrediction_interpolatorChromaMemRespQ");
-   Connection_Receive#(InterpolatorLoadReq) inLoadReqQChroma <- mkConnection_Receive("mkPrediction_interpolatorChromaMemReqQ");
-
+   Connection_Send#(InterpolatorLoadResp) inLoadRespQ <- mkConnection_Send("mkPrediction_interpolatorMemRespQ");
+   Connection_Receive#(InterpolatorLoadReq) inLoadReqQ <- mkConnection_Receive("mkPrediction_interpolatorMemReqQ");
 
    FIFO#(Bit#(2)) inLoadOutOfBounds <- mkSizedFIFO(64);
 
@@ -122,7 +93,7 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
 
 
-   OutputControl outputControl <- mkOutputControl;    
+   OutputControl outputControl <- mkOutputControl(bufferY.readPorts[1],bufferU.readPorts[1],bufferV.readPorts[1]);    
    FreeSlots freeSlots <- mkFreeSlots(outputControl.find);//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
@@ -414,7 +385,7 @@ module [CONNECTED_MODULE] mkBufferControl();
                                                                                                 indata.data);
                  end
 
-               frameBufferY.write(inAddrBase+zeroExtend(addr), indata.data);
+               bufferY.write(truncateLSB(inAddrBase)+zeroExtend(addr), indata.data);
 	    end
 	 tagged DFBChroma .indata :
 	    begin
@@ -424,11 +395,11 @@ module [CONNECTED_MODULE] mkBufferControl();
 
 	       if(indata.uv == 0)
                  begin
-                   frameBufferU.write(inAddrBase+zeroExtend(addr), indata.data);
+                   bufferU.write(truncateLSB(inAddrBase)+zeroExtend(addr), indata.data);
                  end 
                else 
                  begin
-                   frameBufferV.write(inAddrBase+zeroExtend(addr), indata.data);
+                   bufferV.write(truncateLSB(inAddrBase)+zeroExtend(addr), indata.data);
                  end
 
                if(`DEBUG_BUFFER_CONTROL == 1) 
@@ -573,13 +544,17 @@ module [CONNECTED_MODULE] mkBufferControl();
    endrule
 
 
+   // Rules for handling interprediction
+   FIFO#(FieldType) fifoTarget <- mkSizedFIFO(32);
+   
    rule interLumaReq ( inLoadReqQ.receive() matches tagged IPLoadLuma .reqdata &&& !lockInterLoads );
       inLoadReqQ.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
-      loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(addr)));
+      fifoTarget.enq(Y);
+      bufferY.readPorts[0].readReq(truncateLSB(addrBase)+zeroExtend(addr));
       //$display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(addr));
    endrule
 
@@ -588,19 +563,26 @@ module [CONNECTED_MODULE] mkBufferControl();
       inLoadReqQ.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
-      Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
-      Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
-      if(reqdata.uv == 1)
-	 vOffset = {frameinmb,4'b0000};
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(reqdata.hor);
+
+      if(reqdata.uv == 1)
+        begin
+          bufferV.readPorts[0].readReq(truncateLSB(addrBase)+zeroExtend(addr));
+          fifoTarget.enq(V);
+        end
+      else
+        begin
+          bufferU.readPorts[0].readReq(truncateLSB(addrBase)+zeroExtend(addr));
+          fifoTarget.enq(U);
+        end
+
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
-      loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
+
       //$display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr));
    endrule
-    
 
-   rule interResp ( loadRespQ2.receive() matches tagged FBLoadResp .data );
-      loadRespQ2.deq();
+   function Action sendLoadResp(FrameBufferData data);
+      action
       if(inLoadOutOfBounds.first() == 2'b10)
 	 inLoadRespQ.send(tagged IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
       else if(inLoadOutOfBounds.first() == 2'b11)
@@ -608,6 +590,27 @@ module [CONNECTED_MODULE] mkBufferControl();
       else
 	 inLoadRespQ.send(tagged IPLoadResp data);
       inLoadOutOfBounds.deq();
+      endaction
+   endfunction 
+    
+   rule interRespY (fifoTarget.first() == Y);
+      let data <- bufferY.readPorts[0].readRsp();
+      fifoTarget.deq();
+      sendLoadResp(data);
+      //$display( "Trace BufferControl: interResp %h %h", inLoadOutOfBounds.first(), data);
+   endrule
+
+   rule interRespU (fifoTarget.first() == U);
+      let data <- bufferU.readPorts[0].readRsp();
+      fifoTarget.deq();
+      sendLoadResp(data);
+      //$display( "Trace BufferControl: interResp %h %h", inLoadOutOfBounds.first(), data);
+   endrule
+
+   rule interRespV (fifoTarget.first() == V);
+      let data <- bufferV.readPorts[0].readRsp();
+      fifoTarget.deq();
+      sendLoadResp(data);
       //$display( "Trace BufferControl: interResp %h %h", inLoadOutOfBounds.first(), data);
    endrule
 

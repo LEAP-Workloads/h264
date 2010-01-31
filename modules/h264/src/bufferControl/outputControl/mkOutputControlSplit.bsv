@@ -1,14 +1,21 @@
+import FIFO::*;
+
 `include "asim/provides/soft_connections.bsh"
+`include "asim/provides/scratchpad_memory.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+
 `include "asim/provides/processor_library.bsh"
+
 `include "asim/provides/h264_decoder_types.bsh"
-`include "asim/provides/h264_buffer_controller.bsh"
+`include "asim/provides/h264_types.bsh"
 
 
-module [CONNECTED_MODULE] mkOutputControl (OutputControl);
-  Connection_Send#(FrameBufferLoadReq) loadReqQ1 <- mkConnection_Send("frameBuffer_LoadReqQ1");
-  Connection_Receive#(FrameBufferLoadResp) loadRespQ1 <- mkConnection_Receive("frameBuffer_LoadRespQ1");
+module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY,
+                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU,
+                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV)  (OutputControl);
+
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
-                                           
+
   // function to crack frame in mb
   function Bool checkSlot(SlotNum slot, OutputControlType outputControl);
     return (outputControl matches tagged Slot .slotControl?slot==slotControl:False);
@@ -24,6 +31,7 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
   Reg#(Bit#(PicAreaSz)) frameinmb <- mkReg(0);
 
   SFIFO#(OutputControlType,SlotNum) infifo <- mkSFIFO(checkSlot);
+  FIFO#(FieldType) fifoTarget <- mkSizedFIFO(32);
 
   // what I really want here is to be able to send tags around...
   // By which I mean tagging the input and output controls  
@@ -70,38 +78,55 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
 
   rule outputingReqY (infifo.first matches tagged Slot .outSlot &&& outprocess ==Y);
     $display( "TRACE OutputControl: outputingReq Y %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
+    bufferY.readReq(truncateLSB(outAddrBase)+zeroExtend(outReqCount));
     if(outReqCount == {1'b0,frameinmb,6'b000000}-1)
       outprocess <= U;
     outReqCount <= outReqCount+1;
+    fifoTarget.enq(Y);
   endrule
    
   rule outputingReqU (infifo.first matches tagged Slot .outSlot &&& outprocess ==U);
     $display( "TRACE OutputControl: outputingReq U %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
+    bufferU.readReq(truncateLSB(outAddrBase)+zeroExtend(outReqCount));
     if(outReqCount == {1'b0,frameinmb,6'b000000}+{3'b000,frameinmb,4'b0000}-1)
       outprocess <= V;
+    fifoTarget.enq(U);
     outReqCount <= outReqCount+1;
   endrule
 
   rule outputingReqV (infifo.first matches tagged Slot .outSlot &&& outprocess ==V);
     $display( "TRACE OutputControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
-    loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
+    bufferV.readReq(truncateLSB(outAddrBase)+zeroExtend(outReqCount));
+    fifoTarget.enq(V);
     if(outReqCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
       outprocess <= OutstandingRequests;
     outReqCount <= outReqCount+1;
   endrule
 
 
-   rule outputingResp;
-      if(loadRespQ1.receive() matches tagged FBLoadResp .xdata)
-	 begin
-            $display( "TRACE OutputControl: Resp Received %h", outRespCount);  
-	    loadRespQ1.deq();
-	    outfifo.send(tagged YUV xdata);
-	    outRespCount <= outRespCount+1;
-	 end
+
+
+   rule outputingRespY(fifoTarget.first() == Y);
+     let xdata <- bufferY.readRsp();
+     $display( "TRACE OutputControl: Resp Received %h", outRespCount);  
+     outfifo.send(tagged YUV xdata);
+     outRespCount <= outRespCount+1;
    endrule
+
+   rule outputingRespU(fifoTarget.first() == U);
+     let xdata <- bufferU.readRsp();
+     $display( "TRACE OutputControl: Resp Received %h", outRespCount);
+     outfifo.send(tagged YUV xdata);
+     outRespCount <= outRespCount+1;
+   endrule
+   
+   rule outputingRespV(fifoTarget.first() == V);
+     let xdata <- bufferV.readRsp();
+     $display( "TRACE OutputControl: Resp Received %h", outRespCount);
+     outfifo.send(tagged YUV xdata);
+     outRespCount <= outRespCount+1;
+   endrule
+
 
    rule sendEndOfFrame (outRespCount ==  {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000} && (outprocess == OutstandingRequests));
      outRespCount <= 0;

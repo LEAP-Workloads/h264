@@ -4,8 +4,8 @@
 
 %AWB_START
 
-%name H264 types
-%desc H264 types
+%name H264 System types
+%desc H264 System types
 %provides h264_types
 
 %attributes h264

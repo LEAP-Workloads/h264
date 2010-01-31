@@ -518,3 +518,12 @@ typedef Bit#(64) H264OutputAddr;
 typedef Bit#(64) H264InputAddr;
 
 
+typedef enum {
+ Y,
+ U,
+ V
+} FieldType deriving (Bits,Eq);
+
+// Use FrameBufferSz to define the luma/chroma sizes
+typedef Bit#(TSub#(FrameBufferSz, 1)) FrameBufferAddrLuma;
+typedef Bit#(TSub#(FrameBufferSz, 2)) FrameBufferAddrChroma;

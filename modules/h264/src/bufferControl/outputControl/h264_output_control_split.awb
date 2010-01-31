@@ -6,7 +6,7 @@
 
 %name H264 output control module split memories
 %desc H264 output control module
-%provides h264_output_control
+%provides h264_output_control_split
 
 %attributes h264
 

@@ -469,3 +469,8 @@ deriving(Eq,Bits);
 typedef Bit#(64) H264OutputAddr;
 typedef Bit#(64) H264InputAddr;
 
+typedef enum {
+ Y,
+ U,
+ V
+} FieldType deriving (Bits,Eq);
