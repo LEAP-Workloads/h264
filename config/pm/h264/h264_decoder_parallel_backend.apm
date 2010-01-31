@@ -23,11 +23,11 @@ File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
 [H264 default simulation module]
-File=modules/h264/src/h264_default_memory_unit.awb
+File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 entropy decoder module]
-File=modules/h264/src/h264_entropy_decoder.awb
+File=modules/h264/src/entropy/h264_entropy_decoder.awb
 Packagehint=h264
 
 [H264 System/Requires]
@@ -35,18 +35,14 @@ h264_decoder=H264 decoder module with parallel backend
 h264_input=H264 RRR input module
 h264_output=H264 output RRR
 h264_memory_unit=H264 default simulation module
-h264_types=H264 types
+h264_types=H264 System types
 
 [H264 nal unwrap module]
-File=modules/h264/src/h264_nal_unwrap.awb
+File=modules/h264/src/nal/h264_nal_unwrap.awb
 Packagehint=h264
 
 [H264 inverse transform module]
-File=modules/h264/src/h264_inverse_transform.awb
-Packagehint=h264
-
-[H264 types]
-File=modules/h264/src/h264_system_types.awb
+File=modules/h264/src/transform/h264_inverse_transform.awb
 Packagehint=h264
 
 [H264 default control module]
@@ -54,7 +50,7 @@ File=modules/h264/src/h264_control.awb
 Packagehint=h264
 
 [H264 RRR input module]
-File=modules/h264/src/h264_input_rrr.awb
+File=modules/h264/src/inputGen/h264_input_rrr.awb
 Packagehint=h264
 
 [H264 decoder module with parallel backend]
@@ -65,23 +61,23 @@ Packagehint=h264
 h264_control=H264 default control module
 h264_inverse_transform=H264 inverse transform module
 h264_entropy_decoder=H264 entropy decoder module
-h264_prediction_parallel=H264 Inter/Intra prediction module Pseudo Parallel
+h264_prediction_parallel=H264 Inter/Intra prediction module Luma Chroma Parallel
 h264_nal_unwrap=H264 nal unwrap module
 h264_deblocking_parallel=H264 Luma-Chroma Parallel
 h264_decoder_types_parallel=H264 Decoder Types Parallel
 h264_buffer_control_parallel=H264 buffer control module parallel
-h264_frame_buffer_parallel=H264 Luma-Chroma Frame-buffer Multi-read/write-cached
+h264_frame_buffer_parallel=H264 Luma-Chroma Frame-buffer
 
 [H264 Decoder Types Parallel]
 File=modules/h264/src/h264_decoder_types_parallel.awb
 Packagehint=h264
 
 [H264 Luma-Chroma Parallel]
-File=modules/h264/src/h264_deblocking_LCParallel.awb
+File=modules/h264/src/deblocking/h264_deblocking_LCParallel.awb
 Packagehint=h264
 
 [H264 Luma specialized deblocking filter]
-File=modules/h264/src/h264_deblocking_luma.awb
+File=modules/h264/src/deblocking/h264_deblocking_luma.awb
 Packagehint=h264
 
 [H264 Luma-Chroma Parallel/Requires]
@@ -89,15 +85,11 @@ h264_deblocking_luma=H264 Luma specialized deblocking filter
 h264_deblocking_chroma=H264 Chroma specialized deblocking filter
 
 [H264 Chroma specialized deblocking filter]
-File=modules/h264/src/h264_deblocking_chroma.awb
+File=modules/h264/src/deblocking/h264_deblocking_chroma.awb
 Packagehint=h264
 
 [H264 buffer control module parallel]
-File=modules/h264/src/h264_buffer_control_parallel.awb
-Packagehint=h264
-
-[H264 Luma-Chroma Frame-buffer Multi-read/write-cached]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer_parallel.awb
+File=modules/h264/src/bufferControl/h264_buffer_control_parallel.awb
 Packagehint=h264
 
 [Soft Connections Library]
@@ -131,16 +123,24 @@ File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
 [H264 output RRR]
-File=modules/h264/src/h264_output_rrr.awb
+File=modules/h264/src/finalOutput/h264_output_rrr.awb
 Packagehint=h264
 
-[H264 Inter/Intra prediction module Pseudo Parallel/Requires]
-h264_interpolator=H264 parallel request interpolator module
-
-[H264 Inter/Intra prediction module Pseudo Parallel]
-File=modules/h264/src/h264_prediction_parallel_pseudo.awb
+[H264 parallel interpolator module]
+File=modules/h264/src/interpolator/h264_interpolator_parallel.awb
 Packagehint=h264
 
-[H264 parallel request interpolator module]
-File=modules/h264/src/h264_interpolator_split.awb
+[H264 Inter/Intra prediction module Luma Chroma Parallel]
+File=modules/h264/src/prediction/h264_prediction_parallel.awb
+Packagehint=h264
+
+[H264 System types]
+File=modules/h264/src/h264_system_types.awb
+Packagehint=h264
+
+[H264 Inter/Intra prediction module Luma Chroma Parallel/Requires]
+h264_interpolator_parallel=H264 parallel interpolator module
+
+[H264 Luma-Chroma Frame-buffer]
+File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer_parallel.awb
 Packagehint=h264

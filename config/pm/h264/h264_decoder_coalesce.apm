@@ -7,35 +7,23 @@ SaveParameters=0
 Description=H264 Decoder
 Name=H264 Decoder
 Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
 
 [Model]
 DefaultAttributes=h264 bluespec
-model=HAsim Hybrid Model Foundation
+model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-hybrid-sim.apm
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=platforms
-
-[Hasim Common Library]
-File=config/pm/hasim/submodels/common/hasim_common.apm
-Packagehint=hasim
-
-[HAsim Hybrid Model Foundation]
-File=modules/model/hasim_model.awb
-Packagehint=hasim
-
-[HAsim Hybrid Model Foundation/Requires]
-hasim_common=Hasim Common Library
-system=Hybrid System foundation
-hasim_controller=Hasim Standard Controller
-fpgaenv=FPGA Environment
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
 [H264 default simulation module]
-File=modules/h264/src/h264_default_memory_unit.awb
+File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
@@ -44,17 +32,16 @@ h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 coalescing buffer control module
+h264_buffer_control=H264 split coalescing parallel buffer control module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
-
 [H264 entropy decoder module]
-File=modules/h264/src/h264_entropy_decoder.awb
+File=modules/h264/src/entropy/h264_entropy_decoder.awb
 Packagehint=h264
 
 [H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
+File=modules/h264/src/interpolator/h264_interpolator.awb
 Packagehint=h264
 
 [H264 System/Requires]
@@ -62,11 +49,10 @@ h264_decoder=H264 decoder module
 h264_types=H264 types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
-h264_output=H264 output RRR Wide
-funcp_base_types=Functional Partition Base Types
+h264_output=H264 output RRR
 
 [H264 nal unwrap module]
-File=modules/h264/src/h264_nal_unwrap.awb
+File=modules/h264/src/nal/h264_nal_unwrap.awb
 Packagehint=h264
 
 [H264 decoder module]
@@ -77,11 +63,11 @@ Packagehint=h264
 h264_interpolator=H264 interpolator module
 
 [H264 Inter/Intra prediction module]
-File=modules/h264/src/h264_prediction.awb
+File=modules/h264/src/prediction/h264_prediction.awb
 Packagehint=h264
 
 [H264 inverse transform module]
-File=modules/h264/src/h264_inverse_transform.awb
+File=modules/h264/src/transform/h264_inverse_transform.awb
 Packagehint=h264
 
 [H264 types]
@@ -93,57 +79,65 @@ File=modules/h264/src/h264_control.awb
 Packagehint=h264
 
 [H264 RRR input module]
-File=modules/h264/src/h264_input_rrr.awb
-Packagehint=h264
-
-[Hasim Common Library/Params]
-PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
-
-[FPGA Environment/Params]
-CENTRAL_CACHE_DEBUG_ENABLE=0
-SRATCHPAD_MEMORY_DEBUG_ENABLE=0
-
-[H264 output RRR Wide]
-File=modules/h264/src/h264_output_rrr_wide.awb
+File=modules/h264/src/inputGen/h264_input_rrr.awb
 Packagehint=h264
 
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-
-[Hasim Standard Controller]
-File=config/pm/hasim/submodels/controller/hybrid_standard_controller.apm
-Packagehint=hasim
-
-[H264 coalesced multi scratchpad frame buffer]
-File=modules/h264/src/h264_multi_scratchpad_coalesced_frame_buffer.awb
-Packagehint=h264
-
-[Hybrid System foundation/Requires]
-software_system=H264 Software System
-hardware_system=H264 System
-
-[Hybrid System foundation]
-File=modules/model/hybrid_system.awb
-Packagehint=hasim
-
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
-Packagehint=hasim
-
-[H264 Software System]
-File=modules/h264/src/h264_h264_software_system.awb
-Packagehint=h264
-
-
 [H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
+File=modules/h264/src/deblocking/h264_deblocking_dummy.awb
 Packagehint=h264
 
-[H264 coalescing buffer control module]
-File=modules/h264/src/h264_buffer_control_coalesced.awb
+[H264 output control module split memories]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
 Packagehint=h264
 
-[H264 coalescing buffer control module/Requires]
-h264_frame_buffer_coalesced_64=H264 coalesced multi scratchpad frame buffer
+[Soft Connections Library]
+File=config/pm/hasim/submodels/common/soft-connections-lib.apm
+Packagehint=hasim
+
+[HW/SW Hybrid Project Foundation]
+File=modules/project/project-hybrid.awb
+Packagehint=platforms
+
+[Soft Connections Hybrid Application Environment]
+File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
+Packagehint=platforms
+
+[HW/SW Hybrid Project Foundation/Requires]
+project_common=Hybrid Project Common Utilities
+fpgaenv=FPGA Environment
+application_env=Soft Connections Hybrid Application Environment
+
+[Soft Connections Hybrid Application Environment/Requires]
+platform_services=Platform Services
+soft_connections_lib=Soft Connections Library
+connected_application=H264 System
+
+[H264 split coalescing parallel buffer control module]
+File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module/Requires]
+h264_output_control_split=H264 output control module split memories
+
+[H264 output control module split memories/Requires]
+processor_library=Processor Library
+
+[Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=hasim
+
+[Platform Services]
+File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
+Packagehint=hasim
+
+[H264 output RRR]
+File=modules/h264/src/finalOutput/h264_output_rrr.awb
+Packagehint=h264
+
+[Processor Library]
+File=modules/bluespec/mit-6.375/lab4/processor_library.awb
+Packagehint=mit-6.375

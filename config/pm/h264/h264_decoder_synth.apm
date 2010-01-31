@@ -23,7 +23,7 @@ File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
 [H264 default simulation module]
-File=modules/h264/src/h264_default_memory.awb
+File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
@@ -37,18 +37,18 @@ h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
 [H264 entropy decoder module]
-File=modules/h264/src/h264_entropy_decoder.awb
+File=modules/h264/src/entropy/h264_entropy_decoder.awb
 Packagehint=h264
 
 [H264 System/Requires]
 h264_decoder=H264 decoder module
-h264_types=H264 types
+h264_types=H264 System types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
-h264_output=H264 output RRR Wide
+h264_output=H264 output RRR
 
 [H264 nal unwrap module]
-File=modules/h264/src/h264_nal_unwrap.awb
+File=modules/h264/src/nal/h264_nal_unwrap.awb
 Packagehint=h264
 
 [H264 decoder module]
@@ -59,19 +59,15 @@ Packagehint=h264
 h264_interpolator=H264 interpolator module
 
 [H264 Inter/Intra prediction module]
-File=modules/h264/src/h264_prediction.awb
+File=modules/h264/src/prediction/h264_prediction.awb
 Packagehint=h264
 
 [H264 inverse transform module]
-File=modules/h264/src/h264_inverse_transform.awb
-Packagehint=h264
-
-[H264 types]
-File=modules/h264/src/h264_system_types.awb
+File=modules/h264/src/transform/h264_inverse_transform.awb
 Packagehint=h264
 
 [H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
+File=modules/h264/src/deblocking/h264_deblocking_dummy.awb
 Packagehint=h264
 
 [H264 default control module]
@@ -79,11 +75,7 @@ File=modules/h264/src/h264_control.awb
 Packagehint=h264
 
 [H264 RRR input module]
-File=modules/h264/src/h264_input_rrr.awb
-Packagehint=h264
-
-[H264 output RRR Wide]
-File=modules/h264/src/h264_output_rrr_wide.awb
+File=modules/h264/src/inputGen/h264_input_rrr.awb
 Packagehint=h264
 
 [H264 Decoder Types]
@@ -94,20 +86,17 @@ Packagehint=h264
 File=config/pm/hasim/submodels/common/soft-connections-lib.apm
 Packagehint=hasim
 
-[H264 multi scratchpad frame buffer with write cache]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
-Packagehint=h264
-
 [HW/SW Hybrid Project Foundation]
 File=modules/project/project-hybrid.awb
 Packagehint=platforms
 
 [H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
+File=modules/h264/src/interpolator/h264_interpolator.awb
 Packagehint=h264
 
 [H264 buffer control module/Requires]
-h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
+h264_frame_buffer=H264 scratchpad frame buffer
+processor_library=Processor Library
 
 [Soft Connections Hybrid Application Environment]
 File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
@@ -132,8 +121,24 @@ File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
 [H264 buffer control module]
-File=modules/h264/src/h264_buffer_control.awb
+File=modules/h264/src/bufferControl/h264_buffer_control.awb
 Packagehint=h264
 
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
+
+[H264 scratchpad frame buffer]
+File=modules/h264/src/h264_scratchpad_frame_buffer.awb
+Packagehint=h264
+
+[H264 output RRR]
+File=modules/h264/src/finalOutput/h264_output_rrr.awb
+Packagehint=h264
+
+[H264 System types]
+File=modules/h264/src/h264_system_types.awb
+Packagehint=h264
+
+[Processor Library]
+File=modules/bluespec/mit-6.375/lab4/processor_library.awb
+Packagehint=mit-6.375
