@@ -138,6 +138,17 @@ typedef union tagged
 }
 InverseTransOT deriving(Eq,Bits);
 
+// Pass the new frame size along with the update width height
+typedef struct {
+  Bit#(PicWidthSz) width;
+  Bit#(PicAreaSz) area;
+} PicWidth deriving (Bits,Eq);
+
+typedef struct {
+  Bit#(PicWidthSz) height;
+  Bit#(PicAreaSz) area;
+} PicHeight deriving (Bits,Eq);
+
 typedef union tagged                
 {
  Bit#(8)  NewUnit;
@@ -156,6 +167,8 @@ typedef union tagged
  Bit#(1)  SPSgaps_in_frame_num_allowed_flag;//u(1)
  Bit#(PicWidthSz) SPSpic_width_in_mbs;//ue+1 1 to ?
  Bit#(PicHeightSz) SPSpic_height_in_map_units;//ue+1 1 to ?
+ // Use this to get rid of subsequent calculations downstream
+ 
 //// Bit#(1)  SPSframe_mbs_only_flag//u(1) (=1 for baseline)
  Bit#(1)  SPSdirect_8x8_inference_flag;//u(1)
  Bit#(1)  SPSframe_cropping_flag;//u(1)

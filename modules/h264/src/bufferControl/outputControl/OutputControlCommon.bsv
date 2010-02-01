@@ -4,6 +4,22 @@
 
 typedef Bit#(5) SlotNum;
 
+// remember we now seperate the Luma and Chroma...
+function ActionValue#(Bit#(FrameBufferSz)) calculateAddrBase(SlotNum slot);
+  actionvalue
+    let mbSize = 6;
+    let fieldSize = 1;
+    Bit#(FrameBufferSz) addrBase = (zeroExtend(slot) << fromInteger(mbSize + fieldSize + valueof(PicAreaSz)));
+    if(slot != 0 && addrBase == 0)
+      begin
+        $display("Buffer Control Addr Base overflow! Slot: %d addr: %h",slot,addrBase);
+        $finish;
+      end
+    return addrBase;
+  endactionvalue
+endfunction 
+
+
 typedef union tagged                
 {
  void     Idle;          //not working on anything in particular
@@ -19,7 +35,7 @@ typedef union tagged {
 //  Bit#(PicAreaSz) FrameInMB;
   void EndOfFile;
   Bit#(PicWidthSz) SPSpic_width_in_mbs;
-  Bit#(PicHeightSz) SPSpic_height_in_map_units;
+  PicHeight SPSpic_height_in_map_units;
 } OutputControlType deriving (Bits,Eq);
 
 // More parallel output control module

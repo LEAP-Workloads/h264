@@ -42,8 +42,6 @@ import ClientServer::*;
 
 
 
-
-
 //-----------------------------------------------------------
 // Buffer Controller  Module
 //-----------------------------------------------------------
@@ -160,8 +158,12 @@ module [CONNECTED_MODULE] mkBufferControl();
 		     begin
 			infifo.deq();
 			picHeight <= xdata;
-			frameinmb <= zeroExtend(picWidth)*zeroExtend(xdata);
-                        outputControl.enq(tagged SPSpic_height_in_map_units xdata);
+                        Bit#(PicAreaSz) area = zeroExtend(picWidth)*zeroExtend(xdata);
+			frameinmb <= area;
+                        PicHeight height; 
+                        height.height = xdata;
+                        height.area = area;
+                        outputControl.enq(tagged SPSpic_height_in_map_units height);
 		     end
 		  tagged PPSnum_ref_idx_l0_active .xdata :
 		     begin
@@ -170,7 +172,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 		     end
 		  tagged SHfirst_mb_in_slice .xdata :
 		     begin
-			if(adjustFreeSlots == 0) // Use SFIFO here 
+			if(adjustFreeSlots == 0) 
 			   begin
 			      infifo.deq();
 			      newInputFrame <= False;
@@ -181,8 +183,8 @@ module [CONNECTED_MODULE] mkBufferControl();
 			      if(newInputFrame)
 				 begin
 				    inSlot <= freeSlots.first; //Use SFIFO - this call to first should probably take a function ...
-                                    
-				    inAddrBase <= (zeroExtend(freeSlots.first)*zeroExtend(frameinmb)*3)<<5; // This is pretty heavyweight
+                                    let addr <- calculateAddrBase(freeSlots.first);
+				    inAddrBase <= addr;
 				 end
 			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
 			   end

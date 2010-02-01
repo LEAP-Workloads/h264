@@ -40,8 +40,8 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
                             outprocess <= Y;
                             $display("OutputControl Begin Slot: %d", slot);     
                             // XXX Fix this shit at some point. We should use the notion of a "maximum frame size" constant.  Then we won't need frameinmb in this calculation. 
-                            outAddrBase <= (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
-                          
+                            let baseAddr <- calculateAddrBase(slot);
+                            outAddrBase <= baseAddr;
                         end
 
       tagged SPSpic_width_in_mbs .width: 
@@ -51,12 +51,12 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
           outfifo.send(tagged SPSpic_width_in_mbs width);
        end
 
-      tagged SPSpic_height_in_map_units .hieght:
+      tagged SPSpic_height_in_map_units .height:
         begin
           infifo.deq();
-          picHeight <= hieght;
-          frameinmb <= zeroExtend(picWidth)*zeroExtend(hieght);
-          outfifo.send(tagged SPSpic_height_in_map_units hieght);
+          picHeight <= height.height;
+          frameinmb <= height.area;
+          outfifo.send(tagged SPSpic_height_in_map_units height.height);
         end
 
       default: 
