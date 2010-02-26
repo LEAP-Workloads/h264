@@ -27,7 +27,7 @@ File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module (dummy)
+h264_deblocking=H264 deblocking filter module
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=H264 Inter/Intra prediction module
 h264_entropy_decoder=H264 entropy decoder module
@@ -42,7 +42,7 @@ Packagehint=h264
 
 [H264 System/Requires]
 h264_decoder=H264 decoder module
-h264_types=H264 types
+h264_types=H264 System types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
 h264_output=H264 output RRR
@@ -64,10 +64,6 @@ Packagehint=h264
 
 [H264 inverse transform module]
 File=modules/h264/src/transform/h264_inverse_transform.awb
-Packagehint=h264
-
-[H264 types]
-File=modules/h264/src/h264_system_types.awb
 Packagehint=h264
 
 [H264 default control module]
@@ -126,10 +122,6 @@ Packagehint=hasim
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/deblocking/h264_deblocking_dummy.awb
-Packagehint=h264
-
 [H264 interpolator module]
 File=modules/h264/src/interpolator/h264_interpolator.awb
 Packagehint=h264
@@ -160,3 +152,11 @@ Packagehint=h264
 
 [H264 output control module/Requires]
 processor_library=Processor Library
+
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
+Packagehint=h264
+
+[H264 System types]
+File=modules/h264/src/h264_system_types.awb
+Packagehint=h264
