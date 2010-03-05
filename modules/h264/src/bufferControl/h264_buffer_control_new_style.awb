@@ -17,5 +17,7 @@
 
 %param SYNTH_BOUNDARY mkBufferControl "synth boundary names"
 
+%param DEBUG_BUFFER_CONTROL 0 "Buffer control debug"
+
 %AWB_END
 

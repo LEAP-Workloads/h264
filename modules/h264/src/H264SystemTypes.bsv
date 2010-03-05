@@ -539,4 +539,4 @@ typedef enum {
 
 // Use FrameBufferSz to define the luma/chroma sizes
 typedef Bit#(TSub#(FrameBufferSz, 1)) FrameBufferAddrLuma;
-typedef Bit#(TSub#(FrameBufferSz, 2)) FrameBufferAddrChroma;
+typedef Bit#(TSub#(FrameBufferSz, 3)) FrameBufferAddrChroma;

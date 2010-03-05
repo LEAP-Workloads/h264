@@ -4,17 +4,21 @@
 #
 # ***************
 
-experiments = h264_fast 
+experiments = h264_decoder_coalesce
 config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif.h264.cfg
 config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif1-5_no_deblock.264.cfg
 config/bm/h264/benchmarks.cfx/benchmarks/squid.264.cfg
 config/bm/h264/benchmarks.cfx/benchmarks/ww2.8.264.cfg
 
 experiments = h264_decoder
- Do few tests here
-config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif.h264.cfg
+config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif1-5_no_deblock.264.cfg
+config/bm/h264/benchmarksDeblock.cfx/benchmarksDeblock/x264foreman_qcif1-5.264.cfg
 
 experiments = h264_parallel
 config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif.h264.cfg
 config/bm/h264/benchmarksDeblock.cfx/benchmarksDeblock/720p50_parkrun_ter1-5.264.cfg
 config/bm/h264/benchmarksDeblock.cfx/benchmarksDeblock/x264foreman_qcif1-5.264.cfg
+
+experiments = h264_decoder_coalesce
+config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif.h264.cfg
+config/bm/h264/benchmarks.cfx/benchmarks/foreman_qcif1-5_no_deblock.264.cfg

@@ -755,7 +755,7 @@ module [CONNECTED_MODULE] mkPrediction ();
 			Bit#(32) intraLeftValNextTemp = intraLeftValNext;
 			if(totalVer==0 || (outstatefifo.first()==Intra4x4 && pixelVer==0))
 			   begin
-			      Bit#(32) tempValSet = select(intraTopVal,zeroExtend(blockHor));
+			      Bit#(32) tempValSet = select(intraTopVal,blockHor);
 			      intraLeftValNextTemp = zeroExtend(tempValSet[31:24]);
 			   end
 			case(pixelVer)
@@ -788,7 +788,7 @@ module [CONNECTED_MODULE] mkPrediction ();
 	       begin
 		  if(outChromaFlag==0)
 		     begin
-			intraTopVal <= update(intraTopVal,zeroExtend(blockHor),{outputVector[3],outputVector[2],outputVector[1],outputVector[0]});
+			intraTopVal <= update(intraTopVal,blockHor,{outputVector[3],outputVector[2],outputVector[1],outputVector[0]});
 			if(outstatefifo.first()==Intra4x4)
 			   intra4x4typeTop <= update(intra4x4typeTop,blockHor,cur_intra4x4_pred_mode);
 			else if(outstatefifo.first()==Intra)
@@ -1687,7 +1687,7 @@ module [CONNECTED_MODULE] mkPrediction ();
 	       begin
 		  outFlag = 1;
 		  Bit#(40) leftValSet = select(intraLeftVal,blockVer);
-		  Bit#(32) topMidValSet = select(intraTopVal,zeroExtend(blockHor));
+		  Bit#(32) topMidValSet = select(intraTopVal,blockHor);
 		  Bit#(32) topRightValSet = select(intraTopVal,{1'b0,blockHor}+1);
 		  Bit#(72) topValSet;
 		  if((blockNum[3:2]==3 && blockNum[0]==1) || blockNum[1:0]==3)

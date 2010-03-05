@@ -184,6 +184,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 				 begin
 				    inSlot <= freeSlots.first; //Use SFIFO - this call to first should probably take a function ...
                                     let addr <- calculateAddrBase(freeSlots.first);
+                                    $display("BufferControl setting base addr %h for slot %d", addr, freeSlots.first);
 				    inAddrBase <= addr;
 				 end
 			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
@@ -374,7 +375,15 @@ module [CONNECTED_MODULE] mkBufferControl();
 	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
 	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
                                                                     indata.ver);
-               $display("TRACE BufferControl: Luma Store: addr:%h",addr);
+  
+               if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Luma Store: hor: %d ver: %d addr:%h data:%h", indata.hor, 
+                                                                                                indata.ver, 
+                                                                                                addr, 
+                                                                                                indata.data);
+                 end
+
 	       storeReqQ.send(FBStoreReq {addr:inAddrBase+zeroExtend(addr),data:indata.data});
 	    end
 	 tagged DFBChroma .indata :
@@ -387,7 +396,15 @@ module [CONNECTED_MODULE] mkBufferControl();
 	       if(indata.uv == 1)
 		  vOffset = {frameinmb,4'b0000};
 	       storeReqQ.send(FBStoreReq {addr:(inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)),data:indata.data});
-               $display("TRACE BufferControl: Chroma Store: UV: %h addr:%h",indata.uv, addr);
+                 if(`DEBUG_BUFFER_CONTROL == 1) 
+                 begin
+                   $display("TRACE BufferControl: Chroma Store: hor: %d, ver %d, UV: %h addr:%h data:%h",
+                            indata.hor, 
+                            indata.ver, 
+                            indata.uv, 
+                            addr, 
+                            indata.data);
+                 end
 	       //$display( "TRACE Buffer Control: input Chroma %0d %0h %h %h %h %h", indata.uv, indata.ver, indata.hor, indata.data, addr, (inAddrBase+zeroExtend(chromaOffset)+zeroExtend(vOffset)+zeroExtend(addr)));
 	    end
 	 tagged EndOfFrame :
@@ -524,7 +541,7 @@ module [CONNECTED_MODULE] mkBufferControl();
    rule interLumaReq ( inLoadReqQ.receive() matches tagged IPLoadLuma .reqdata &&& !lockInterLoads );
       inLoadReqQ.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
-      Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
+      Bit#(FrameBufferSz) addrBase <- calculateAddrBase(slot);
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
       loadReqQ2.send(FBLoadReq (addrBase+zeroExtend(addr)));
@@ -535,7 +552,7 @@ module [CONNECTED_MODULE] mkBufferControl();
    rule interChromaReq ( inLoadReqQ.receive() matches tagged IPLoadChroma .reqdata &&& !lockInterLoads );
       inLoadReqQ.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
-      Bit#(FrameBufferSz) addrBase = (zeroExtend(slot)*zeroExtend(frameinmb)*3)<<5;
+      Bit#(FrameBufferSz) addrBase <- calculateAddrBase(slot);
       Bit#(TAdd#(PicAreaSz,6)) chromaOffset = {frameinmb,6'b000000};
       Bit#(TAdd#(PicAreaSz,4)) vOffset = 0;
       if(reqdata.uv == 1)

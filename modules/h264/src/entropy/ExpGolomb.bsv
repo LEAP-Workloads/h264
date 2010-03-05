@@ -48,7 +48,7 @@
    function Bit#(33) expgolomb_codenum32( Buffer inbuffer, Bufcount egnumbits );//exp-golomb codenum calculation
       Bit#(33) tempbuffer = inbuffer[buffersize-1:buffersize-33];
       Bufcount shiftamount = 33-egnumbits;
-      return (tempbuffer >> zeroExtend(shiftamount))-1;
+      return (tempbuffer >> (shiftamount))-1;
    endfunction
 
    (* noinline *)
@@ -81,10 +81,10 @@
 ///   (* noinline *)
    function Bit#(17) expgolomb_codenum( Buffer inbuffer );//exp-golomb codenum calculation
       Bufcount egnumbits = expgolomb_numbits( inbuffer ) >> 1;
-      Bit#(33) tempbuffer = inbuffer[buffersize-1:buffersize-33] << zeroExtend(egnumbits);
+      Bit#(33) tempbuffer = inbuffer[buffersize-1:buffersize-33] << (egnumbits);
       Bit#(17) tempout = tempbuffer[32:16];
       Bufcount shiftamount = 17-egnumbits-1;
-      return (tempout >> zeroExtend(shiftamount))-1;
+      return (tempout >> (shiftamount))-1;
    endfunction
    
  //  (* noinline *)

@@ -15,6 +15,7 @@ function ActionValue#(Bit#(FrameBufferSz)) calculateAddrBase(SlotNum slot);
         $display("Buffer Control Addr Base overflow! Slot: %d addr: %h",slot,addrBase);
         $finish;
       end
+    $display("OutputControl Base Addr Slot: %d addr: %h",slot,addrBase);
     return addrBase;
   endactionvalue
 endfunction 

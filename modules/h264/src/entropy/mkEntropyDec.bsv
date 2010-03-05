@@ -272,7 +272,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
 		    && endnalflag == 0);//predicate not sure
       Buffer temp = zeroExtend(extrabuffer);
       Bufcount temp2 = truncate(buffersize)-bufcount-32;
-      buffer <= (buffer | (temp << zeroExtend(temp2)));
+      buffer <= (buffer | (temp << (temp2)));
       case ( extrabufcount )
 	 4: bufcount <= bufcount+32;
 	 3: bufcount <= bufcount+24;
@@ -284,7 +284,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
       extrabufcount <= 0;
       if(infifo.receive()==NewUnit || infifo.receive()==EndOfFile)
 	 endnalflag <= 1;
-      //$display( "TRACE EntropyDec: fillbuffer RbspByte %h %h %h %h %h %h %h %h", extrabufcount, bufcount, extrabuffer, temp, temp2, (temp << zeroExtend(temp2)), buffer, (buffer | (temp << zeroExtend(temp2))));
+      //$display( "TRACE EntropyDec: fillbuffer RbspByte %h %h %h %h %h %h %h %h", extrabufcount, bufcount, extrabuffer, temp, temp2, (temp << (temp2)), buffer, (buffer | (temp << (temp2))));
    endrule
 
 
@@ -339,7 +339,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
 		  3:
 		  begin
 		     Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
-		     tttt = tttt >> 16 - zeroExtend(spslog2_max_frame_num);
+		     tttt = tttt >> 16 - (spslog2_max_frame_num);
                      if(`ENTROPY_DEBUG == 1) 
                        begin
 		         $display( "ccl2SHframe_num %0d", tttt );
@@ -366,7 +366,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
 		     if(spspic_order_cnt_type == 0)
 			begin
 			   Bit#(16) tttt = buffer[buffersize-1:buffersize-16];
-			   tttt = tttt >> 16 - zeroExtend(spslog2_max_pic_order_cnt_lsb);
+			   tttt = tttt >> 16 - (spslog2_max_pic_order_cnt_lsb);
                            if(`ENTROPY_DEBUG == 1) 
                              begin
 			       $display( "ccl2SHpic_order_cnt_lsb %0d", tttt );
@@ -1562,7 +1562,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
 			tempreg <= zeroExtend(6'b111111);
 		     if(mbPartPredMode(sdmmbtype,0)==Intra_16x16 && maxNumCoeff==16)
 			nextstate = tagged ResidualBlock 1;
-		     else if(residualChroma==0 && (sdmcodedBlockPatternLuma & (1 << zeroExtend(temp5bit[3:2])))==0)
+		     else if(residualChroma==0 && (sdmcodedBlockPatternLuma & (1 << (temp5bit[3:2])))==0)
 			begin
 			   calcnc.nNupdate_luma(truncate(temp5bit),0);
 			   outfifo_ITB.send(tagged SDMRcoeffLevelZeros maxNumCoeff);
@@ -1628,20 +1628,20 @@ module [CONNECTED_MODULE] mkEntropyDec();
 				 Bit#(4) levelSuffixSize = zeroExtend(suffixLength);
 				 Bit#(4) level_prefix = cavlc_level_prefix( buffer );
 				 Bit#(5) temp_level_prefix = zeroExtend(level_prefix);
-				 Bit#(28) tempbuffer = buffer[buffersize-1:buffersize-28] << zeroExtend(temp_level_prefix+1);
-				 Bit#(14) levelCode = zeroExtend(level_prefix) << zeroExtend(suffixLength);
+				 Bit#(28) tempbuffer = buffer[buffersize-1:buffersize-28] << (temp_level_prefix+1);
+				 Bit#(14) levelCode = zeroExtend(level_prefix) << (suffixLength);
 				 if(level_prefix == 14 && suffixLength == 0)
 				    levelSuffixSize = 4;
 				 else if(level_prefix == 15)
 				    levelSuffixSize = 12;
-				 levelCode = levelCode + zeroExtend(tempbuffer[27:16] >> (12-zeroExtend(levelSuffixSize)));//level_suffix
+				 levelCode = levelCode + zeroExtend(tempbuffer[27:16] >> (12-(levelSuffixSize)));//level_suffix
 				 if(level_prefix == 15 && suffixLength == 0)
 				    levelCode = levelCode + 15;
 				 if(temp5bit2 == zeroExtend(temp3bit0) && temp3bit0 < 3)
 				    levelCode = levelCode + 2;
 				 if(suffixLength == 0)
 				    suffixLength = 1;
-				 if( suffixLength < 6 && ((levelCode+2) >> 1) > (3 << zeroExtend(suffixLength-1)) )
+				 if( suffixLength < 6 && ((levelCode+2) >> 1) > (3 << (suffixLength-1)) )
 				    suffixLength = suffixLength+1;
 				 if(levelCode[0] == 0)
 				    cavlcFIFO.enq(truncate((levelCode+2) >> 1));
@@ -1782,7 +1782,7 @@ module [CONNECTED_MODULE] mkEntropyDec();
 	    $display( "ERROR EntropyDec: not enough bits in buffer" );
 	    nextstate = tagged Start;
 	 end
-      buffer <= buffer << zeroExtend(numbitsused);
+      buffer <= buffer << (numbitsused);
       bufcount <= bufcount-numbitsused;
       state <= nextstate;
       

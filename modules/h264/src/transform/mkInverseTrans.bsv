@@ -485,13 +485,13 @@ module [CONNECTED_MODULE] mkInverseTrans();
       endcase
       storeValueTemp = zeroExtend(levelScaleValue)*signExtend(workValue);
       if(state==ChromaDC)
-	 storeValue = truncate( (storeValueTemp << zeroExtend(qpdiv6)) >> 1 );
+	 storeValue = truncate( (storeValueTemp << (qpdiv6)) >> 1 );
       else
 	 begin
 	    if(qp >= 36)
-	       storeValue = truncate( storeValueTemp << zeroExtend(qpdiv6 - 2) );
+	       storeValue = truncate( storeValueTemp << (qpdiv6 - 2) );
 	    else
-	       storeValue = truncate( ((storeValueTemp << 4) + zeroExtend(workOne << zeroExtend(5-qpdiv6))) >> zeroExtend(6 - qpdiv6) );
+	       storeValue = truncate( ((storeValueTemp << 4) + zeroExtend(workOne << (5-qpdiv6))) >> (6 - qpdiv6) );
 	 end
       storeVector <= update(storeVectorTemp, pixelNum, storeValue);
       if((state==ChromaDC && pixelNum==7) || pixelNum==15)
@@ -647,7 +647,7 @@ module [CONNECTED_MODULE] mkInverseTrans();
 		  end
 	       Bit#(16) workValueTemp = zeroExtend(levelScaleValue)*signExtend(xdata.level);
 	       Bit#(16) workValue;
-	       workValue = workValueTemp << zeroExtend(qpdiv6);
+	       workValue = workValueTemp << (qpdiv6);
 	       workVector <= update(workVectorTemp, reverseInverseZigZagScan(pixelNum), workValue);
 	       if(zeroExtend(pixelNum)+1+xdata.zeros==16 || (zeroExtend(pixelNum)+1+xdata.zeros==15 && (state==Chroma || state==Intra16x16)))
 		  begin
