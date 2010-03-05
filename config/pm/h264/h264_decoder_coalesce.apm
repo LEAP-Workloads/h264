@@ -144,3 +144,7 @@ DEBUG_BUFFER_CONTROL=1
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
 Packagehint=h264
+
+[FPGA Environment/Params]
+CENTRAL_CACHE_DEBUG_ENABLE=0
+SRATCHPAD_MEMORY_DEBUG_ENABLE=0

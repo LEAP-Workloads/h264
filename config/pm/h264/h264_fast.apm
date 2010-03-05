@@ -146,3 +146,7 @@ h264_frame_buffer=H264 simulation module
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
+
+[FPGA Environment/Params]
+CENTRAL_CACHE_DEBUG_ENABLE=0
+SRATCHPAD_MEMORY_DEBUG_ENABLE=0

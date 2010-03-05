@@ -144,3 +144,7 @@ h264_interpolator_parallel=H264 parallel interpolator module
 [H264 Luma-Chroma Frame-buffer]
 File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer_parallel.awb
 Packagehint=h264
+
+[FPGA Environment/Params]
+CENTRAL_CACHE_DEBUG_ENABLE=0
+SRATCHPAD_MEMORY_DEBUG_ENABLE=0
