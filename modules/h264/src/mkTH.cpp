@@ -16,7 +16,7 @@
 #include <pthread.h>
 
 #include "asim/provides/connected_application.h"
-
+#include "asim/provides/stats_device.h"
 #include "mkTH.h"
 
 
@@ -55,6 +55,7 @@ void
 CONNECTED_APPLICATION_CLASS::Main()
 {
   printf("Hello world\n");
+  STATS_DEVICE_SERVER_CLASS::GetInstance()->SetupStats();
 
   pthread_mutex_lock(&lock);
   pthread_cond_wait(&cond, &lock);
