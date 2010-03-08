@@ -29,7 +29,7 @@ Packagehint=h264
 [H264 decoder module/Requires]
 h264_deblocking=H264 deblocking filter module
 h264_inverse_transform=H264 inverse transform module
-h264_prediction=H264 Inter/Intra prediction module
+h264_prediction=Synth Interpolator H264 prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 buffer control module, with new output style
@@ -53,13 +53,6 @@ Packagehint=h264
 
 [H264 decoder module]
 File=modules/h264/src/h264_decoder.awb
-Packagehint=h264
-
-[H264 Inter/Intra prediction module/Requires]
-h264_interpolator=H264 interpolator module
-
-[H264 Inter/Intra prediction module]
-File=modules/h264/src/prediction/h264_prediction.awb
 Packagehint=h264
 
 [H264 inverse transform module]
@@ -122,10 +115,6 @@ Packagehint=hasim
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
-[H264 interpolator module]
-File=modules/h264/src/interpolator/h264_interpolator.awb
-Packagehint=h264
-
 [H264 output RRR]
 File=modules/h264/src/finalOutput/h264_output_rrr.awb
 Packagehint=h264
@@ -164,3 +153,24 @@ Packagehint=h264
 [FPGA Environment/Params]
 CENTRAL_CACHE_DEBUG_ENABLE=0
 SRATCHPAD_MEMORY_DEBUG_ENABLE=0
+
+[Platform Services/Params]
+PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
+
+[Synth Interpolator H264 prediction module/Requires]
+h264_interpolator_synth=Synthesizable H264 interpolator module
+
+[Synth Interpolator H264 prediction module]
+File=modules/h264/src/prediction/h264_prediction_synth.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module]
+File=modules/h264/src/interpolator/h264_interpolator_synth.awb
+Packagehint=h264
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types

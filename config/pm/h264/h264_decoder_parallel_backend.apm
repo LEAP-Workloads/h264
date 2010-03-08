@@ -148,3 +148,13 @@ Packagehint=h264
 [FPGA Environment/Params]
 CENTRAL_CACHE_DEBUG_ENABLE=0
 SRATCHPAD_MEMORY_DEBUG_ENABLE=0
+
+[H264 parallel interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[Platform Services/Params]
+PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
+Packagehint=h264

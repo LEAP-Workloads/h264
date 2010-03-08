@@ -4,15 +4,15 @@
 
 %AWB_START
 
-%name H264 Inter/Intra prediction module
+%name Synth Interpolator H264 prediction module
 %desc H264 Inter/Intra prediction module
 %provides h264_prediction
 
 %attributes h264
 
-%requires h264_interpolator
+%requires h264_interpolator_synth
 
-%public mkPrediction.bsv IPrediction.bsv
+%public mkPredictionSynth.bsv IPrediction.bsv
 
 %param SYNTH_BOUNDARY mkPrediction "synth boundary"
 %param --global PREDICTION_DEBUG  0 "Enable Predicition Debug"

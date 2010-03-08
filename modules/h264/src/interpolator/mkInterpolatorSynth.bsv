@@ -1,3 +1,4 @@
+
 // The MIT License
 
 // Copyright (c) 2006-2007 Massachusetts Institute of Technology
@@ -46,20 +47,19 @@ import ClientServer::*;
 //-----------------------------------------------------------
 
 
-module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpolator );
-   
-   FIFOF#(InterpolatorIT) reqfifoLoad <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);  // This fifo takes in motion vector
-                                                                                     // pixel requests.
+module [CONNECTED_MODULE] mkInterpolator (Empty);
+
+   FIFOF#(InterpolatorIT) reqfifoLoad <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE);                                                                                        // pixel requests.
    FIFO#(InterpolatorWT) reqfifoWork1 <- mkSizedFIFO(`REQFIFO_WORK_SIZE); // This is where the memory responses
                                                                                      // come from
    Interpolate15to8 interpolate15to8 <- mkInterpolate15to8();
    Interpolate8to15 interpolate8to15 <- mkInterpolate8to15();  
    Reg#(Maybe#(InterpolatorWT)) reqregWork2 <- mkReg(Invalid);
-   FIFO#(Vector#(4,Bit#(8))) outfifo <- mkFIFO;
-   Reg#(Bool) endOfFrameFlag <- mkReg(False);
 
-   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive(respQ);
-   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send(reqQ);
+   Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
+   Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
+   Connection_Receive#(InterpolatorIT) infifo <- mkConnection_Receive("mkInterpolator_infifo");
+   Connection_Send#(Vector#(4,Bit#(8))) outfifo <- mkConnection_Send("mkInterolator_outfifo");
 
 
    Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
@@ -106,13 +106,40 @@ module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpola
      statReqQEmpty.incr(); 
    endrule
 
-   rule sendEndOfFrameReq( endOfFrameFlag );
-      endOfFrameFlag <= False;
-      memReqQ.send(IPLoadEndFrame);
+   rule getWidth( infifo.receive matches tagged PicWidth .width );
+      infifo.deq;
+      picWidth <= width;
+   endrule
+
+   rule getHeight( infifo.receive matches tagged PicHeight .height );
+      infifo.deq;
+      picHeight <= height;
+   endrule
+  
+   // Must wait until all loads are issued
+   rule sendEndOfFrameReq( infifo.receive matches tagged EndOfFrame);
+      infifo.deq;
+      reqfifoLoad.enq(infifo.receive);
+   endrule
+
+   rule workInLuma(infifo.receive matches tagged IPLuma .indata );
+      reqfifoLoad.enq(infifo.receive);
+      reqfifoWork1.enq(IPWLuma {xFracL:indata.mvhor[1:0],yFracL:indata.mvver[1:0],offset:indata.mvhor[3:2],bt:indata.bt});
+      infifo.deq;
    endrule
    
-   
-   rule loadLuma( reqfifoLoad.first() matches tagged IPLuma .reqdata &&& !endOfFrameFlag );
+   rule workInChroma(infifo.receive matches tagged IPChroma .indata );
+      reqfifoLoad.enq(infifo.receive);
+      reqfifoWork1.enq(IPWChroma {xFracC:indata.mvhor[2:0],yFracC:indata.mvver[2:0],offset:indata.mvhor[4:3]+{indata.hor[0],1'b0},bt:indata.bt});
+      infifo.deq;
+   endrule   
+
+   rule endOfFrame( reqfifoLoad.first() matches tagged EndOfFrame );
+      reqfifoLoad.deq;  
+      memReqQ.send(IPLoadEndFrame);
+   endrule
+
+   rule loadLuma( reqfifoLoad.first() matches tagged IPLuma .reqdata );
       Bit#(2) xfracl = reqdata.mvhor[1:0];
       Bit#(2) yfracl = reqdata.mvver[1:0];
       Bit#(2) offset = reqdata.mvhor[3:2];
@@ -229,7 +256,7 @@ module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpola
    endrule   
 
 
-   rule loadChroma( reqfifoLoad.first() matches tagged IPChroma .reqdata &&& !endOfFrameFlag );
+   rule loadChroma( reqfifoLoad.first() matches tagged IPChroma .reqdata );
       Bit#(3) xfracc = reqdata.mvhor[2:0];
       Bit#(3) yfracc = reqdata.mvver[2:0];
       Bit#(2) offset = reqdata.mvhor[4:3]+{reqdata.hor[0],1'b0};
@@ -820,7 +847,7 @@ module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpola
 
 
   rule outputing( !outDone && resultReady[{outBlockNum[1],outPixelNum,outBlockNum[0]}]==1 );
-      outfifo.enq(resultFile.sub({outBlockNum[1],outPixelNum,outBlockNum[0]}));
+      outfifo.send(resultFile.sub({outBlockNum[1],outPixelNum,outBlockNum[0]}));
       outPixelNum <= outPixelNum+1;
       if(outPixelNum == 3)
 	 begin
@@ -862,35 +889,6 @@ module [CONNECTED_MODULE] mkInterpolator#(String reqQ, String respQ) ( Interpola
       $display( "Trace interpolator: switching8x8 blockNum: %h pixelNum: %h", outBlockNum, outPixelNum);
    endrule
 
-
-
-   method Action   setPicWidth( Bit#(PicWidthSz) newPicWidth );
-      picWidth <= newPicWidth;
-   endmethod
-   
-   method Action   setPicHeight( Bit#(PicHeightSz) newPicHeight );
-      picHeight <= newPicHeight;
-   endmethod
-   
-   method Action request( InterpolatorIT inputdata );
-      reqfifoLoad.enq(inputdata);
-      if(inputdata matches tagged IPLuma .indata)
-	 reqfifoWork1.enq(IPWLuma {xFracL:indata.mvhor[1:0],yFracL:indata.mvver[1:0],offset:indata.mvhor[3:2],bt:indata.bt});
-      else if(inputdata matches tagged IPChroma .indata)
-	 reqfifoWork1.enq(IPWChroma {xFracC:indata.mvhor[2:0],yFracC:indata.mvver[2:0],offset:indata.mvhor[4:3]+{indata.hor[0],1'b0},bt:indata.bt});
-   endmethod
-
-   method Vector#(4,Bit#(8)) first();
-      return outfifo.first();
-   endmethod
-   
-   method Action deq();
-      outfifo.deq();
-   endmethod
-   
-   method Action endOfFrame();
-      endOfFrameFlag <= True;
-   endmethod
    
 
 endmodule

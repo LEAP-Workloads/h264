@@ -31,9 +31,9 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/common_services.bsh"
 
-`include "asim/provides/h264_interpolator.bsh"
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
+`include "asim/provides/h264_interpolator_synth.bsh"
 `include "asim/provides/h264_interpolator_types_synth.bsh"
 
 import FIFO::*;
@@ -172,14 +172,15 @@ module [CONNECTED_MODULE] mkPrediction ();
    Connection_Receive#(MemResp#(68)) intraMemRespQ <- mkConnection_Receive("mkPrediction_intraMemRespQ");
    Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),68)) intraMemReqQ <- mkConnection_Send("mkPrediction_intraMemReqQ");
    Connection_Receive#(MemResp#(32)) interMemRespQ <- mkConnection_Receive("mkPrediction_interMemRespQ");
-   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkConnection_Send("mkPrediction_interMemReqQ");
-
+   Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkConnection_Send("mkPrediction_interMemReqQ");                    
+   Connection_Send#(InterpolatorIT) interpolatorOutfifo <- mkConnection_Send("mkInterpolator_infifo");
+   Connection_Receive#(Vector#(4,Bit#(8))) interpolatorInfifo <- mkConnection_Receive("mkInterolator_outfifo");
 
    
 
 
 
-   //Common state
+   //Common stat
    Reg#(Bool)            passFlag   <- mkReg(True);
    Reg#(Bit#(4))         blockNum   <- mkReg(0);
    Reg#(Bit#(4))         pixelNum   <- mkReg(0);
@@ -204,8 +205,7 @@ module [CONNECTED_MODULE] mkPrediction ();
    //Reg#(Vector#(16,Bit#(8))) workVector       <- mkRegU();
    
    //Inter state
-   Interpolator interpolator <- mkInterpolator("mkPrediction_interpolatorMemReqQ",
-                                               "mkPrediction_interpolatorMemRespQ");
+   Empty interpolator <- mkInterpolator();
    Reg#(InterState) interstate <- mkReg(Start);
    Reg#(Bit#(PicAreaSz)) interPskipCount <- mkReg(0);
    Reg#(Vector#(5,InterBlockMv)) interTopVal <- mkRegU();
@@ -336,14 +336,14 @@ module [CONNECTED_MODULE] mkPrediction ();
 	       infifo.deq();
 	       outfifo.send(tagged EDOT infifo.receive());
 	       picWidth <= xdata;
-	       interpolator.setPicWidth(xdata);
+	       interpolatorOutfifo.send(tagged PicWidth xdata);
 	    end
 	 tagged SPSpic_height_in_map_units .xdata :
 	    begin
 	       infifo.deq();
 	       outfifo.send(tagged EDOT infifo.receive());
 	       picHeight <= xdata;
-	       interpolator.setPicHeight(xdata);
+	       interpolatorOutfifo.send(tagged PicHeight xdata);
 	    end
 	 tagged PPSconstrained_intra_pred_flag .xdata :
 	    begin
@@ -873,7 +873,7 @@ module [CONNECTED_MODULE] mkPrediction ();
 			      outstatefifo.deq;
 			      intrastate <= Start;
 			      if(truncate(currMbHor)==picWidth-1 && currMbVer==picHeight-1)
-				 interpolator.endOfFrame();
+				 interpolatorOutfifo.send(tagged EndOfFrame);
 			      nextoutputfifo.deq();
 			   end
 			else
@@ -1417,13 +1417,13 @@ module [CONNECTED_MODULE] mkPrediction ();
 		  btTemp = IP8x8;
 		  mvhorTemp = tpl_1(interMvFile.sub({interIPMbPartNumTemp,2'b00}));
 		  mvverTemp = tpl_2(interMvFile.sub({interIPMbPartNumTemp,2'b00}));
-		  interpolator.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+		  interpolatorOutfifo.send(tagged IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
 	       end
 	    else
-	       interpolator.request(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	       interpolatorOutfifo.send(IPLuma {refIdx:refIndex,hor:horTemp,ver:verTemp,mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
 	 end
       else
-	 interpolator.request(IPChroma {refIdx:refIndex,uv:interIPStepCount[0],hor:horTemp,ver:truncate(verTemp>>1),mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
+	 interpolatorOutfifo.send(tagged IPChroma {refIdx:refIndex,uv:interIPStepCount[0],hor:horTemp,ver:truncate(verTemp>>1),mvhor:mvhorTemp,mvver:mvverTemp,bt:btTemp});
       if(interIPSubMbPartNum >= truncate(numSubPart-1))
 	 begin
 	    interIPSubMbPartNum <= 0;
@@ -1458,8 +1458,8 @@ module [CONNECTED_MODULE] mkPrediction ();
 
    
    rule interOutputTransfer ( True );
-      predictedfifo.enq(interpolator.first());
-      interpolator.deq();
+      predictedfifo.enq(interpolatorInfifo.receive());
+      interpolatorInfifo.deq();
       //$display( "Trace Prediction: interOutputTransfer %h %h", interstate, interOutputCount);
    endrule
 

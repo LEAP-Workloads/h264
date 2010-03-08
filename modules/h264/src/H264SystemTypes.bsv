@@ -433,13 +433,6 @@ typedef enum
  IP4x4
 } IPBlockType deriving(Eq,Bits);
 
-typedef union tagged
-{
- struct { Bit#(4) refIdx; Bit#(TAdd#(PicWidthSz,2)) hor; Bit#(TAdd#(PicHeightSz,4)) ver; Bit#(14) mvhor; Bit#(12) mvver; IPBlockType bt; } IPLuma;
- struct { Bit#(4) refIdx; Bit#(1) uv; Bit#(TAdd#(PicWidthSz,2)) hor; Bit#(TAdd#(PicHeightSz,3)) ver; Bit#(14) mvhor; Bit#(12) mvver; IPBlockType bt; } IPChroma;
-}
-InterpolatorIT deriving(Eq,Bits);
-
 typedef union tagged                
 {
  Bit#(32)  YUV;

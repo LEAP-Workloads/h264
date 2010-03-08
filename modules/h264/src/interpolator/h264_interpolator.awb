@@ -8,9 +8,12 @@
 %desc H264 interpolator module
 %provides h264_interpolator
 
+%requires h264_interpolator_types_synth   
+   
+
 %attributes h264
 
-%public mkInterpolator.bsv IInterpolator.bsv Interpolator.dic
+%public mkInterpolator.bsv IInterpolator.bsv Interpolator.dic 
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
 

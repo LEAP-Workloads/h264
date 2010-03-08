@@ -10,6 +10,8 @@
 
 %attributes h264
 
+%requires h264_interpolator_types_synth   
+
 %public mkInterpolatorChromatic.bsv IInterpolatorParallel.bsv
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"

@@ -4,22 +4,22 @@
 
 %AWB_START
 
-%name H264 parallel request interpolator module
-%desc H264 parallel request interpolator module
-%provides h264_interpolator
+%name Synthesizable H264 interpolator module
+%desc H264 interpolator module
+%provides h264_interpolator_synth
 
-%requires h264_interpolator_types_synth   
+%requires h264_interpolator_types_synth
 
 %attributes h264
 
-%public mkInterpolatorSplitMemory.bsv IInterpolator.bsv Interpolator.dic
+
+%sources -t BSV -v PUBLIC mkInterpolatorSynth.bsv
+%sources -t DICT -v PUBLIC Interpolator.dic
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
 
+%param SYNTH_BOUNDARY mkInterpolator "synth boundary"
 %param REQFIFO_LOAD_SIZE 8 "Req FIFO Load Size"
 %param REQFIFO_WORK_SIZE 8 "Req FIFO Work Size"
 
 %AWB_END
-
-
-
