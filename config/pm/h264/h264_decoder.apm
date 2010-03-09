@@ -119,10 +119,6 @@ Packagehint=hasim
 File=modules/h264/src/finalOutput/h264_output_rrr.awb
 Packagehint=h264
 
-[H264 simulation module]
-File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer.awb
-Packagehint=h264
-
 [H264 buffer control module, with new output style]
 File=modules/h264/src/bufferControl/h264_buffer_control_new_style.awb
 Packagehint=h264
@@ -174,3 +170,7 @@ Packagehint=h264
 
 [Synthesizable H264 interpolator module/Requires]
 h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 simulation module]
+File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer.awb
+Packagehint=h264

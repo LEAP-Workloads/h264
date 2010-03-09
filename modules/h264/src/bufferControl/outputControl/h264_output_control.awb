@@ -14,6 +14,7 @@
 
 %public mkOutputControl.bsv OutputControlCommon.bsv
 
+%param DEBUG_OUTPUT_CONTROL 0 "Output control debug"
 
 %AWB_END
 

@@ -38,10 +38,14 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
                          end
       tagged Slot .slot : begin
                             outprocess <= Y;
-                            $display("OutputControl Begin Slot: %d", slot);     
-                            // XXX Fix this shit at some point. We should use the notion of a "maximum frame size" constant.  Then we won't need frameinmb in this calculation. 
                             let baseAddr <- calculateAddrBase(slot);
-                            $display("OutputControl setting base addr %h for slot %d", baseAddr, slot);
+
+                            if(`DEBUG_OUTPUT_CONTROL == 1)
+                              begin
+                                $display("OutputControl Begin Slot: %d", slot);
+                                $display("OutputControl setting base addr %h for slot %d", baseAddr, slot);
+                              end
+ 
                             outAddrBase <= baseAddr;
                         end
 
@@ -69,7 +73,10 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
   endrule
 
   rule outputingReqY (infifo.first matches tagged Slot .outSlot &&& outprocess ==Y);
-    //$display( "TRACE OutputControl: outputingReq Y %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq Y %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+      end
     loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
     if(outReqCount == {1'b0,frameinmb,6'b000000}-1)
       outprocess <= U;
@@ -77,7 +84,11 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
   endrule
    
   rule outputingReqU (infifo.first matches tagged Slot .outSlot &&& outprocess ==U);
-    //$display( "TRACE OutputControl: outputingReq U %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq U %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+      end
+      
     loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
     if(outReqCount == {1'b0,frameinmb,6'b000000}+{3'b000,frameinmb,4'b0000}-1)
       outprocess <= V;
@@ -85,7 +96,11 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
   endrule
 
   rule outputingReqV (infifo.first matches tagged Slot .outSlot &&& outprocess ==V);
-    //$display( "TRACE OutputControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq V %h %h %h", outAddrBase, outReqCount, (outAddrBase+zeroExtend(outReqCount)));
+      end
+
     loadReqQ1.send(FBLoadReq (outAddrBase+zeroExtend(outReqCount)));
     if(outReqCount == {1'b0,frameinmb,6'b000000}+{2'b00,frameinmb,5'b00000}-1)
       outprocess <= OutstandingRequests;
@@ -96,10 +111,14 @@ module [CONNECTED_MODULE] mkOutputControl (OutputControl);
    rule outputingResp;
       if(loadRespQ1.receive() matches tagged FBLoadResp .xdata)
 	 begin
-           // $display( "TRACE OutputControl: Resp Received %h", outRespCount);  
-	    loadRespQ1.deq();
-	    outfifo.send(tagged YUV xdata);
-	    outRespCount <= outRespCount+1;
+           if(`DEBUG_OUTPUT_CONTROL == 1)
+             begin    
+               $display( "TRACE OutputControl: Resp Received %h", outRespCount);
+             end
+
+	   loadRespQ1.deq();
+	   outfifo.send(tagged YUV xdata);
+	   outRespCount <= outRespCount+1;
 	 end
    endrule
 

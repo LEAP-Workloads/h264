@@ -139,3 +139,10 @@ Packagehint=h264
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
+
+[H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
+Packagehint=h264

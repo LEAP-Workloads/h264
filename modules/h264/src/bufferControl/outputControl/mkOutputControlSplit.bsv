@@ -50,7 +50,11 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
                          end
       tagged Slot .slot : begin
                             outprocess <= Y;
-                            $display("OutputControl Begin Slot: %d", slot);     
+                            if(`DEBUG_OUTPUT_CONTROL == 1)
+                              begin    
+                                $display("OutputControl Begin Slot: %d", slot);     
+                              end
+
                             // XXX Fix this shit at some point. We should use the notion of a "maximum frame size" constant.  Then we won't need frameinmb in this calculation. 
                             Bit#(FrameBufferSz) addr <- calculateAddrBase(slot);
                             outAddrBase <= addr;
@@ -69,7 +73,11 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
           infifo.deq();
           picHeight <= height.height;
           frameinmb <= height.area;
-          $display("OutputControl: height: %d width: %d area: %d", height.height, picWidth, height.area);
+          if(`DEBUG_OUTPUT_CONTROL == 1)
+            begin     
+              $display("OutputControl: height: %d width: %d area: %d", height.height, picWidth, height.area);
+            end
+
           outfifo.send(tagged SPSpic_height_in_map_units height.height);
         end
 
@@ -83,7 +91,11 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
 
   rule outputingReqY (infifo.first matches tagged Slot .outSlot &&& outprocess ==Y);
     FrameBufferAddrLuma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
-    $display( "TRACE OutputControl: outputingReq Y %h %d %h %h", outAddrBase, outReqCount, addr, frameinmb);
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq Y %h %d %h %h", outAddrBase, outReqCount, addr, frameinmb); 
+      end
+
     bufferY.readReq(addr);
     if(outReqCount + 1 == {1'b0,frameinmb,6'b000000})
       begin
@@ -99,7 +111,11 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
    
   rule outputingReqU (infifo.first matches tagged Slot .outSlot &&& outprocess ==U);
     FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
-    $display( "TRACE OutputControl: outputingReq U %h %d %h", outAddrBase, outReqCount, addr);
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq U %h %d %h", outAddrBase, outReqCount, addr);
+      end
+
     bufferU.readReq(addr);
     if(outReqCount + 1 == {3'b000,frameinmb,4'b0000})
       begin
@@ -116,7 +132,11 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
 
   rule outputingReqV (infifo.first matches tagged Slot .outSlot &&& outprocess ==V);
     FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
-    $display( "TRACE OutputControl: outputingReq V %h %d %h", outAddrBase, outReqCount, addr);
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: outputingReq V %h %d %h", outAddrBase, outReqCount, addr);
+      end
+
     bufferV.readReq(addr);
     fifoTarget.enq(V);
     if(outReqCount + 1 == {3'b000,frameinmb,4'b0000})
@@ -131,28 +151,40 @@ module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLum
   endrule
 
 
-   rule outputingRespY(fifoTarget.first() == Y);
-     let xdata <- bufferY.readRsp();
-     $display( "TRACE OutputControl: Resp Received Y %h", outRespCount);  
-     outfifo.send(tagged YUV xdata);
-     outRespCount <= outRespCount+1;
-     fifoTarget.deq;
-   endrule
+  rule outputingRespY(fifoTarget.first() == Y);
+    let xdata <- bufferY.readRsp();
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: Resp Received Y %h", outRespCount);  
+      end
 
-   rule outputingRespU(fifoTarget.first() == U);
-     let xdata <- bufferU.readRsp();
-     $display( "TRACE OutputControl: Resp Received U %h", outRespCount);
-     outfifo.send(tagged YUV xdata);
-     outRespCount <= outRespCount+1;
-     fifoTarget.deq;
-   endrule
+    outfifo.send(tagged YUV xdata);
+    outRespCount <= outRespCount+1;
+    fifoTarget.deq;
+  endrule
+
+  rule outputingRespU(fifoTarget.first() == U);
+    let xdata <- bufferU.readRsp();
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: Resp Received U %h", outRespCount);
+      end
+
+    outfifo.send(tagged YUV xdata);
+    outRespCount <= outRespCount+1;
+    fifoTarget.deq;
+  endrule
    
-   rule outputingRespV(fifoTarget.first() == V);
-     let xdata <- bufferV.readRsp();
-     $display( "TRACE OutputControl: Resp Received V %h", outRespCount);
-     outfifo.send(tagged YUV xdata);
-     outRespCount <= outRespCount+1;
-     fifoTarget.deq;
+  rule outputingRespV(fifoTarget.first() == V);
+    let xdata <- bufferV.readRsp();
+    if(`DEBUG_OUTPUT_CONTROL == 1)
+      begin    
+        $display( "TRACE OutputControl: Resp Received V %h", outRespCount);
+      end
+
+    outfifo.send(tagged YUV xdata);
+    outRespCount <= outRespCount+1;
+    fifoTarget.deq;
    endrule
 
 

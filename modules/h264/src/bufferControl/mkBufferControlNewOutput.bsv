@@ -184,10 +184,16 @@ module [CONNECTED_MODULE] mkBufferControl();
 				 begin
 				    inSlot <= freeSlots.first; //Use SFIFO - this call to first should probably take a function ...
                                     let addr <- calculateAddrBase(freeSlots.first);
-                                    $display("BufferControl setting base addr %h for slot %d", addr, freeSlots.first);
+				    if(`DEBUG_BUFFER_CONTROL == 1)
+                                      begin
+                                        $display("BufferControl setting base addr %h for slot %d", addr, freeSlots.first);
+                                      end
 				    inAddrBase <= addr;
 				 end
-			      $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
+                              if(`DEBUG_BUFFER_CONTROL == 1)
+                                begin
+			          $display( "Trace BufferControl: passing SHfirst_mb_in_slice %h %0d", freeSlots.first, (newInputFrame ? 1 : 0));
+                                end
 			   end
 			else
 			   donotfire.doNotFire();
@@ -341,10 +347,13 @@ module [CONNECTED_MODULE] mkBufferControl();
 			infifo.deq();
 			if(memory_management_control_operation == 3)
 			   begin
-			      if(shortTermPicList.resultSlot() matches tagged Valid .validdata)
-				 longTermPicList.insert(xdata,validdata);
+                             if(shortTermPicList.resultSlot() matches tagged Valid .validdata)                 begin 
+                                 longTermPicList.insert(xdata,validdata);
+                               end
 			      else
-				 $display( "ERROR BufferControl: SHDlong_term_frame_idx Invalid output from shortTermPicList");
+                                begin
+                                  $display( "ERROR BufferControl: SHDlong_term_frame_idx Invalid output from shortTermPicList");
+                                end
 			      shortTermPicList.deq();
 			   end
 			else
@@ -427,14 +436,21 @@ module [CONNECTED_MODULE] mkBufferControl();
 	    shortTermPicList.deq();
 	    refPicList.upd(refPicListCount,xdata);
 	    refPicListCount <= refPicListCount+1;
-	    $display( "Trace BufferControl: initingRefPicList shortTermPicList %h", xdata);
+
+            if(`DEBUG_BUFFER_CONTROL == 1)
+              begin
+                $display( "Trace BufferControl: initingRefPicList shortTermPicList %h", xdata);
+              end
 	 end
       else if(longTermPicList.resultSlot() matches tagged Valid .xdata)
 	 begin
 	    longTermPicList.deq();
 	    refPicList.upd(refPicListCount,xdata);
 	    refPicListCount <= refPicListCount+1;
-	    $display( "Trace BufferControl: initingRefPicList longTermPicList %h", xdata);
+            if(`DEBUG_BUFFER_CONTROL == 1)
+              begin
+                $display( "Trace BufferControl: initingRefPicList longTermPicList %h", xdata);
+              end
 	 end
       else
 	 begin
@@ -442,7 +458,10 @@ module [CONNECTED_MODULE] mkBufferControl();
 	    longTermPicList.deq();
 	    initRefPicList <= False;
 	    refPicListCount <= 0;
-	    $display( "Trace BufferControl: initingRefPicList end");
+            if(`DEBUG_BUFFER_CONTROL == 1)
+              begin
+                $display( "Trace BufferControl: initingRefPicList end");
+              end
 	 end
    endrule
 
@@ -490,7 +509,10 @@ module [CONNECTED_MODULE] mkBufferControl();
 	    longTermPicList.listAll();
 	    freeSlots.init();
 	    adjustFreeSlots <= 2;
-	    $display( "Trace BufferControl: adjustingFreeSlots begin");
+            if(`DEBUG_BUFFER_CONTROL == 1)
+              begin
+                $display( "Trace BufferControl: adjustingFreeSlots begin");
+              end
 	 end
       else
 	 begin
@@ -498,20 +520,29 @@ module [CONNECTED_MODULE] mkBufferControl();
 	       begin
 		  shortTermPicList.deq();
 		  freeSlots.remove(xdata);
-		  $display( "Trace BufferControl: adjustingFreeSlots shortTermPicList %h", xdata);
+                  if(`DEBUG_BUFFER_CONTROL == 1)
+                    begin
+		      $display( "Trace BufferControl: adjustingFreeSlots shortTermPicList %h", xdata);
+                    end
 	       end
 	    else if(longTermPicList.resultSlot() matches tagged Valid .xdata)
 	       begin
 		  longTermPicList.deq();
 		  freeSlots.remove(xdata);
-		  $display( "Trace BufferControl: adjustingFreeSlots longTermPicList %h", xdata);
+                  if(`DEBUG_BUFFER_CONTROL == 1)
+                    begin
+		      $display( "Trace BufferControl: adjustingFreeSlots longTermPicList %h", xdata); 
+                    end
 	       end
 	    else
 	       begin
 		  shortTermPicList.deq();
 		  longTermPicList.deq();
 		  adjustFreeSlots <= 0;
-		  $display( "Trace BufferControl: adjustingFreeSlots end");
+                  if(`DEBUG_BUFFER_CONTROL == 1)
+                    begin
+		      $display( "Trace BufferControl: adjustingFreeSlots end");
+                    end
 	       end
 	 end
    endrule

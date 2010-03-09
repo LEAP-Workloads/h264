@@ -117,7 +117,10 @@ module [CONNECTED_MODULE] mkFrameBuffer();
             // Wasteful, but forces coherence
             memory.write(addrt,datat);  
 	    storeReqQ.deq();
-            $display("FrameBuffer Storing: %h to %h", addrt, datat);
+            if(`FRAME_BUFFER_DEBUG == 1)
+              begin
+                $display("FrameBuffer Storing: %h to %h", addrt, datat);
+              end
 	 end
       else
 	 $display( "ERROR FrameBuffer: storing outside range" );

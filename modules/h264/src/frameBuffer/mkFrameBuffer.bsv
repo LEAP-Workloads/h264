@@ -125,7 +125,10 @@ module [CONNECTED_MODULE] mkFrameBuffer ();
 	 begin
 	    rfile2.store(addrt,datat);
 	    storeReqQ.deq();
-            $display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
+            if(`FRAME_BUFFER_DEBUG == 1)
+              begin
+                $display("FrameBuffer Storing: %h to %h", {addrt,2'b00}, datat);
+              end
 	 end
       else
 	 $display( "ERROR FrameBuffer: storing outside range" );
