@@ -14,9 +14,12 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <time.h>
+#include <errno.h>
 
 #include "asim/provides/connected_application.h"
 #include "asim/provides/stats_device.h"
+#include "asim/provides/h264_output.h"
 #include "mkTH.h"
 
 
@@ -55,18 +58,40 @@ void
 CONNECTED_APPLICATION_CLASS::Main()
 {
   printf("Hello world\n");
+  UINT32 frameCount = 0;
+  struct timespec time;
   STATS_DEVICE_SERVER_CLASS::GetInstance()->SetupStats();
 
+
+  // Sleep for 30 minutes waiting for a frame, else die.
+  time.tv_sec = 60*30;
+  time.tv_nsec = 0;
+
   pthread_mutex_lock(&lock);
-  pthread_cond_wait(&cond, &lock);
-  pthread_mutex_unlock(&lock);
-
-  printf("EndSimulation Main is awake\n");
-  fflush(stdout);
-
-  //STARTER_SERVER_CLASS::GetInstance()->EndSim(1);
-  // And now we are done.
-
-  printf("EndSimulation Stats dump complete\n");
-  fflush(stdout);  
+  while(1) {
+    int result;
+    result = pthread_cond_timedwait(&cond, &lock,&time);
+    if(result == ETIMEDOUT) {
+      // Not done yet... Check for new frames;
+      if(frameCount == 
+         MKFINALOUTPUTRRR_SERVER_CLASS::GetInstance()->getFrameCount()) {
+	//Death by timeout
+        printf("Timed out after receiving %d frames\n", frameCount);
+        fflush(stdout);
+        pthread_mutex_unlock(&lock);
+        return;
+      }
+      // not locking this is okay.  It's a relative measure.
+      frameCount = MKFINALOUTPUTRRR_SERVER_CLASS::GetInstance()->getFrameCount();
+      // Sleep some more      
+    } else if(result == 0) { //We're done
+      printf("Simulation Complete, Shutting Down\n");
+      fflush(stdout);
+      pthread_mutex_unlock(&lock); 
+      STATS_DEVICE_SERVER_CLASS::GetInstance()->DumpStats();
+      STATS_DEVICE_SERVER_CLASS::GetInstance()->EmitFile();
+      STARTER_DEVICE_SERVER_CLASS::GetInstance()->End(0);
+      return;
+    }  
+  }
 }

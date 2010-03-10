@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 
 #include "asim/rrr/service_ids.h"
+#include "asim/provides/starter_device.h"
+#include "asim/provides/connected_application.h"
 #include "mkFinalOutputRRR.h"
 
 using namespace std;
@@ -20,6 +22,7 @@ MKFINALOUTPUTRRR_SERVER_CLASS::MKFINALOUTPUTRRR_SERVER_CLASS()
     printf("MKFINALOUTPUTRRR init called\n");
     outputFile = NULL;
     serverStub = new MKFINALOUTPUTRRR_SERVER_STUB_CLASS(this);
+    frameCount = 0;
 }
 
 // destructor
@@ -79,12 +82,14 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT64 control)
   if(EndOfFile == extractCommand(control)) {
     if(outputFile != NULL) {
       printf("FinalOutput C got EndOfFile at %llu \n",extractPayload(control));
+      
       fclose(outputFile);
-      exit(0);
+      CONNECTED_APPLICATION_CLASS::EndSimulation();
     }
   } else if(EndOfFrame == extractCommand(control)) {
       printf("FinalOutput C got EndOfFrame at %llu \n",extractPayload(control));
-    }
+      frameCount++;
+  }
 
   return 0;
 }
@@ -105,4 +110,10 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendOutput(UINT64 dummy)
   fwrite(&value, 4, 1 , outputFile);
  
   return 0;
+}
+
+UINT32
+MKFINALOUTPUTRRR_SERVER_CLASS::getFrameCount()
+{
+  return frameCount;
 }

@@ -72,11 +72,6 @@ module [CONNECTED_MODULE] mkConnectedApplication ();
 
       let bscTime <- $time;
       cyclecount <= cyclecount+1; 
-      if(bscTime > 6000000000)
-	 begin
-	    $display( $time," ERROR mkTH: time out: %d", cyclecount );
-	    $finish(0);
-	 end
    endrule
    
    // Internal connections

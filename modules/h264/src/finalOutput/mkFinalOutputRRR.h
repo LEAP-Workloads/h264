@@ -26,7 +26,7 @@ class MKFINALOUTPUTRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     // self-instantiation
     static MKFINALOUTPUTRRR_SERVER_CLASS instance;
     FILE *outputFile;
-
+    UINT32 frameCount;
     // server stub
     RRR_SERVER_STUB serverStub;
     
@@ -43,6 +43,8 @@ class MKFINALOUTPUTRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     void Uninit();
     void Cleanup();
     bool Poll();
+
+    UINT32 getFrameCount();
 
     //
     // RRR service methods

@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 
 #include "asim/rrr/service_ids.h"
-#include "asim/provides/starter_device.h"
+#include "asim/provides/connected_application.h"
 
 #include "mkFinalOutputRRRWide.h"
 
@@ -79,7 +79,7 @@ MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT32 control, UINT64 data0 ,UINT64 
         fclose(outputFile);
         outputFile = NULL;
         //Deadlock?
-	STARTER_DEVICE_SERVER_CLASS::GetInstance()->End(0);
+        CONNECTED_APPLICATION_CLASS::EndSimulation();
       }
     break;
 
