@@ -1,0 +1,7 @@
+# ***************
+#
+# H264 models
+#
+# ***************
+
+h264_decoder_coalesce config/pm/h264/h264_decoder_coalesce.apm    --bluesim="-m 1000000000"
