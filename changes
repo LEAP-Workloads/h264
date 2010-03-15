@@ -353,3 +353,21 @@ Directory modules/h264/src
 * Fixed includes to point to the new common_services and mem_services.
 
 Michael P.
+
+----------
+kfleming    Date: Mon Mar 15 18:41:30 EDT 2010  CSN: CSN-h264-177
+                  Mon Mar 15 22:41:30 UTC 2010
+
+
+Directory config/pm/h264
+ h264_decoder_synth.apm    Locally Modified          176 
+
+Directory modules/h264/src/frameBuffer
+ mkFrameBufferScratchpad.bsv Locally Modified          176 
+
+Directory modules/h264/src/bufferControl
+ mkBufferControlParallelCoalesced64SplitNewOutput.bsv Locally Modified          176 
+
+
+
+Now compatible with new-style scratchpad.

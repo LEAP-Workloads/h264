@@ -56,9 +56,9 @@ module [CONNECTED_MODULE] mkBufferControl();
 
    // We use three mem interfaces here
 
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, FrameBufferData)   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, FrameBufferData)   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED);
 
    // protect the read interfaces
    MEMORY_READER_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferYRead <- mkSafeMemoryReader(bufferY.readPorts[0]);

@@ -69,7 +69,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State
-  MEMORY_IFC#(FrameBufferAddr, FrameBufferData) memory <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, True);
+  MEMORY_IFC#(FrameBufferAddr, FrameBufferData) memory <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, SCRATCHPAD_CACHED);
 
   
    FIFO#(Queue) qFIFO <- mkSizedFIFO(32);

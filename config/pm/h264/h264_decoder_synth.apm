@@ -79,17 +79,13 @@ Packagehint=h264
 
 [H264 decoder module/Requires]
 h264_decoder_types=H264 Decoder Types
-h264_deblocking=H264 deblocking filter module (dummy)
+h264_deblocking=H264 deblocking filter module
 h264_entropy_decoder=H264 entropy decoder module
 h264_prediction=H264 Inter/Intra prediction module
 h264_inverse_transform=H264 inverse transform module
 h264_nal_unwrap=H264 nal unwrap module
 h264_buffer_control=H264 split coalescing parallel buffer control module
 h264_control=H264 default control module
-
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/deblocking/h264_deblocking_dummy.awb
-Packagehint=h264
 
 [H264 entropy decoder module]
 File=modules/h264/src/entropy/h264_entropy_decoder.awb
@@ -143,4 +139,15 @@ Packagehint=h264
 
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
+Packagehint=h264
+
+[H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
+Packagehint=h264
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
