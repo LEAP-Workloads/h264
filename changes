@@ -371,3 +371,16 @@ Directory modules/h264/src/bufferControl
 
 
 Now compatible with new-style scratchpad.
+
+----------
+keflemin    Date: Sun Aug 15 18:28:12 EDT 2010  CSN: CSN-h264-178
+                  Sun Aug 15 22:28:12 UTC 2010
+
+
+Directory config/pm/h264
+ h264_decoder_synth.apm    Locally Modified          177 
+
+Directory modules/h264/src/memory
+ mkMemEDConnection.bsv     Locally Modified          177 
+
+Modified the main line simulator to actually build. HD appears to run. 

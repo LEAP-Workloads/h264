@@ -51,19 +51,9 @@ Packagehint=hasim
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
 
-[H264 split coalescing parallel buffer control module/Requires]
-h264_output_control_split=H264 output control module split memories
 
-[H264 split coalescing parallel buffer control module]
-File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
-Packagehint=h264
 
-[H264 output control module split memories/Requires]
-processor_library=Processor Library
 
-[H264 output control module split memories]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
-Packagehint=h264
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -84,7 +74,7 @@ h264_entropy_decoder=H264 entropy decoder module
 h264_prediction=H264 Inter/Intra prediction module
 h264_inverse_transform=H264 inverse transform module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 split coalescing parallel buffer control module
+h264_buffer_control=H264 buffer control module, with new output style
 h264_control=H264 default control module
 
 [H264 entropy decoder module]
@@ -151,3 +141,22 @@ Packagehint=h264
 [H264 Synth Interpolator types]
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
+
+[H264 simulation module]
+File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer.awb
+Packagehint=h264
+
+[H264 output control module/Requires]
+processor_library=Processor Library
+
+[H264 buffer control module, with new output style]
+File=modules/h264/src/bufferControl/h264_buffer_control_new_style.awb
+Packagehint=h264
+
+[H264 output control module]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control.awb
+Packagehint=h264
+
+[H264 buffer control module, with new output style/Requires]
+h264_output_control=H264 output control module
+h264_frame_buffer=H264 simulation module
