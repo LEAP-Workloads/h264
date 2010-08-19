@@ -7,143 +7,149 @@ SaveParameters=0
 Description=H264 Decoder Synth
 Name=H264 Decoder Synth
 Class=Asim::Model
+DefaultBenchmark=
+DefaultRunOpts=
 
 [Model]
 DefaultAttributes=h264 bluespec
-model=HAsim Hybrid Model Foundation
+model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-htg-v5-pcie.apm
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech.apm
+Packagehint=platform-acp
+
+[Soft Connections Library]
+File=config/pm/hasim/submodels/common/soft-connections-lib.apm
+Packagehint=hasim
+
+[HW/SW Hybrid Project Foundation]
+File=modules/project/project-hybrid.awb
 Packagehint=platforms
 
-[Hasim Common Library]
-File=config/pm/hasim/submodels/common/hasim_common.apm
-Packagehint=hasim
+[Soft Connections Hybrid Application Environment]
+File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
+Packagehint=platforms
 
-[HAsim Hybrid Model Foundation]
-File=modules/model/hasim_model.awb
-Packagehint=hasim
-
-[HAsim Hybrid Model Foundation/Requires]
-hasim_common=Hasim Common Library
-system=Hybrid System foundation
-hasim_controller=Hybrid Basic Controller
+[HW/SW Hybrid Project Foundation/Requires]
+project_common=Hybrid Project Common Utilities
 fpgaenv=FPGA Environment
+application_env=Soft Connections Hybrid Application Environment
+
+[Soft Connections Hybrid Application Environment/Requires]
+platform_services=Platform Services
+soft_connections_lib=Soft Connections Library
+connected_application=H264 System
+
+[Hybrid Project Common Utilities]
+File=config/pm/hasim/submodels/common/project-common-default.apm
+Packagehint=hasim
+
+[Platform Services]
+File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
+Packagehint=hasim
+
+[FPGA Environment/Params]
+MODEL_CLOCK_MULTIPLIER=1
+MODEL_CLOCK_DIVIDER=8
+MODEL_CLOCK_FREQ=25
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
 
 [H264 default simulation module]
-File=modules/h264/src/h264_default_memory_unit.awb
+File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 deblocking filter module (dummy)
-h264_inverse_transform=H264 inverse transform module
-h264_prediction=H264 Inter/Intra prediction module
-h264_entropy_decoder=H264 entropy decoder module
-h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 buffer control module
-h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
-
-[H264 buffer control module]
-File=modules/h264/src/h264_buffer_control.awb
-Packagehint=h264
+h264_deblocking=H264 deblocking filter module
+h264_entropy_decoder=H264 entropy decoder module
+h264_prediction=Synth Interpolator H264 prediction module
+h264_inverse_transform=H264 inverse transform module
+h264_nal_unwrap=H264 nal unwrap module
+h264_buffer_control=H264 split coalescing parallel buffer control module
+h264_control=H264 default control module
 
 [H264 entropy decoder module]
-File=modules/h264/src/h264_entropy_decoder.awb
+File=modules/h264/src/entropy/h264_entropy_decoder.awb
 Packagehint=h264
 
-[H264 interpolator module]
-File=modules/h264/src/h264_interpolator.awb
-Packagehint=h264
-
-[H264 System/Requires]
-h264_decoder=H264 decoder module
-h264_types=H264 types
-h264_memory_unit=H264 default simulation module
-funcp_base_types=Functional Partition Base Types
-h264_input=H264 RRR input module
-h264_output=H264 output RRR Wide
-
-[H264 nal unwrap module]
-File=modules/h264/src/h264_nal_unwrap.awb
-Packagehint=h264
-
-[H264 decoder module]
-File=modules/h264/src/h264_decoder.awb
-Packagehint=h264
-
-[H264 Inter/Intra prediction module/Requires]
-h264_interpolator=H264 interpolator module
-
-[H264 Inter/Intra prediction module]
-File=modules/h264/src/h264_prediction.awb
-Packagehint=h264
-
-[H264 inverse transform module]
-File=modules/h264/src/h264_inverse_transform.awb
-Packagehint=h264
-
-[H264 types]
-File=modules/h264/src/h264_types.awb
-Packagehint=h264
-
-[H264 deblocking filter module (dummy)]
-File=modules/h264/src/h264_deblocking_dummy.awb
-Packagehint=h264
-
-[FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=2
-MODEL_CLOCK_DIVIDER=6
-
-[HAsim Hybrid Model Foundation/Params]
-MAKE_ALL_TARGET=bit
-
-[Hybrid Basic Controller]
-File=config/pm/hasim/submodels/controller/hybrid_basic_controller.apm
-Packagehint=hasim
-
-[H264 default control module]
-File=modules/h264/src/h264_control.awb
-Packagehint=h264
-
-[H264 RRR input module]
-File=modules/h264/src/h264_input_rrr.awb
-Packagehint=h264
-
-
-
-[Default Software System]
-File=modules/model/default_software_system.awb
-Packagehint=hasim
-
-[Hybrid System foundation/Requires]
-software_system=Default Software System
-hardware_system=H264 System
-
-[Hybrid System foundation]
-File=modules/model/hybrid_system.awb
-Packagehint=hasim
-
-
-[H264 multi scratchpad frame buffer with write cache]
-File=modules/h264/src/h264_multi_scratchpad_write_cache_frame_buffer.awb
+[H264 System types]
+File=modules/h264/src/h264_system_types.awb
 Packagehint=h264
 
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[H264 buffer control module/Requires]
-h264_frame_buffer=H264 multi scratchpad frame buffer with write cache
+[H264 System/Requires]
+h264_memory_unit=H264 default simulation module
+h264_decoder=H264 decoder module
+h264_input=H264 RRR input module
+h264_output=H264 output Dump
+h264_types=H264 System types
 
-[Functional Partition Base Types]
-File=modules/hasim/functional-partition/base-types/funcp-base-types.awb
-Packagehint=hasim
+[H264 nal unwrap module]
+File=modules/h264/src/nal/h264_nal_unwrap.awb
+Packagehint=h264
 
-[H264 output RRR Wide]
-File=modules/h264/src/h264_output_rrr_wide.awb
+[Processor Library]
+File=modules/bluespec/mit-6.375/lab4/processor_library.awb
+Packagehint=mit-6.375
+
+[H264 decoder module]
+File=modules/h264/src/h264_decoder.awb
+Packagehint=h264
+
+[H264 RRR input module]
+File=modules/h264/src/inputGen/h264_input_rrr.awb
+Packagehint=h264
+
+[H264 inverse transform module]
+File=modules/h264/src/transform/h264_inverse_transform.awb
+Packagehint=h264
+
+[H264 default control module]
+File=modules/h264/src/h264_control.awb
+Packagehint=h264
+
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
+Packagehint=h264
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
+Packagehint=h264
+
+[Synth Interpolator H264 prediction module/Requires]
+h264_interpolator_synth=Synthesizable H264 interpolator module
+
+[Synth Interpolator H264 prediction module]
+File=modules/h264/src/prediction/h264_prediction_synth.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module]
+File=modules/h264/src/interpolator/h264_interpolator_synth.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 output control module split memories]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module]
+File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module/Requires]
+h264_output_control_split=H264 output control module split memories
+
+[H264 output control module split memories/Requires]
+processor_library=Processor Library
+
+[H264 output Dump]
+File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264

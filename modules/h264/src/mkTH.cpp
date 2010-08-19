@@ -59,15 +59,17 @@ CONNECTED_APPLICATION_CLASS::Main()
 {
   printf("Hello world\n");
   UINT32 frameCount = 0;
+  struct timeval    tp;
   struct timespec time;
   STATS_DEVICE_SERVER_CLASS::GetInstance()->SetupStats();
 
+  pthread_mutex_lock(&lock);
 
+  gettimeofday(&tp, NULL);
   // Sleep for 30 minutes waiting for a frame, else die.
-  time.tv_sec = 60*30;
+  time.tv_sec = tp.tv_sec+60*30;
   time.tv_nsec = 0;
 
-  pthread_mutex_lock(&lock);
   while(1) {
     int result;
     result = pthread_cond_timedwait(&cond, &lock,&time);
@@ -76,7 +78,7 @@ CONNECTED_APPLICATION_CLASS::Main()
       if(frameCount == 
          MKFINALOUTPUTRRR_SERVER_CLASS::GetInstance()->getFrameCount()) {
 	//Death by timeout
-        printf("Timed out after receiving %d frames\n", frameCount);
+        printf("ERROR: Timed out after receiving %d frames\n", frameCount);
         fflush(stdout);
         pthread_mutex_unlock(&lock);
         return;

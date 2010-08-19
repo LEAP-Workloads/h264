@@ -51,10 +51,6 @@ Packagehint=hasim
 [FPGA Environment/Params]
 MODEL_CLOCK_MULTIPLIER=2
 
-
-
-
-
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
@@ -71,10 +67,10 @@ Packagehint=h264
 h264_decoder_types=H264 Decoder Types
 h264_deblocking=H264 deblocking filter module
 h264_entropy_decoder=H264 entropy decoder module
-h264_prediction=H264 Inter/Intra prediction module
+h264_prediction=Synth Interpolator H264 prediction module
 h264_inverse_transform=H264 inverse transform module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 buffer control module, with new output style
+h264_buffer_control=H264 split coalescing parallel buffer control module
 h264_control=H264 default control module
 
 [H264 entropy decoder module]
@@ -87,10 +83,6 @@ Packagehint=h264
 
 [H264 Decoder Types]
 File=modules/h264/src/h264_decoder_types.awb
-Packagehint=h264
-
-[H264 interpolator module]
-File=modules/h264/src/interpolator/h264_interpolator.awb
 Packagehint=h264
 
 [H264 System/Requires]
@@ -116,13 +108,6 @@ Packagehint=h264
 File=modules/h264/src/inputGen/h264_input_rrr.awb
 Packagehint=h264
 
-[H264 Inter/Intra prediction module/Requires]
-h264_interpolator=H264 interpolator module
-
-[H264 Inter/Intra prediction module]
-File=modules/h264/src/prediction/h264_prediction.awb
-Packagehint=h264
-
 [H264 inverse transform module]
 File=modules/h264/src/transform/h264_inverse_transform.awb
 Packagehint=h264
@@ -130,9 +115,6 @@ Packagehint=h264
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
 Packagehint=h264
-
-[H264 interpolator module/Requires]
-h264_interpolator_types_synth=H264 Synth Interpolator types
 
 [H264 deblocking filter module]
 File=modules/h264/src/deblocking/h264_deblocking.awb
@@ -142,21 +124,30 @@ Packagehint=h264
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
 
-[H264 simulation module]
-File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer.awb
+[Synth Interpolator H264 prediction module/Requires]
+h264_interpolator_synth=Synthesizable H264 interpolator module
+
+[Synth Interpolator H264 prediction module]
+File=modules/h264/src/prediction/h264_prediction_synth.awb
 Packagehint=h264
 
-[H264 output control module/Requires]
+[Synthesizable H264 interpolator module]
+File=modules/h264/src/interpolator/h264_interpolator_synth.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 output control module split memories]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module]
+File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module/Requires]
+h264_output_control_split=H264 output control module split memories
+
+[H264 output control module split memories/Requires]
 processor_library=Processor Library
-
-[H264 buffer control module, with new output style]
-File=modules/h264/src/bufferControl/h264_buffer_control_new_style.awb
-Packagehint=h264
-
-[H264 output control module]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control.awb
-Packagehint=h264
-
-[H264 buffer control module, with new output style/Requires]
-h264_output_control=H264 output control module
-h264_frame_buffer=H264 simulation module

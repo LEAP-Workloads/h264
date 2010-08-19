@@ -32,7 +32,7 @@ h264_inverse_transform=H264 inverse transform module
 h264_prediction=Synth Interpolator H264 prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 buffer control module, with new output style
+h264_buffer_control=H264 split coalescing parallel buffer control module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
@@ -119,24 +119,9 @@ Packagehint=hasim
 File=modules/h264/src/finalOutput/h264_output_rrr.awb
 Packagehint=h264
 
-[H264 buffer control module, with new output style]
-File=modules/h264/src/bufferControl/h264_buffer_control_new_style.awb
-Packagehint=h264
-
-[H264 buffer control module, with new output style/Requires]
-h264_frame_buffer=H264 simulation module
-h264_output_control=H264 output control module
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
-
-[H264 output control module]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control.awb
-Packagehint=h264
-
-[H264 output control module/Requires]
-processor_library=Processor Library
 
 [H264 deblocking filter module]
 File=modules/h264/src/deblocking/h264_deblocking.awb
@@ -148,7 +133,6 @@ Packagehint=h264
 
 [FPGA Environment/Params]
 CENTRAL_CACHE_DEBUG_ENABLE=0
-SRATCHPAD_MEMORY_DEBUG_ENABLE=0
 
 [Platform Services/Params]
 PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
@@ -171,6 +155,16 @@ Packagehint=h264
 [Synthesizable H264 interpolator module/Requires]
 h264_interpolator_types_synth=H264 Synth Interpolator types
 
-[H264 simulation module]
-File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer.awb
+[H264 output control module split memories]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
 Packagehint=h264
+
+[H264 split coalescing parallel buffer control module]
+File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
+Packagehint=h264
+
+[H264 split coalescing parallel buffer control module/Requires]
+h264_output_control_split=H264 output control module split memories
+
+[H264 output control module split memories/Requires]
+processor_library=Processor Library
