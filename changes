@@ -396,3 +396,63 @@ Directory modules/h264/src/bufferControl/outputControl
 
 
 Adding null output control
+
+----------
+keflemin    Date: Tue Sep  7 16:02:02 EDT 2010  CSN: CSN-h264-181
+                  Tue Sep  7 20:02:02 UTC 2010
+
+
+Directory config/pm/h264
+ h264_decoder_synth_acp_60Mhz.apm Locally Added               0 
+ h264_decoder.apm          Locally Modified          180 
+ h264_decoder_synth_rambuffer_acp.apm Locally Added               0 
+ h264_decoder_synth_bigcache_skew_acp.apm Locally Added               0 
+ h264_decoder_synth_acp.apm Locally Modified          180 
+ h264_decoder_synth_bigcache_acp.apm Locally Added               0 
+ h264_decoder_synth_bigcache_skew_hrg.apm Locally Added               0 
+ h264_decoder_synth_htg.apm Locally Added               0 
+
+Directory config/bm/h264
+ benchmarksDeblock.cfx     Locally Modified          180 
+
+Directory modules/h264/src
+ mkTH.cpp                  Locally Modified          180 
+ H264SystemTypes.bsv       Locally Modified          180 
+
+Directory modules/h264/src/finalOutput
+ mkFinalOutputDump.bsv     Locally Modified          180 
+ mkFinalOutputRRR.bsv      Locally Modified          180 
+ mkFinalOutputRRR.cpp      Locally Modified          180 
+
+Directory modules/h264/src/interpolator
+ Interpolator.dic          Locally Modified          180 
+
+Directory modules/h264/src/frameBuffer
+ FrameBufferStats.bsv      Locally Modified          180 
+ mkFrameBufferCoalescedMultiScratchpadParallel.bsv Locally Modified          180 
+
+Directory modules/h264/src/bufferControl
+ BufferControlSplit.dic    Locally Modified          180 
+ common/                   Locally Added               0 
+
+Directory modules/h264/src/bufferControl/common
+ OutputControlCommon.bsv   Locally Added               0 
+ h264_buffer_control_ram.awb Locally Added               0 
+ BufferControlCommon.bsv   Locally Added               - 
+ BufferControlCommonRAM.bsv Locally Added               0 
+ h264_buffer_control_common.awb Locally Added               0 
+
+Directory modules/h264/src/bufferControl
+ mkBufferControlParallelCoalesced64SplitNewOutput.bsv Locally Modified          180 
+ mkBufferControlParallelCoalesced64SplitNewOutputRAM.bsv Locally Added               0 
+
+Directory modules/h264/src/bufferControl/outputControl
+ h264_output_control_split.awb Locally Modified          180 
+ h264_output_control.awb   Locally Modified          180 
+ mkOutputControlSplit.bsv  Locally Modified          180 
+
+Directory modules/h264/src/bufferControl
+ h264_buffer_control_coalesced_parallel_split.awb Locally Modified          180 
+
+
+Modified H264 codes in support of ISFPGA

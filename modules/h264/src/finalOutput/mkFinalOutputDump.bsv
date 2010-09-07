@@ -66,7 +66,8 @@ module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    Connection_Send#(Bit#(1)) endOfFileTX <- mkConnection_Send("mkFinalOutput_EndOfFile");    
 
    FIFO#(BufferControlOT)  infifo    <- mkFIFO; 
-  
+   FIFO#(Bool) throttle <- mkSizedFIFO(16);  
+
    Reg#(Bit#(48)) tickCounter <- mkReg(0);
    Reg#(Bit#(32)) data_seen_counter <- mkReg(0); 
    Reg#(Bit#(32)) last_f_count <- mkReg(0);
@@ -95,48 +96,48 @@ module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    //-----------------------------------------------------------
    // Rules
 
-   rule finaloutData (infifo.first matches tagged YUV .xdata &&& state == SendData);      
+   rule finaloutData (infifo.first matches tagged YUV .xdata);      
       infifo.deq();
    endrule
 
-   rule finaloutFile (infifo.first matches tagged EndOfFile &&& state == SendData); 
+   rule finaloutFile (infifo.first matches tagged EndOfFile); 
      $display($time,"FinalOutput: EndOfFile %h",packRRRControl(EndOfFile,0)); 
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,tickCounter));
-     state <= WaitForResp;
+     throttle.enq(?);
    endrule
 
-   rule finaloutFrame (infifo.first matches tagged EndOfFrame &&& state == SendData); 
+   rule finaloutFrame (infifo.first matches tagged EndOfFrame); 
      $display($time,"FinalOutput: EndOfFrame #%d sending(%h) %h", frameNum,packRRRControl(EndOfFrame,0));
      frameNum <= frameNum + 1; 
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(EndOfFrame,tickCounter));
-     state <= WaitForResp;
+     throttle.enq(?);
    endrule
 
-   rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata &&& state == SendData); 
+   rule finaloutWidth (infifo.first matches tagged SPSpic_width_in_mbs .xdata); 
      $display($time,"FinalOutput: FrameWidth #%d sending %h", xdata,packRRRControl(PicWidth,zeroExtend(xdata)));
      picWidth <= xdata;
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(PicWidth,zeroExtend(xdata)));
-     state <= WaitForResp;
+     throttle.enq(?);
    endrule
 
-   rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata  &&& state == SendData); 
+   rule finaloutHeight (infifo.first matches tagged SPSpic_height_in_map_units .xdata); 
      $display($time,"FinalOutput: FramHeight #%d sending %h", xdata,packRRRControl(PicHeight,zeroExtend(xdata)));
      picHeight <= xdata;
      client_stub.makeRequest_SendControl(packRRRControl(PicHeight,zeroExtend(xdata)));
-     state <= WaitForResp;
      infifo.deq;
+     throttle.enq(?);
    endrule
 
-   rule eatDataResp(state == WaitForResp);
-     state <= SendData;
+   rule eatDataResp;
+     throttle.deq();
      let resp <- client_stub.getResponse_SendOutput;
    endrule
 
-   rule eatCommandResp(state == WaitForResp);
-     state <= SendData;
+   rule eatCommandResp;
+     throttle.deq();
      let resp <- client_stub.getResponse_SendControl;
    endrule
 

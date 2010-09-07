@@ -8,10 +8,11 @@
 %desc Uses three backing scratchpads to achieve memory separation. 
 %provides h264_buffer_control
 %requires h264_output_control_split
+%requires h264_buffer_control_common
 
 %attributes h264
 
-%public mkBufferControlParallelCoalesced64SplitNewOutput.bsv IBufferControl.bsv BufferControlCommon.bsv
+%public mkBufferControlParallelCoalesced64SplitNewOutput.bsv IBufferControl.bsv
 %public BufferControlSplit.dic
 
 %param SYNTH_BOUNDARY mkBufferControl "synth boundary names"

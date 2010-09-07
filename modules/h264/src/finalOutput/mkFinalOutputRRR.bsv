@@ -107,7 +107,6 @@ module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
 
    rule finaloutFile (infifo.first matches tagged EndOfFile &&& state == SendData); 
      $display($time,"FinalOutput: EndOfFile %h",packRRRControl(EndOfFile,0)); 
-     $finish(0);
      infifo.deq;
      client_stub.makeRequest_SendControl(packRRRControl(EndOfFile,tickCounter));
      state <= WaitForResp;

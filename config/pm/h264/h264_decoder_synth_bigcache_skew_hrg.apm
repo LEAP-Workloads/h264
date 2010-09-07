@@ -2,7 +2,7 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder_synth_acp
+File=h264_decoder_synth_bigcache_skew_hrg
 SaveParameters=0
 Description=H264 Decoder Synth
 Name=H264 Decoder Synth
@@ -15,8 +15,8 @@ DefaultAttributes=h264 bluespec
 model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech.apm
-Packagehint=platform-acp
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-htg-v5-pcie.apm
+Packagehint=platforms
 
 [Soft Connections Library]
 File=config/pm/hasim/submodels/common/soft-connections-lib.apm
@@ -45,13 +45,12 @@ File=config/pm/hasim/submodels/common/project-common-default.apm
 Packagehint=hasim
 
 [Platform Services]
-File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
+File=modules/hasim/util/platform-services/platform-services-standard.awb
 Packagehint=hasim
 
 [FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=1
-MODEL_CLOCK_DIVIDER=8
-MODEL_CLOCK_FREQ=25
+MODEL_CLOCK_MULTIPLIER=2
+MODEL_CLOCK_FREQ=50
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -63,7 +62,7 @@ Packagehint=h264
 
 [H264 decoder module/Requires]
 h264_decoder_types=H264 Decoder Types
-h264_deblocking=H264 deblocking filter module
+h264_deblocking=H264 deblocking filter module (dummy)
 h264_entropy_decoder=H264 entropy decoder module
 h264_prediction=Synth Interpolator H264 prediction module
 h264_inverse_transform=H264 inverse transform module
@@ -114,10 +113,6 @@ Packagehint=h264
 File=modules/h264/src/h264_control.awb
 Packagehint=h264
 
-[H264 deblocking filter module]
-File=modules/h264/src/deblocking/h264_deblocking.awb
-Packagehint=h264
-
 [H264 Synth Interpolator types]
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
@@ -155,6 +150,80 @@ processor_library=Processor Library
 File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
+[Scratchpad Memory Service]
+File=modules/hasim/util/platform-services/mem-services/scratchpad-memory-service/scratchpad-memory-service.awb
+Packagehint=hasim
+
+[Common Services/Requires]
+stats_service=Stats Service
+assertions_service=Assertions Service
+debug_scan_service=Debug Scan Services
+streams_service=Streams Service
+dynamic_parameters_service=Dynamic Parameter Service
+
+[Standard Mem Services]
+File=modules/hasim/util/platform-services/mem-services/mem-services-standard.awb
+Packagehint=hasim
+
+[Front Panel Service]
+File=modules/hasim/util/platform-services/front-panel-service/front-panel-service.awb
+Packagehint=hasim
+
+[Streams Service]
+File=modules/hasim/util/platform-services/common-services/streams-service/streams-service.awb
+Packagehint=hasim
+
+[Debug Scan Services]
+File=modules/hasim/util/platform-services/common-services/debug-scan-service/debug-scan-service.awb
+Packagehint=hasim
+
+[Dynamic Parameter Service]
+File=modules/hasim/util/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
+Packagehint=hasim
+
+[Starter Service]
+File=modules/hasim/util/platform-services/starter-service/starter-service.awb
+Packagehint=hasim
+
+[Stats Service]
+File=modules/hasim/util/platform-services/common-services/stats-service/stats-service.awb
+Packagehint=hasim
+
+[Common Services]
+File=modules/hasim/util/platform-services/common-services/common-services-standard.awb
+Packagehint=hasim
+
+[Assertions Service]
+File=modules/hasim/util/platform-services/common-services/assertions-service/assertions-service.awb
+Packagehint=hasim
+
+[Standard Mem Services/Requires]
+shared_memory_service=Shared Memory Services
+scratchpad_memory_service=Scratchpad Memory Service
+central_cache_service=Central Cache Service
+
+[Scratchpad Memory Service/Params]
+SCRATCHPAD_STD_PVT_CACHE_ENTRIES=2048
+SCRATCHPAD_PVT_CACHE_MODE=2
+
+[Central Cache Service]
+File=modules/hasim/util/platform-services/mem-services/central-cache-service/central-cache-service.awb
+Packagehint=hasim
+
+[Shared Memory Services]
+File=modules/hasim/util/platform-services/mem-services/shared-memory-service/shared-memory-service.awb
+Packagehint=hasim
+
+[Platform Services/Requires]
+common_services=Common Services
+mem_services=Standard Mem Services
+front_panel_service=Front Panel Service
+starter_service=Starter Service
+
 [H264 buffer control common]
 File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
+Packagehint=h264
+
+[H264 deblocking filter module (dummy)]
+File=modules/h264/src/deblocking/h264_deblocking_dummy.awb
 Packagehint=h264

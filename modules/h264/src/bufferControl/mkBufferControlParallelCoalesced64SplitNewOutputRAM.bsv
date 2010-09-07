@@ -79,15 +79,14 @@ module [CONNECTED_MODULE] mkBufferControl();
 
    // We use three mem interfaces here
 
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, FrameBufferData)   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, FrameBufferData)   bufferY <-  mkBRAMMultiRead();
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferU <-  mkBRAMMultiRead();
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, FrameBufferData) bufferV <-  mkBRAMMultiRead();
 
    // protect the read interfaces
-   NumTypeParam#(16) p = 0;
-   MEMORY_READER_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferYRead <- mkSafeSizedMemoryReader(p,bufferY.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferYRead <- mkSafeMemoryReader(bufferY.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferURead <- mkSafeMemoryReader(bufferU.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferVRead <- mkSafeMemoryReader(bufferV.readPorts[0]);
 
    // Soft connections
 

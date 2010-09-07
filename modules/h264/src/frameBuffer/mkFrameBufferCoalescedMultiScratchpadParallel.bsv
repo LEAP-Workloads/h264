@@ -141,7 +141,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
                                  `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
-
+				 
    let stat_constructors = cons(mkRasterStats, cons(mkLumaStats, cons(mkChromaStats, nil)));
 
 

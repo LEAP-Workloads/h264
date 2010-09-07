@@ -45,7 +45,7 @@ h264_decoder=H264 decoder module
 h264_types=H264 System types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
-h264_output=H264 output RRR
+h264_output=H264 output Dump
 
 [H264 nal unwrap module]
 File=modules/h264/src/nal/h264_nal_unwrap.awb
@@ -115,10 +115,6 @@ Packagehint=hasim
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
-[H264 output RRR]
-File=modules/h264/src/finalOutput/h264_output_rrr.awb
-Packagehint=h264
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
@@ -165,6 +161,15 @@ Packagehint=h264
 
 [H264 split coalescing parallel buffer control module/Requires]
 h264_output_control_split=H264 output control module split memories
+h264_buffer_control_common=H264 buffer control common
 
 [H264 output control module split memories/Requires]
 processor_library=Processor Library
+
+[H264 output Dump]
+File=modules/h264/src/finalOutput/h264_output_dump.awb
+Packagehint=h264
+
+[H264 buffer control common]
+File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
+Packagehint=h264

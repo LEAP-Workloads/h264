@@ -2,7 +2,7 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder_synth_acp
+File=h264_decoder_synth_acp_60Mhz
 SaveParameters=0
 Description=H264 Decoder Synth
 Name=H264 Decoder Synth
@@ -49,9 +49,7 @@ File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
 Packagehint=hasim
 
 [FPGA Environment/Params]
-MODEL_CLOCK_MULTIPLIER=1
 MODEL_CLOCK_DIVIDER=8
-MODEL_CLOCK_FREQ=25
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -146,15 +144,10 @@ Packagehint=h264
 
 [H264 split coalescing parallel buffer control module/Requires]
 h264_output_control_split=H264 output control module split memories
-h264_buffer_control_common=H264 buffer control common
 
 [H264 output control module split memories/Requires]
 processor_library=Processor Library
 
 [H264 output Dump]
 File=modules/h264/src/finalOutput/h264_output_dump.awb
-Packagehint=h264
-
-[H264 buffer control common]
-File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
 Packagehint=h264

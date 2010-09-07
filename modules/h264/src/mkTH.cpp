@@ -67,7 +67,7 @@ CONNECTED_APPLICATION_CLASS::Main()
 
   gettimeofday(&tp, NULL);
   // Sleep for 30 minutes waiting for a frame, else die.
-  time.tv_sec = tp.tv_sec+60*30;
+  time.tv_sec = tp.tv_sec+60*60*4; // Four hours is probably a deadlock
   time.tv_nsec = 0;
 
   while(1) {
@@ -81,6 +81,7 @@ CONNECTED_APPLICATION_CLASS::Main()
         printf("ERROR: Timed out after receiving %d frames\n", frameCount);
         fflush(stdout);
         pthread_mutex_unlock(&lock);
+        STARTER_DEVICE_SERVER_CLASS::GetInstance()->End(0);
         return;
       }
       // not locking this is okay.  It's a relative measure.

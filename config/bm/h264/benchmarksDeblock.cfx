@@ -18,6 +18,9 @@ my @bmark_tests = ("720p50_parkrun_ter1-20inter.264",
                    "intraforeman_qcif1-5.264",
                    "station.1080p.h264",
                    "x264foreman_qcif1-5.264",
+                   "simpsons.264",
+                   "fanstastic.264",
+                   "serenity.264",
 	     );
 
 foreach my $bmark (@bmark_tests) {

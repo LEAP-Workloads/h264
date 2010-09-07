@@ -530,6 +530,3 @@ typedef enum {
  V
 } FieldType deriving (Bits,Eq);
 
-// Use FrameBufferSz to define the luma/chroma sizes
-typedef Bit#(TSub#(FrameBufferSz, 1)) FrameBufferAddrLuma;
-typedef Bit#(TSub#(FrameBufferSz, 3)) FrameBufferAddrChroma;

@@ -7,6 +7,7 @@ import FIFO::*;
 `include "asim/provides/processor_library.bsh"
 
 `include "asim/provides/h264_decoder_types.bsh"
+`include "asim/provides/h264_buffer_control_common.bsh"
 `include "asim/provides/h264_types.bsh"
 
 

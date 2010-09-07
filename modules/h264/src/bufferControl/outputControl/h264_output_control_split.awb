@@ -12,7 +12,7 @@
 
 %requires processor_library
 
-%public mkOutputControlSplit.bsv OutputControlCommon.bsv
+%public mkOutputControlSplit.bsv
 
 %param DEBUG_OUTPUT_CONTROL 0 "Output control debug"
 

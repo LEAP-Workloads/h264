@@ -78,14 +78,15 @@ UINT64 extractPayload(UINT64 control) {
 UINT64
 MKFINALOUTPUTRRR_SERVER_CLASS::SendControl(UINT64 control)
 {
-  //printf("FinalOutput C got %llx\n",control);
+  printf("FinalOutput C got %llx\n",extractCommand(control));
   if(EndOfFile == extractCommand(control)) {
+    printf("FinalOutput in EOF\n",control);
     if(outputFile != NULL) {
       printf("FinalOutput C got EndOfFile at %llu \n",extractPayload(control));
       
       fclose(outputFile);
-      CONNECTED_APPLICATION_CLASS::EndSimulation();
     }
+    CONNECTED_APPLICATION_CLASS::EndSimulation();
   } else if(EndOfFrame == extractCommand(control)) {
       printf("FinalOutput C got EndOfFrame at %llu \n",extractPayload(control));
       frameCount++;

@@ -4,17 +4,13 @@
 
 %AWB_START
 
-%name H264 output control module
-%desc H264 output control module
-%provides h264_output_control
+%name H264 buffer control QCIF sized
+%desc H264 buffer control QCIF sized
+%provides h264_buffer_control_common
 
 %attributes h264
 
-%requires processor_library
-
-%public mkOutputControl.bsv 
-
-%param DEBUG_OUTPUT_CONTROL 0 "Output control debug"
+%public BufferControlCommonRAM.bsv OutputControlCommon.bsv
 
 %AWB_END
 
