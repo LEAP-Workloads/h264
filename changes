@@ -384,3 +384,15 @@ Directory modules/h264/src/memory
  mkMemEDConnection.bsv     Locally Modified          177 
 
 Modified the main line simulator to actually build. HD appears to run. 
+
+----------
+kfleming    Date: Tue Sep  7 11:51:00 EDT 2010  CSN: CSN-h264-180
+                  Tue Sep  7 15:51:00 UTC 2010
+
+
+Directory modules/h264/src/bufferControl/outputControl
+ h264_output_control_split_null.awb Locally Added               0 
+ mkOutputControlDump.bsv   Locally Added               0 
+
+
+Adding null output control
