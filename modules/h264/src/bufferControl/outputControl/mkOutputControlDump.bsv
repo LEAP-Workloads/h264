@@ -10,9 +10,12 @@ import FIFO::*;
 `include "asim/provides/h264_types.bsh"
 
 
-module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY,
-                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU,
-                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV)  (OutputControl);
+// This dump version of mkOutputControl can be polymorphic.  We don't actually 
+// use the reader ifcs.
+
+module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLuma, data) bufferY,
+                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, data) bufferU,
+                                           MEMORY_READER_IFC#(FrameBufferAddrChroma, data) bufferV)  (OutputControl);
 
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
 
