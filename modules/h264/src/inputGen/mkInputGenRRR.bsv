@@ -70,8 +70,8 @@ module [CONNECTED_MODULE] mkInputGen( IInputGen );
    Reg#(Bit#(64)) reqs   <- mkReg(0);
    Reg#(Bit#(64)) resps  <- mkReg(0);
    Reg#(Bit#(64)) cycles <- mkReg(0);
-   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(8);
-   FIFOF#(InputGenOT) buffer <- mkSizedFIFOF(8);
+   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(64);
+   FIFOF#(InputGenOT) buffer <- mkSizedFIFOF(64);
    FIFOF#(InputGenOT) outfifo <- mkFIFOF;
    
    rule count;

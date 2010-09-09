@@ -4,7 +4,7 @@
 
 %AWB_START
 
-%name H264 null output control size 
+%name H264 null output control QCIF size 
 %desc Filters all incoming requests, returning only garbage data. 
 %provides h264_output_control_split
 
@@ -12,7 +12,7 @@
 
 %requires processor_library
 
-%public mkOutputControlDump.bsv OutputControlCommon.bsv
+%public mkOutputControlSplitQCIF.bsv OutputControlCommon.bsv
 
 %param DEBUG_OUTPUT_CONTROL 0 "Output control debug"
 
