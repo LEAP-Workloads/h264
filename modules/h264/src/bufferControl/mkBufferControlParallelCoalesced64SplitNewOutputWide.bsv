@@ -89,6 +89,9 @@ module [CONNECTED_MODULE] mkBufferControl();
    MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
    MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
 
+   // need tokens to determine work
+   FIFO#(Bit#(1)) readIndex <- mkSizedFIFO(32);
+
    // Soft connections
 
    Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
@@ -120,8 +123,15 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(SlotNum) inSlot <- mkReg(0);
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
 
+   Reg#(Bool) gatheredY <- mkReg(False);
+   Reg#(Bool) gatheredU <- mkReg(False);
+   Reg#(Bool) gatheredV <- mkReg(False);
 
-   OutputControl outputControl <- mkOutputControl(bufferY.readPorts[1],bufferU.readPorts[1],bufferV.readPorts[1]);    
+   Reg#(FrameBufferData) storedDataY <- mkReg(0);
+   Reg#(FrameBufferData) storedDataU <- mkReg(0);
+   Reg#(FrameBufferData) storedDataV <- mkReg(0);
+
+   OutputControl outputControl <- mkOutputControl(?,?,?);    
    FreeSlots freeSlots <- mkFreeSlots(outputControl.find);//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
@@ -407,7 +417,7 @@ module [CONNECTED_MODULE] mkBufferControl();
 	    begin
 	       infifo.deq();
 	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
-	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
+               Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
                                                                     indata.ver);
                if(`DEBUG_BUFFER_CONTROL == 1) 
                  begin
@@ -416,8 +426,19 @@ module [CONNECTED_MODULE] mkBufferControl();
                                                                                                 addr, 
                                                                                                 indata.data);
                  end
-
-               bufferY.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+               // Remove last bit of addr
+               Bit#(TAdd#(PicAreaSz,5)) clippedAddr = truncateLSB(addr);
+               if(gatheredY)
+                 begin
+                   gatheredY <= False;
+                   bufferY.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataY});
+                 end
+               else
+                 begin
+                   gatheredY <= True;
+                   storedDataY <= indata.data;
+                 end
+              
 	    end
 	 tagged DFBChroma .indata :
 	    begin
@@ -425,13 +446,33 @@ module [CONNECTED_MODULE] mkBufferControl();
 	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(indata.hor,
                                                                     indata.ver);
 
+               Bit#(TAdd#(PicAreaSz,3)) clippedAddr = truncateLSB(addr);
+
 	       if(indata.uv == 0)
                  begin
-                   bufferU.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+                   if(gatheredU)
+                     begin
+                       gatheredU <= False;                   
+                       bufferU.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataU});
+                     end
+                   else 
+                     begin
+                       gatheredU <= True;
+                       storedDataU <= indata.data;
+                     end
                  end 
                else 
                  begin
-                   bufferV.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+                   if(gatheredV)
+                     begin
+                       gatheredV <= False;                   
+                       bufferV.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataV});
+                     end
+                   else 
+                     begin
+                       gatheredV <= True;
+                       storedDataV <= indata.data;
+                     end
                  end
 
                if(`DEBUG_BUFFER_CONTROL == 1) 
@@ -586,8 +627,12 @@ module [CONNECTED_MODULE] mkBufferControl();
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
       inLoadOutOfBounds.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
       fifoTarget.enq(Y);
-      FrameBufferAddrLuma addrY = truncateLSB(addrBase)+zeroExtend(addr);
+      
+      Bit#(TAdd#(PicAreaSz,5)) clippedAddr = truncateLSB(addr);
+      FrameBufferAddrLuma addrY = truncateLSB(addrBase)+zeroExtend(clippedAddr);
+      readIndex.enq(truncate(addr));
       bufferYRead.readReq(addrY);
+      
       $display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrY);
    endrule
 
@@ -597,7 +642,9 @@ module [CONNECTED_MODULE] mkBufferControl();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase <- calculateAddrBase(slot);
       Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(reqdata.hor);
-      FrameBufferAddrChroma addrUV = truncateLSB(addrBase)+zeroExtend(addr);
+      Bit#(TAdd#(PicAreaSz,5)) clippedAddr = truncateLSB(addr);
+      FrameBufferAddrChroma addrUV = truncateLSB(addrBase)+zeroExtend(clippedAddr);
+      readIndex.enq(truncate(addr));
       if(reqdata.uv == 1)
         begin
           bufferVRead.readReq(addrUV);
@@ -614,8 +661,10 @@ module [CONNECTED_MODULE] mkBufferControl();
       $display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrUV);
    endrule
 
-   function Action sendLoadResp(FrameBufferData data);
+   function Action sendLoadResp(Vector#(2,FrameBufferData) dataVec);
       action
+      let data = dataVec[readIndex.first];
+      readIndex.deq();
       if(inLoadOutOfBounds.first() == 2'b10)
 	 inLoadRespQ.send(tagged IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
       else if(inLoadOutOfBounds.first() == 2'b11)
@@ -629,21 +678,21 @@ module [CONNECTED_MODULE] mkBufferControl();
    rule interRespY (fifoTarget.first() == Y);
       let data <- bufferYRead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(truncate(data));
+      sendLoadResp(unpack(data));
       $display( "Trace BufferControl: interResp Y %h %h", inLoadOutOfBounds.first(), data);
    endrule
 
    rule interRespU (fifoTarget.first() == U);
       let data <- bufferURead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(truncate(data));
+      sendLoadResp(unpack(data));
       $display( "Trace BufferControl: interResp U %h %h", inLoadOutOfBounds.first(), data);
    endrule
-
+ 
    rule interRespV (fifoTarget.first() == V);
       let data <- bufferVRead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(truncate(data));
+      sendLoadResp(unpack(data));
       $display( "Trace BufferControl: interResp V %h %h", inLoadOutOfBounds.first(), data);
    endrule
 

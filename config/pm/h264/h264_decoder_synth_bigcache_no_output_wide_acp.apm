@@ -193,7 +193,7 @@ scratchpad_memory_service=Scratchpad Memory Service
 central_cache_service=Central Cache Service
 
 [Scratchpad Memory Service/Params]
-SCRATCHPAD_STD_PVT_CACHE_ENTRIES=2048
+SCRATCHPAD_STD_PVT_CACHE_ENTRIES=16384
 SCRATCHPAD_PVT_CACHE_MODE=2
 
 [Central Cache Service]
@@ -214,17 +214,19 @@ starter_service=Starter Service
 File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
 Packagehint=h264
 
-[H264 null output control]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_null.awb
-Packagehint=h264
 
-[H264 null output control/Requires]
-processor_library=Processor Library
 
 [H264 split coalescing parallel buffer 64 bit/Requires]
 h264_buffer_control_common=H264 buffer control common
-h264_output_control_split=H264 null output control
+h264_output_control_split=H264 null output control size
 
 [H264 split coalescing parallel buffer 64 bit]
 File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_wide.awb
 Packagehint=h264
+
+[H264 null output control size]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_null.awb
+Packagehint=h264
+
+[H264 null output control size/Requires]
+processor_library=Processor Library

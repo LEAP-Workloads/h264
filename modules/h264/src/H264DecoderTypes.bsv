@@ -36,15 +36,13 @@ import RegFile::*;
 import GetPut::*;
 import FShow::*;
 
-Integer prediction_infifo_size = 4;
+Integer prediction_infifo_size = 16;
 Integer prediction_infifo_ITB_size = 16;
 Integer prediction_predictedfifo_size = 16;
-Integer interpolator_reqfifoLoad_size = 4;
-Integer interpolator_reqfifoWork_size = 8;
-Integer interpolator_memRespQ_size = 4;
-Integer deblockFilter_infifo_size = 4;
-
-
+Integer interpolator_reqfifoLoad_size = 16;
+Integer interpolator_reqfifoWork_size = 16;
+Integer interpolator_memRespQ_size = 16;
+Integer deblockFilter_infifo_size = 16;
 
 typedef enum
 {

@@ -45,16 +45,16 @@ typedef 16  MaxRefFrames;//max number of frames in the frame buffer
 Bit#(5) maxRefFrames=16;//max number of frames in the frame buffer
 Bit#(FrameBufferSz) frameBufferSize=25'b0110110000000000000000000;//size of frame buffer ((maxRefFrames+2)*maxPicAreaInMB*1.5*64)
 
-Integer entropyDec_infifo_size = 2;
-Integer inverseTrans_infifo_size = 8;
-Integer prediction_infifo_size = 4;
+Integer entropyDec_infifo_size = 16;
+Integer inverseTrans_infifo_size = 16;
+Integer prediction_infifo_size = 16;
 Integer prediction_infifo_ITB_size = 16;
 Integer prediction_predictedfifo_size = 16;
-Integer interpolator_reqfifoLoad_size = 4;
-Integer interpolator_reqfifoWork_size = 8;
-Integer interpolator_memRespQ_size = 4;
-Integer deblockFilter_infifo_size = 4;
-Integer bufferControl_infifo_size = 2;
+Integer interpolator_reqfifoLoad_size = 16;
+Integer interpolator_reqfifoWork_size = 16;
+Integer interpolator_memRespQ_size = 16;
+Integer deblockFilter_infifo_size = 16;
+Integer bufferControl_infifo_size = 16;
 
 
 //-----------------------------------------------------------
