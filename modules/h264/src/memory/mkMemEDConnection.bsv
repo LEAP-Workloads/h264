@@ -47,7 +47,9 @@ typedef Empty IMemEDConnection#(numeric type index_size, numeric type data_size)
 
 module [CONNECTED_MODULE] mkMemEDConnection#(String reqQName, String respQName) (IMemEDConnection#(index_size,data_size))
    provisos (Bits#(MemReq#(index_size,data_size),mReqLen),
-	     Bits#(MemResp#(data_size),mRespLen)/*,
+	     Bits#(MemResp#(data_size),mRespLen),
+             Add#(mReqLen, a__, 320),
+             Add#(mRespLen, b__, 320)/*,
              Transmittable#(MemResp#(data_size)),
              Transmittable#(MemReq#(index_size,data_size))*/);
 
