@@ -21,5 +21,6 @@
 %public mkTH.cpp
 %public mkTH.h
 
+%param SYNTH_BOUNDARY mkConnectedApplication "name of synthesis boundary"
 
 %AWB_END
