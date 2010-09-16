@@ -17,7 +17,8 @@ class MKINPUTGENRRR_SERVER_CLASS: public RRR_SERVER_CLASS,
     // self-instantiation
     static MKINPUTGENRRR_SERVER_CLASS instance;
     FILE *inputFile;
-
+    int fileSize;
+    int lengthRemaining;
     // server stub
     RRR_SERVER_STUB serverStub;
     

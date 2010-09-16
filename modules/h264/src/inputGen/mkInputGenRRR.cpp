@@ -72,6 +72,9 @@ MKINPUTGENRRR_SERVER_CLASS::Initialize(UINT64 dummy)
     assert(inputFile);
     // tabulate file size
     fstat(fileno(inputFile), &stats);
+    printf("Size: %d",  stats.st_size);
+    fileSize = stats.st_size;
+    lengthRemaining = stats.st_size;
     return stats.st_size;
 }
 
@@ -85,11 +88,18 @@ MKINPUTGENRRR_SERVER_CLASS::GetInputData(UINT64 dummy)
       return 0;
     }
 
-    if((value = fgetc(inputFile)) == EOF) {
+    int count = 0;
+    UINT64 data = 0;
+
+    if(lengthRemaining > sizeof(data)) {
+      fread(&data,1,sizeof(data),inputFile);
+      lengthRemaining = lengthRemaining - sizeof(data);
+    } else {
+      fread(&data,1,lengthRemaining,inputFile);
+      lengthRemaining = 0;
       rewind(inputFile);
-      return 0;
     }
-    else {
-      return (value & 0xff) | 0x1000;
-    }
+
+    return data;
+
 }

@@ -30,6 +30,9 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/common_services.bsh"
 `include "asim/provides/h264_types.bsh"
+`include "asim/provides/librl_bsv_base.bsh"
+`include "asim/provides/librl_bsv_storage.bsh"
+`include "asim/provides/mem_services.bsh"
 
 `include "asim/rrr/remote_client_stub_MKINPUTGENRRR.bsh"
 
@@ -67,12 +70,15 @@ module [CONNECTED_MODULE] mkInputGen( IInputGen );
    Connection_Receive#(H264InputAddr) startFileTX <- mkConnection_Receive("mkInput_StartFile");
    Reg#(InputState) state <- mkReg(IssueInit);
    Reg#(Bit#(64)) length <- mkReg(0);
+   Reg#(Bit#(64)) lengthRemaining <- mkReg(0);
    Reg#(Bit#(64)) reqs   <- mkReg(0);
    Reg#(Bit#(64)) resps  <- mkReg(0);
    Reg#(Bit#(64)) cycles <- mkReg(0);
-   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedFIFOF(64);
-   FIFOF#(InputGenOT) buffer <- mkSizedFIFOF(64);
-   FIFOF#(InputGenOT) outfifo <- mkFIFOF;
+   // Need outstanding reqs to throttle things
+   NumTypeParam#(256) p = ?;
+   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedBRAMFIFOF(p);
+   FIFO#(Bit#(64)) buffer <- mkSizedBRAMFIFOF(p);
+   FIFOF#(InputGenOT) outfifo <- mkSizedBRAMFIFOF(p);
    
    rule count;
      cycles <= cycles + 1;
@@ -90,39 +96,57 @@ module [CONNECTED_MODULE] mkInputGen( IInputGen );
    rule getInitResp(state == WaitForInit);
      let lengthIn <- client_stub.getResponse_Initialize;
      length <= lengthIn;
+     lengthRemaining <= lengthIn;
      state <= DataReq;
      reqs <= 0;
      resps <= 0;
    endrule
 
    rule fetchData(reqs < length && state == DataReq); 
-     client_stub.makeRequest_GetInputData(reqs);
-     reqs <= reqs + 1;
+     client_stub.makeRequest_GetInputData(?);
+     reqs <= reqs + 8;
      outstandingReqs.enq(?);
    endrule
 
    // are we done?
-   rule fetchDataDone(reqs == length && state == DataReq && 
-                      !outstandingReqs.notEmpty); 
+   rule fetchDataDone(reqs >= length && state == DataReq
+                      && lengthRemaining == 0); 
      reqs <= 0;
      state <= EndOfFile;
    endrule
 
-   rule getData; 
-      Bit#(64) data <- client_stub.getResponse_GetInputData();      
-      buffer.enq(tagged DataByte (truncate(data)));
+   Reg#(Bit#(4)) dataRemaining <- mkReg(0);
+   Reg#(Bit#(64)) bytes <- mkReg(0);
+
+   rule bufferData;
+      Bit#(64) data <- client_stub.getResponse_GetInputData();
+      buffer.enq(data);
+   endrule
+
+   rule getData(dataRemaining == 0); 
+      let data = buffer.first;
+      buffer.deq;
+      Bit#(8) count = truncateLSB(data);
+      outstandingReqs.deq;
+      bytes <= data>>8;
+      dataRemaining <= (lengthRemaining > 8)?7:truncate(lengthRemaining - 1);
+      lengthRemaining <= lengthRemaining - 1;       
+      $display("getData enqs %h", data[7:0]);
+      outfifo.enq(tagged DataByte (truncate(data)));
    endrule 
 
-   rule endOfFile(state == EndOfFile);     
+   rule drainData(dataRemaining > 0);
+     dataRemaining <= dataRemaining - 1;
+     bytes <= bytes >> 8;
+     lengthRemaining <= lengthRemaining - 1; 
+      $display("drainData enqs %h remaining %d", bytes[7:0], lengthRemaining);      
+     outfifo.enq(tagged DataByte (truncate(bytes))); 
+   endrule
+
+   rule endOfFile(state == EndOfFile && lengthRemaining == 0);     
      $display("InputGen: EndOfFile %d", length);
      outfifo.enq(tagged EndOfFile);
      state <= IssueInit;          
-   endrule
-
-   rule feedOutfifo;
-     outfifo.enq(buffer.first);
-     outstandingReqs.deq;
-     buffer.deq;
    endrule
 
    interface Get ioout = fifoToGet(fifofToFifo(outfifo));
