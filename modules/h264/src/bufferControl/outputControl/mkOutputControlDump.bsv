@@ -9,11 +9,12 @@ import FIFO::*;
 `include "asim/provides/h264_decoder_types.bsh"
 `include "asim/provides/h264_buffer_control_common.bsh"
 `include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_buffer_control_common.bsh"
 
 
 // This dump version of mkOutputControl can be polymorphic.  We don't actually 
 // use the reader ifcs.
-
+  
 module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(FrameBufferAddrLuma, data) bufferY,
                                            MEMORY_READER_IFC#(FrameBufferAddrChroma, data) bufferU,
                                            MEMORY_READER_IFC#(FrameBufferAddrChroma, data) bufferV)  (OutputControl);

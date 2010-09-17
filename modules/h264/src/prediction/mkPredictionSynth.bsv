@@ -174,7 +174,7 @@ module [CONNECTED_MODULE] mkPrediction ();
    Connection_Receive#(MemResp#(32)) interMemRespQ <- mkConnection_Receive("mkPrediction_interMemRespQ");
    Connection_Send#(MemReq#(TAdd#(PicWidthSz,2),32)) interMemReqQ <- mkConnection_Send("mkPrediction_interMemReqQ");                    
    Connection_Send#(InterpolatorIT) interpolatorOutfifo <- mkConnection_Send("mkInterpolator_infifo");
-   Connection_Receive#(Vector#(4,Bit#(8))) interpolatorInfifo <- mkConnection_Receive("mkInterolator_outfifo");
+   Connection_Receive#(Vector#(4,Bit#(8))) interpolatorInfifo <- mkConnection_Receive("mkInterpolator_outfifo");
 
    
 

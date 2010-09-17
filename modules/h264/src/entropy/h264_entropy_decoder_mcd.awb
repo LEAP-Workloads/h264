@@ -1,0 +1,19 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 MCD entropy decoder module
+%desc H264 MCD entropy decoder module
+%provides h264_entropy_decoder
+
+%attributes h264
+
+%public mkEntropyDecMCD.bsv IEntropyDec.bsv ExpGolomb.bsv CAVLC.bsv ICalc_nC.bsv mkCalc_nC.bsv
+
+%param SYNTH_BOUNDARY mkEntropyDec "synth boundary names"
+%param --global ENTROPY_DEBUG  0 "Enable Entropy Decoder Debug"
+
+%AWB_END
+

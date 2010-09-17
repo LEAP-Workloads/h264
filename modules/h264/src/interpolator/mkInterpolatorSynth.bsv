@@ -59,7 +59,7 @@ module [CONNECTED_MODULE] mkInterpolator (Empty);
    Connection_Receive#(InterpolatorLoadResp) memRespQ <- mkConnection_Receive("mkPrediction_interpolatorMemRespQ");
    Connection_Send#(InterpolatorLoadReq) memReqQ <- mkConnection_Send("mkPrediction_interpolatorMemReqQ");
    Connection_Receive#(InterpolatorIT) infifo <- mkConnection_Receive("mkInterpolator_infifo");
-   Connection_Send#(Vector#(4,Bit#(8))) outfifo <- mkConnection_Send("mkInterolator_outfifo");
+   Connection_Send#(Vector#(4,Bit#(8))) outfifo <- mkConnection_Send("mkInterpolator_outfifo");
 
 
    Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
