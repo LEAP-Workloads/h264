@@ -102,10 +102,6 @@ Packagehint=h264
 File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
-[H264 buffer control common]
-File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
-Packagehint=h264
-
 [Scratchpad Memory Service]
 File=modules/hasim/util/platform-services/mem-services/scratchpad-memory-service/scratchpad-memory-service.awb
 Packagehint=hasim
@@ -173,7 +169,7 @@ front_panel_service=Front Panel Service
 starter_service=Starter Service
 
 [Scratchpad Memory Service/Params]
-SCRATCHPAD_STD_PVT_CACHE_ENTRIES=8192
+SCRATCHPAD_STD_PVT_CACHE_ENTRIES=4096
 SCRATCHPAD_PVT_CACHE_MODE=2
 PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
 
@@ -204,7 +200,9 @@ File=modules/h264/src/deblocking/mcd/h264_deblocking.awb
 Packagehint=h264
 
 [FPGA Environment/Params]
-MODEL_CLOCK_DIVIDER=8
+MODEL_CLOCK_DIVIDER=5
+MODEL_CLOCK_MULTIPLIER=2
+MODEL_CLOCK_FREQ=80
 
 [Synthesizable H264 interpolator split memory access module]
 File=modules/h264/src/interpolator/h264_interpolator_split_synth.awb
@@ -214,16 +212,20 @@ Packagehint=h264
 File=modules/h264/src/bufferControl/split/h264_buffer_control_coalesced_parallel_wide.awb
 Packagehint=h264
 
+[H264 split LC coalescing parallel buffer 64 bit/Requires]
+h264_buffer_control_common=H264 buffer control wide common
+h264_output_control_split_wide=H264 null output control size
+
+[Synthesizable H264 interpolator split memory access module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
 [H264 null output control size]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_null.awb
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_wide_null.awb
 Packagehint=h264
 
 [H264 null output control size/Requires]
 processor_library=Processor Library
 
-[H264 split LC coalescing parallel buffer 64 bit/Requires]
-h264_buffer_control_common=H264 buffer control common
-h264_output_control_split=H264 null output control size
-
-[Synthesizable H264 interpolator split memory access module/Requires]
-h264_interpolator_types_synth=H264 Synth Interpolator types
+[H264 buffer control wide common]
+File=modules/h264/src/bufferControl/common/h264_buffer_control_common_wide.awb
+Packagehint=h264

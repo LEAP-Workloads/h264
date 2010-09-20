@@ -2,7 +2,7 @@
 [Global]
 Type=HAsim
 Version=2.1
-File=h264_decoder_mcd_split
+File=h264_decoder_split_synth
 SaveParameters=0
 Description=H264 Decoder
 Name=H264 Decoder
@@ -15,8 +15,8 @@ DefaultAttributes=h264 bluespec
 model=HW/SW Hybrid Pipeline Build
 
 [FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
-Packagehint=platforms
+File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech.apm
+Packagehint=platform-acp
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -27,7 +27,7 @@ File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 MCD deblocking filter module
+h264_deblocking=H264 deblocking filter module
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=Synth Interpolator H264 prediction module
 h264_entropy_decoder=H264 entropy decoder module
@@ -45,7 +45,7 @@ h264_decoder=H264 decoder module
 h264_types=H264 System types
 h264_memory_unit=H264 default simulation module
 h264_input=H264 RRR input module
-h264_output=H264 output RRR
+h264_output=H264 output Dump
 
 [H264 nal unwrap module]
 File=modules/h264/src/nal/h264_nal_unwrap.awb
@@ -96,6 +96,10 @@ Packagehint=h264
 
 [H264 Synth Interpolator types]
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
+Packagehint=h264
+
+[H264 output Dump]
+File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
 
@@ -166,7 +170,7 @@ front_panel_service=Front Panel Service
 starter_service=Starter Service
 
 [Scratchpad Memory Service/Params]
-SCRATCHPAD_STD_PVT_CACHE_ENTRIES=8192
+SCRATCHPAD_STD_PVT_CACHE_ENTRIES=4096
 SCRATCHPAD_PVT_CACHE_MODE=2
 PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
 
@@ -192,9 +196,9 @@ connected_application=H264 System
 File=config/pm/hasim/submodels/common/soft-services.apm
 Packagehint=hasim
 
-[H264 MCD deblocking filter module]
-File=modules/h264/src/deblocking/mcd/h264_deblocking.awb
-Packagehint=h264
+[FPGA Environment/Params]
+MODEL_CLOCK_DIVIDER=10
+MODEL_CLOCK_FREQ=60
 
 [Synthesizable H264 interpolator split memory access module]
 File=modules/h264/src/interpolator/h264_interpolator_split_synth.awb
@@ -218,11 +222,8 @@ processor_library=Processor Library
 File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_wide.awb
 Packagehint=h264
 
-[H264 split LC coalescing parallel buffer 64 bit/Params]
-DEBUG_BUFFER_CONTROL=1
-
-[H264 output RRR]
-File=modules/h264/src/finalOutput/h264_output_rrr.awb
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
 Packagehint=h264
 
 [H264 buffer control wide common]
