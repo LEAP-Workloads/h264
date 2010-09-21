@@ -1,0 +1,16 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 buffer control wide common
+%desc H264 buffer control wide common 
+%provides h264_buffer_control_common
+
+%attributes h264
+
+%public BufferControlCommonWide.bsv OutputControlCommon.bsv
+
+%AWB_END
+

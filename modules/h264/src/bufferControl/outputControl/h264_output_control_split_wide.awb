@@ -1,0 +1,20 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 output control module split, wide memory
+%desc H264 output control module
+%provides h264_output_control_split_wide
+
+%attributes h264
+
+%requires processor_library
+
+%public mkOutputControlSplitWide.bsv
+
+%param DEBUG_OUTPUT_CONTROL 1 "Output control debug"
+
+%AWB_END
+

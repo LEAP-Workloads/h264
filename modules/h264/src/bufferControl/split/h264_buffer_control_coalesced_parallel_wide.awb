@@ -7,7 +7,7 @@
 %name H264 split LC coalescing parallel buffer 64 bit
 %desc Uses three backing scratchpads to achieve memory separation, has seperate Luma/Chroma channels 
 %provides h264_buffer_control
-%requires h264_output_control_split
+%requires h264_output_control_split_wide
 %requires h264_buffer_control_common
 
 %attributes h264

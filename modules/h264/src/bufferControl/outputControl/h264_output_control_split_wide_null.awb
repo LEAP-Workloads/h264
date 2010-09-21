@@ -1,0 +1,20 @@
+********************************************************************
+* Awb module specification
+********************************************************************
+
+%AWB_START
+
+%name H264 null output control size 
+%desc Filters all incoming requests, returning only garbage data. 
+%provides h264_output_control_split_wide
+
+%attributes h264
+
+%requires processor_library
+
+%public mkOutputControlDump.bsv OutputControlCommon.bsv
+
+%param DEBUG_OUTPUT_CONTROL 0 "Output control debug"
+
+%AWB_END
+

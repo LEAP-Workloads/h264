@@ -45,12 +45,12 @@ import ClientServer::*;
 //-----------------------------------------------------------
 // Interpolation Module
 //-----------------------------------------------------------
-//module [CONNECTED_MODULE] mkInterpolator();
-//  UserClock domain <- mkSoftClock(55);
-//  let inter <- mkInterpolatorDomain(clocked_by domain.clk, reset_by domain.rst);
-//endmodule
+module [CONNECTED_MODULE] mkInterpolator();
+  UserClock domain <- mkSoftClock(55);
+  let inter <- mkInterpolatorDomain(clocked_by domain.clk, reset_by domain.rst);
+endmodule
 
-module [CONNECTED_MODULE] mkInterpolator (Empty);
+module [CONNECTED_MODULE] mkInterpolatorDomain (Empty);
 
    FIFOF#(InterpolatorIT) reqfifoLoadLuma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE); // pixel requests.
    FIFOF#(InterpolatorIT) reqfifoLoadChroma <- mkSizedFIFOF(`REQFIFO_LOAD_SIZE); // pixel requests.

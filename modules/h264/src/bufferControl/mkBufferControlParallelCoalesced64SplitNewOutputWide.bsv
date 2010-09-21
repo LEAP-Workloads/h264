@@ -78,16 +78,16 @@ module [CONNECTED_MODULE] mkBufferControl();
 
 
    // We use three mem interfaces here
-
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, Bit#(64))   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Bit#(64)) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Bit#(64)) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
+ 
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, Vector#(2,FrameBufferData)))   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Vector#(2,FrameBufferData) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
+   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
 
    // protect the read interfaces
    NumTypeParam#(16) p = 0;
-   MEMORY_READER_IFC#(FrameBufferAddrLuma, Bit#(64)) bufferYRead <- mkSafeSizedMemoryReader(p,bufferY.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrLuma, Vector#(2,FrameBufferData)) bufferYRead <- mkSafeSizedMemoryReader(p,bufferY.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrChroma, Vector#(2,FrameBufferData)) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
+   MEMORY_READER_IFC#(FrameBufferAddrChroma, Vector#(2,FrameBufferData)) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
 
    // need tokens to determine work
    FIFO#(Bit#(1)) readIndex <- mkSizedFIFO(32);
@@ -131,7 +131,7 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(FrameBufferData) storedDataU <- mkReg(0);
    Reg#(FrameBufferData) storedDataV <- mkReg(0);
 
-   OutputControl outputControl <- mkOutputControl(?,?,?);    
+   OutputControl outputControl <- mkOutputControl(bufferY.readPorts[1],bufferU.readPorts[1],bufferV.readPorts[1]);    
    FreeSlots freeSlots <- mkFreeSlots(outputControl.find);//may include outSlot (have to make sure it's not used)
    ShortTermPicList shortTermPicList <- mkShortTermPicList();
    LongTermPicList  longTermPicList  <- mkLongTermPicList();
@@ -430,8 +430,16 @@ module [CONNECTED_MODULE] mkBufferControl();
                Bit#(TAdd#(PicAreaSz,5)) clippedAddr = truncateLSB(addr);
                if(gatheredY)
                  begin
+                   if(truncate(addr) != 1'b1) 
+                     begin
+                       $display("BufferControl: Y address has wrong parity");
+                       $finish;
+                     end
+                   Vector#(2,FrameBufferData) dataVector= newVector;
+                   dataVector[0] = storedDataY;
+                   dataVector[1] = indata.data;
                    gatheredY <= False;
-                   bufferY.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataY});
+                   bufferY.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), dataVector);
                  end
                else
                  begin
@@ -452,8 +460,17 @@ module [CONNECTED_MODULE] mkBufferControl();
                  begin
                    if(gatheredU)
                      begin
+                       if(truncate(addr) != 1'b1)	
+                         begin
+                           $display("BufferControl: U address has wrong parity");
+                           $finish;
+                         end
+                       Vector#(2,FrameBufferData) dataVector= newVector;
+                       dataVector[0] = storedDataU;
+                       dataVector[1] = indata.data;
+
                        gatheredU <= False;                   
-                       bufferU.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataU});
+                       bufferU.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), dataVector);
                      end
                    else 
                      begin
@@ -465,8 +482,17 @@ module [CONNECTED_MODULE] mkBufferControl();
                  begin
                    if(gatheredV)
                      begin
+                       if(truncate(addr) != 1'b1) 
+                         begin
+                           $display("BufferControl: address has wrong parity");
+                           $finish;
+                         end
+                       Vector#(2,FrameBufferData) dataVector= newVector;
+                       dataVector[0] = storedDataV;
+                       dataVector[1] = indata.data;
+
                        gatheredV <= False;                   
-                       bufferV.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), {indata.data,storedDataV});
+                       bufferV.write(truncateLSB(inAddrBase)+zeroExtend(clippedAddr), dataVector);
                      end
                    else 
                      begin
@@ -678,21 +704,21 @@ module [CONNECTED_MODULE] mkBufferControl();
    rule interRespY (fifoTarget.first() == Y);
       let data <- bufferYRead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(unpack(data));
+      sendLoadResp(data);
       $display( "Trace BufferControl: interResp Y %h %h", inLoadOutOfBounds.first(), data);
    endrule
 
    rule interRespU (fifoTarget.first() == U);
       let data <- bufferURead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(unpack(data));
+      sendLoadResp(data);
       $display( "Trace BufferControl: interResp U %h %h", inLoadOutOfBounds.first(), data);
    endrule
  
    rule interRespV (fifoTarget.first() == V);
       let data <- bufferVRead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(unpack(data));
+      sendLoadResp(data);
       $display( "Trace BufferControl: interResp V %h %h", inLoadOutOfBounds.first(), data);
    endrule
 

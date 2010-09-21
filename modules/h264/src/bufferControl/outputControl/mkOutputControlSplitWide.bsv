@@ -1,4 +1,5 @@
 import FIFO::*;
+import Vector::*;
 
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/scratchpad_memory.bsh"
@@ -9,15 +10,11 @@ import FIFO::*;
 `include "asim/provides/h264_decoder_types.bsh"
 `include "asim/provides/h264_buffer_control_common.bsh"
 `include "asim/provides/h264_types.bsh"
-`include "asim/provides/h264_buffer_control_common.bsh"
 
 
-// This dump version of mkOutputControl can be polymorphic.  We don't actually 
-// use the reader ifcs.
-  
-module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
-                                           mem_ifc bufferU,
-                                           mem_ifc bufferV)  (OutputControl);
+module [CONNECTED_MODULE] mkOutputControl#(MEMORY_READER_IFC#(ScratchpadAddrLuma, Vector#(2,FrameBufferData)) bufferY,
+                                           MEMORY_READER_IFC#(ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU,
+                                           MEMORY_READER_IFC#(ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV)  (OutputControl);
 
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
 
@@ -28,6 +25,8 @@ module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
    
   Reg#(Bit#(PicWidthSz))  picWidth  <- mkReg(maxPicWidthInMB);
   Reg#(Bit#(PicHeightSz)) picHeight <- mkReg(0);
+  Reg#(LumaCoordHor)    currHor   <- mkReg(0);
+  Reg#(LumaCoordVer)    currVer   <- mkReg(0);
   Reg#(Outprocess) outprocess <- mkReg(Idle);
   Reg#(Bit#(FrameBufferSz)) outAddrBase <- mkReg(0);
   Reg#(Bit#(TAdd#(PicAreaSz,7))) outReqCount <- mkReg(0);
@@ -37,8 +36,7 @@ module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
 
   SFIFO#(OutputControlType,SlotNum) infifo <- mkSFIFO(checkSlot);
   FIFO#(FieldType) fifoTarget <- mkSizedFIFO(8);
-  FIFO#(FrameBufferData) dataFIFO <- mkSizedFIFO(8);
-
+  FIFO#(Bit#(1))   readIndex <- mkSizedFIFO(32);
 
   
 
@@ -55,6 +53,8 @@ module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
                            infifo.deq;
                          end
       tagged Slot .slot : begin
+                            currHor <= 0;
+                            currVer <= 0;
                             outprocess <= Y;
                             if(`DEBUG_OUTPUT_CONTROL == 1)
                               begin    
@@ -96,100 +96,142 @@ module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
   endrule
 
   rule outputingReqY (infifo.first matches tagged Slot .outSlot &&& outprocess ==Y);
-    FrameBufferAddrLuma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
+    Bit#(TAdd#(PicAreaSz,6)) frameAddr = calculateLumaCoord(picWidth, 
+                                                            currHor,
+                                                            currVer);
+    FrameBufferAddrLuma addr = truncateLSB(outAddrBase)+zeroExtend(frameAddr);
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
         $display( "TRACE OutputControl: outputingReq Y %h %d %h %h", outAddrBase, outReqCount, addr, frameinmb); 
       end
+    bufferY.readReq(truncateLSB(addr));
+    fifoTarget.enq(Y);
+    readIndex.enq(truncate(addr));
 
-    dataFIFO.enq(0);
     if(outReqCount + 1 == {1'b0,frameinmb,6'b000000})
       begin
+        currHor <= 0;
+        currVer <= 0;
         outprocess <= U;
         outReqCount <= 0;
       end
     else
       begin
+        if(currHor + 1 == 4*zeroExtend(picWidth))
+          begin
+            currHor <= 0;
+            currVer <= currVer + 1;
+          end
+        else 
+          begin 
+            currHor <= currHor + 1;            
+          end
         outReqCount <= outReqCount+1;
       end
-    fifoTarget.enq(Y);
   endrule
    
   rule outputingReqU (infifo.first matches tagged Slot .outSlot &&& outprocess ==U);
-    FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
+    Bit#(TAdd#(PicAreaSz,4)) frameAddr = calculateChromaCoord(picWidth,
+                                                              truncate(currHor),
+                                                              truncate(currVer));
+    FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(frameAddr);
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
-        $display( "TRACE OutputControl: outputingReq U %h %d %h", outAddrBase, outReqCount, addr);
+        $display( "TRACE OutputControl: outputingReq U %h %d %h ", outAddrBase, outReqCount, addr);
       end
-
-    dataFIFO.enq(0);
+    bufferU.readReq(truncateLSB(addr));
+    fifoTarget.enq(U);
+    readIndex.enq(truncate(addr));
     if(outReqCount + 1 == {3'b000,frameinmb,4'b0000})
       begin
+        currHor <= 0;
+        currVer <= 0;
         outprocess <= V;
         outReqCount <= 0;
       end
     else
       begin
+        if(currHor + 1 == 2*zeroExtend(picWidth))
+          begin
+            currHor <= 0;
+            currVer <= currVer + 1;
+          end
+        else 
+          begin 
+            currHor <= currHor + 1;            
+          end
         outReqCount <= outReqCount+1;
       end
-
-    fifoTarget.enq(U);
   endrule
 
   rule outputingReqV (infifo.first matches tagged Slot .outSlot &&& outprocess ==V);
-    FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(outReqCount);
+   Bit#(TAdd#(PicAreaSz,4)) frameAddr = calculateChromaCoord(picWidth,
+                                                             truncate(currHor),
+                                                             truncate(currVer));
+   FrameBufferAddrChroma addr = truncateLSB(outAddrBase)+zeroExtend(frameAddr);
+
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
         $display( "TRACE OutputControl: outputingReq V %h %d %h", outAddrBase, outReqCount, addr);
       end
-
-    dataFIFO.enq(0);
+    bufferV.readReq(truncateLSB(addr));
     fifoTarget.enq(V);
+    readIndex.enq(truncate(addr));
     if(outReqCount + 1 == {3'b000,frameinmb,4'b0000})
       begin
+        currHor <= 0;
+        currVer <= 0;
         outprocess <= OutstandingRequests;
         outReqCount <= 0;
       end
     else
       begin
+        if(currHor + 1 == 2*zeroExtend(picWidth))
+          begin
+            currHor <= 0;
+            currVer <= currVer + 1;
+          end
+        else 
+          begin 
+            currHor <= currHor + 1;            
+          end
         outReqCount <= outReqCount+1;
       end 
   endrule
 
 
   rule outputingRespY(fifoTarget.first() == Y);
-    dataFIFO.deq;
+    let xdata <- bufferY.readRsp();
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
         $display( "TRACE OutputControl: Resp Received Y %h", outRespCount);  
       end
-
-    outfifo.send(tagged YUV (dataFIFO.first));
+    readIndex.deq;
+    outfifo.send(tagged YUV (xdata[readIndex.first]));
     outRespCount <= outRespCount+1;
     fifoTarget.deq;
   endrule
 
   rule outputingRespU(fifoTarget.first() == U);
-    dataFIFO.deq;
-
+    let xdata <- bufferU.readRsp();
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
         $display( "TRACE OutputControl: Resp Received U %h", outRespCount);
       end
-
-    outfifo.send(tagged YUV (dataFIFO.first));
+    readIndex.deq;
+    outfifo.send(tagged YUV (xdata[readIndex.first()]));
     outRespCount <= outRespCount+1;
     fifoTarget.deq;
   endrule
    
   rule outputingRespV(fifoTarget.first() == V);
-    dataFIFO.deq;
+    let xdata <- bufferV.readRsp();
     if(`DEBUG_OUTPUT_CONTROL == 1)
       begin    
         $display( "TRACE OutputControl: Resp Received V %h", outRespCount);
       end
-
-    outfifo.send(tagged YUV (dataFIFO.first()));
+    readIndex.deq();
+    outfifo.send(tagged YUV (xdata[readIndex.first()]));
     outRespCount <= outRespCount+1;
     fifoTarget.deq;
    endrule

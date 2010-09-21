@@ -36,7 +36,7 @@
 `include "asim/dict/STATS_FRAME_BUFFER_Y.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER_U.bsh"
 `include "asim/dict/STATS_FRAME_BUFFER_V.bsh"
-`include "asim/provides/h264_output_control_split.bsh"
+`include "asim/provides/h264_output_control_split_wide.bsh"
 `include "asim/provides/h264_buffer_control_common.bsh"
 
 import FIFO::*;
@@ -79,15 +79,19 @@ module [CONNECTED_MODULE] mkBufferControl();
 
    // We use three mem interfaces here
 
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrLuma, Bit#(64))   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Bit#(64)) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
-   MEMORY_MULTI_READ_IFC#(2,FrameBufferAddrChroma, Bit#(64)) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrLuma, Vector#(2,FrameBufferData))   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
 
    // protect the read interfaces
    NumTypeParam#(16) p = 0;
-   MEMORY_READER_IFC#(FrameBufferAddrLuma, Bit#(64)) bufferYRead <- mkSafeSizedMemoryReader(p,bufferY.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
-   MEMORY_READER_IFC#(FrameBufferAddrChroma, Bit#(64)) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
+   MEMORY_READER_IFC#(ScratchpadAddrLuma, Vector#(2,FrameBufferData)) bufferYRead <- mkSafeSizedMemoryReader(p,bufferY.readPorts[0]);
+   MEMORY_READER_IFC#(ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferURead <- mkSafeSizedMemoryReader(p,bufferU.readPorts[0]);
+   MEMORY_READER_IFC#(ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferVRead <- mkSafeSizedMemoryReader(p,bufferV.readPorts[0]);
+
+   //Need tokens to determin work
+   FIFO#(Bit#(1)) readIndexLuma <- mkSizedFIFO(32);
+   FIFO#(Bit#(1)) readIndexChroma <- mkSizedFIFO(32);
 
    // Soft connections
 
@@ -125,6 +129,16 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(SlotNum) inSlot <- mkReg(0);
    Reg#(Bit#(FrameBufferSz)) inAddrBase <- mkReg(0);
 
+   // Widen to 64 Bit
+
+   Reg#(Bool) gatheredY <- mkReg(False);
+   Reg#(Bool) gatheredU <- mkReg(False);
+   Reg#(Bool) gatheredV <- mkReg(False);
+
+   Reg#(FrameBufferData) storedDataY <- mkReg(0);
+   Reg#(FrameBufferData) storedDataU <- mkReg(0);
+   Reg#(FrameBufferData) storedDataV <- mkReg(0);
+
 
    OutputControl outputControl <- mkOutputControl(bufferY.readPorts[1],bufferU.readPorts[1],bufferV.readPorts[1]);    
    FreeSlots freeSlots <- mkFreeSlots(outputControl.find);//may include outSlot (have to make sure it's not used)
@@ -143,17 +157,6 @@ module [CONNECTED_MODULE] mkBufferControl();
    Reg#(Bool) lockInterLoads <- mkReg(True);
    DoNotFire donotfire <- mkDoNotFire();
    
-
-   // some generally useful helper functions   
-   function calculateLumaCoord(LumaCoordHor hor, LumaCoordVer ver);     
-     Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(hor);
-     return addr;
-   endfunction
-
-   function calculateChromaCoord(ChromaCoordHor hor, ChromaCoordVer ver);
-     Bit#(TAdd#(PicAreaSz,4)) addr = {(zeroExtend(ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(hor);
-     return addr;
-   endfunction
 
 
    //-----------------------------------------------------------
@@ -412,31 +415,90 @@ module [CONNECTED_MODULE] mkBufferControl();
 	    begin
 	       infifo.deq();
 	       //$display( "TRACE Buffer Control: input Luma %0d %h %h", indata.mb, indata.pixel, indata.data);
-	         Bit#(TAdd#(PicAreaSz,6)) addr = calculateLumaCoord(indata.hor,
+	         Bit#(TAdd#(PicAreaSz,6)) frameAddr = calculateLumaCoord(picWidth, 
+                                                                    indata.hor,
                                                                     indata.ver);
                if(`DEBUG_BUFFER_CONTROL == 1) 
                  begin
                    $display("TRACE BufferControl: Luma Store: hor: %d ver: %d addr:%h data:%h", indata.hor, 
                                                                                                 indata.ver, 
-                                                                                                addr, 
+                                                                                                frameAddr, 
                                                                                                 indata.data);
                  end
 
-               bufferY.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+               // Remove last bit of addr
+               FrameBufferAddrLuma addr = truncateLSB(inAddrBase)+zeroExtend(frameAddr);
+               
+               if(gatheredY)
+                 begin
+                   if(truncate(addr) != 1'b1) 
+                     begin
+                       $display("BufferControl: Y address has wrong parity");
+                       $finish;
+                     end
+                   Vector#(2,FrameBufferData) dataVector= newVector;
+                   dataVector[0] = storedDataY;
+                   dataVector[1] = indata.data;
+                   gatheredY <= False;
+                   bufferY.write(truncateLSB(addr), dataVector);
+                 end
+               else
+                 begin
+                   gatheredY <= True;
+                   storedDataY <= indata.data;
+                 end
 	    end
 	 tagged DFBChroma .indata :
 	    begin
 	       infifo.deq();
-	       Bit#(TAdd#(PicAreaSz,4)) addr = calculateChromaCoord(indata.hor,
-                                                                    indata.ver);
+	       Bit#(TAdd#(PicAreaSz,4)) frameAddr = calculateChromaCoord(picWidth, 
+                                                                         indata.hor,
+                                                                         indata.ver);
+
+               FrameBufferAddrChroma addr = truncateLSB(inAddrBase)+zeroExtend(frameAddr);
 
 	       if(indata.uv == 0)
                  begin
-                   bufferU.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+                   if(gatheredU)
+                     begin
+                       if(truncate(addr) != 1'b1)	
+                         begin
+                           $display("BufferControl: U address has wrong parity");
+                           $finish;
+                         end
+                       Vector#(2,FrameBufferData) dataVector= newVector;
+                       dataVector[0] = storedDataU;
+                       dataVector[1] = indata.data;
+
+                       gatheredU <= False;                   
+                       bufferU.write(truncateLSB(addr), dataVector);
+                     end
+                   else 
+                     begin
+                       gatheredU <= True;
+                       storedDataU <= indata.data;
+                     end
                  end 
                else 
                  begin
-                   bufferV.write(truncateLSB(inAddrBase)+zeroExtend(addr), zeroExtend(indata.data));
+                   if(gatheredV)
+                     begin
+                       if(truncate(addr) != 1'b1) 
+                         begin
+                           $display("BufferControl: address has wrong parity");
+                           $finish;
+                         end
+                       Vector#(2,FrameBufferData) dataVector= newVector;
+                       dataVector[0] = storedDataV;
+                       dataVector[1] = indata.data;
+                       gatheredV <= False;                   
+                       bufferV.write(truncateLSB(addr), dataVector);
+                     end
+                   else 
+                     begin
+                       gatheredV <= True;
+                       storedDataV <= indata.data;
+                     end
                  end
 
                if(`DEBUG_BUFFER_CONTROL == 1) 
@@ -589,11 +651,17 @@ module [CONNECTED_MODULE] mkBufferControl();
       inLoadReqQLuma.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase <- calculateAddrBase(slot);    
-      Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),2'b00}+zeroExtend(reqdata.hor);
+      Bit#(TAdd#(PicAreaSz,6)) frameAddr = calculateLumaCoord(picWidth, 
+                                                              reqdata.hor,
+                                                              reqdata.ver);
+
+      FrameBufferAddrLuma addr = truncateLSB(addrBase)+zeroExtend(frameAddr);
+
       inLoadOutOfBoundsLuma.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
-      FrameBufferAddrLuma addrY = truncateLSB(addrBase)+zeroExtend(addr);
-      bufferYRead.readReq(addrY);
-      $display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrY);
+      
+      readIndexLuma.enq(truncate(addr));
+      bufferYRead.readReq(truncateLSB(addr));
+      $display( "Trace BufferControl: interLumaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, frameAddr, addr);
    endrule
 
 
@@ -601,28 +669,36 @@ module [CONNECTED_MODULE] mkBufferControl();
       inLoadReqQChroma.deq();
       Bit#(5) slot = refPicList.sub(zeroExtend(reqdata.refIdx));
       Bit#(FrameBufferSz) addrBase <- calculateAddrBase(slot);
-      Bit#(TAdd#(PicAreaSz,6)) addr = {(zeroExtend(reqdata.ver)*zeroExtend(picWidth)),1'b0}+zeroExtend(reqdata.hor);
-      FrameBufferAddrChroma addrUV = truncateLSB(addrBase)+zeroExtend(addr);
+      Bit#(TAdd#(PicAreaSz,4)) frameAddr = calculateChromaCoord(picWidth, 
+                                                                reqdata.hor,
+                                                                reqdata.ver);
+
+      FrameBufferAddrChroma addr = truncateLSB(addrBase)+zeroExtend(frameAddr);
+
+      readIndexChroma.enq(truncate(addr));
       if(reqdata.uv == 1)
         begin
-          bufferVRead.readReq(addrUV);
+          bufferVRead.readReq(truncateLSB(addr));
           fifoTarget.enq(V);
         end
       else
         begin
-          bufferURead.readReq(addrUV);
+          bufferURead.readReq(truncateLSB(addr));
           fifoTarget.enq(U);
         end
 
       inLoadOutOfBoundsChroma.enq({reqdata.horOutOfBounds,(reqdata.hor==0 ? 0 : 1)});
 
-      $display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, addr, addrUV);
+      $display( "Trace BufferControl: interChromaReq %h %h %h %h %h", reqdata.refIdx, slot, addrBase, frameAddr, addr);
    endrule
 
-   function Action sendLoadResp(FrameBufferData data, 
+   function Action sendLoadResp(Vector#(2,FrameBufferData) dataVec, 
                                 Connection_Send#(InterpolatorLoadResp)inLoadRespQ, 
-                                FIFO#(Bit#(2)) inLoadOutOfBounds);
+                                FIFO#(Bit#(2)) inLoadOutOfBounds,
+                                FIFO#(Bit#(1)) readIndex);
       action
+      let data = dataVec[readIndex.first];
+      readIndex.deq();
       if(inLoadOutOfBounds.first() == 2'b10)
 	 inLoadRespQ.send(tagged IPLoadResp ({data[7:0],data[7:0],data[7:0],data[7:0]}));
       else if(inLoadOutOfBounds.first() == 2'b11)
@@ -636,21 +712,21 @@ module [CONNECTED_MODULE] mkBufferControl();
    // No need for disambiguation here
    rule interRespY;
       let data <- bufferYRead.readRsp();
-      sendLoadResp(truncate(data), inLoadRespQLuma, inLoadOutOfBoundsLuma);
+      sendLoadResp(data, inLoadRespQLuma, inLoadOutOfBoundsLuma, readIndexLuma);
       $display( "Trace BufferControl: interResp Y %h %h", inLoadOutOfBoundsLuma.first(), data);
    endrule
 
    rule interRespU (fifoTarget.first() == U);
       let data <- bufferURead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(truncate(data), inLoadRespQChroma, inLoadOutOfBoundsChroma);
+      sendLoadResp(data, inLoadRespQChroma, inLoadOutOfBoundsChroma, readIndexChroma);
       $display( "Trace BufferControl: interResp U %h %h", inLoadOutOfBoundsChroma.first(), data);
    endrule
 
    rule interRespV (fifoTarget.first() == V);
       let data <- bufferVRead.readRsp();
       fifoTarget.deq();
-      sendLoadResp(truncate(data), inLoadRespQChroma, inLoadOutOfBoundsChroma);
+      sendLoadResp(data, inLoadRespQChroma, inLoadOutOfBoundsChroma, readIndexChroma);
       $display( "Trace BufferControl: interResp V %h %h", inLoadOutOfBoundsChroma.first(), data);
    endrule
 
