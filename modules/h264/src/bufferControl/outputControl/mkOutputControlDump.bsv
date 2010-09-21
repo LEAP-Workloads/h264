@@ -15,9 +15,9 @@ import FIFO::*;
 // This dump version of mkOutputControl can be polymorphic.  We don't actually 
 // use the reader ifcs.
   
-module [CONNECTED_MODULE] mkOutputControl#(mem_ifc bufferY,
-                                           mem_ifc bufferU,
-                                           mem_ifc bufferV)  (OutputControl);
+module [CONNECTED_MODULE] mkOutputControl#(mem_luma bufferY,
+                                           mem_chroma bufferU,
+                                           mem_chroma bufferV)  (OutputControl);
 
    Connection_Send#(BufferControlOT) outfifo <- mkConnection_Send("bufferControl_outfifo");
 
