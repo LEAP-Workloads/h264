@@ -1,7 +1,7 @@
 
 [Global]
 Type=HAsim
-Version=2.1
+Version=2.2
 File=h264_decoder_parallel_backend_synth
 SaveParameters=0
 Description=H264 Decoder Synth
@@ -9,6 +9,8 @@ Name=H264 Decoder Synth
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=HW/SW Hybrid Project Foundation
+RootProvides=model
 
 [Model]
 DefaultAttributes=h264 bluespec
@@ -16,10 +18,7 @@ model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
 File=config/pm/hasim/submodels/fpgaenv/hasim-fpgaenv-htg-v5-pcie.apm
-Packagehint=platforms
-
-
-
+Packagehint=leap
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -32,7 +31,6 @@ Packagehint=h264
 [H264 entropy decoder module]
 File=modules/h264/src/entropy/h264_entropy_decoder.awb
 Packagehint=h264
-
 
 [H264 System/Requires]
 h264_decoder=H264 decoder module with parallel backend
@@ -53,8 +51,6 @@ Packagehint=h264
 File=modules/h264/src/h264_types.awb
 Packagehint=h264
 
-
-
 [H264 default control module]
 File=modules/h264/src/h264_control.awb
 Packagehint=h264
@@ -63,12 +59,9 @@ Packagehint=h264
 File=modules/h264/src/inputGen/h264_input_rrr.awb
 Packagehint=h264
 
-
-
 [H264 Luma specialized deblocking filter]
 File=modules/h264/src/deblocking/h264_deblocking_luma.awb
 Packagehint=h264
-
 
 [H264 decoder module with parallel backend/Requires]
 h264_frame_buffer_parallel=H264 Luma-Chroma Frame-buffer
@@ -89,7 +82,6 @@ Packagehint=h264
 File=modules/h264/src/deblocking/h264_deblocking_LCParallel.awb
 Packagehint=h264
 
-
 [H264 buffer control module parallel]
 File=modules/h264/src/bufferControl/h264_buffer_control_parallel.awb
 Packagehint=h264
@@ -102,18 +94,13 @@ Packagehint=h264
 h264_deblocking_luma=H264 Luma specialized deblocking filter
 h264_deblocking_chroma=H264 Chroma specialized deblocking filter
 
-
 [H264 decoder module with parallel backend]
 File=modules/h264/src/h264_decoder_parallel.awb
 Packagehint=h264
 
-
-
-
-
 [Soft Connections Library]
 File=config/pm/hasim/submodels/common/soft-connections-lib.apm
-Packagehint=hasim
+Packagehint=leap
 
 [H264 parallel interpolator module]
 File=modules/h264/src/interpolator/h264_interpolator_parallel.awb
@@ -121,11 +108,11 @@ Packagehint=h264
 
 [HW/SW Hybrid Project Foundation]
 File=modules/project/project-hybrid.awb
-Packagehint=platforms
+Packagehint=leap
 
 [Soft Connections Hybrid Application Environment]
 File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
-Packagehint=platforms
+Packagehint=leap
 
 [HW/SW Hybrid Project Foundation/Requires]
 project_common=Hybrid Project Common Utilities
@@ -139,11 +126,11 @@ connected_application=H264 System
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=hasim
+Packagehint=leap
 
 [Platform Services]
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
-Packagehint=hasim
+Packagehint=leap
 
 [H264 output RRR]
 File=modules/h264/src/finalOutput/h264_output_rrr.awb
@@ -158,4 +145,11 @@ h264_interpolator_parallel=H264 parallel interpolator module
 
 [H264 Luma-Chroma Frame-buffer]
 File=modules/h264/src/frameBuffer/h264_simulation_frame_buffer_parallel.awb
+Packagehint=h264
+
+[H264 parallel interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 Synth Interpolator types]
+File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264

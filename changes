@@ -467,3 +467,39 @@ Directory config/pm/h264
 
 
 removed output stream from acp.
+
+----------
+mpellaue    Date: Fri Jan 21 11:43:24 EST 2011  CSN: CSN-h264-199
+                  Fri Jan 21 16:43:24 UTC 2011
+
+
+Directory config/pm/h264
+ h264_decoder_synth_acp_60Mhz.apm Locally Modified          198 
+ h264_decoder_coalesce.apm Locally Modified          198 
+ h264_decoder_mcd_split.apm Locally Modified          198 
+ h264_decoder_mcd_split_no_output_synth.apm Locally Modified          198 
+ h264_decoder.apm          Locally Modified          198 
+ h264_decoder_split_synth.apm Locally Modified          198 
+ h264_decoder_synth_rambuffer_acp.apm Locally Modified          198 
+ h264_decoder_synth_bigcache_no_output_wide_acp.apm Locally Modified          198 
+ h264_decoder_synth_deblocking.apm Locally Modified          198 
+ h264_decoder_synth_bigcache_skew_acp.apm Locally Modified          198 
+ h264_decoder_synth_acp.apm Locally Modified          198 
+ h264_decoder_mcd_synth.apm Locally Modified          198 
+ h264_decoder_parallel_backend_synth.apm Locally Modified          198 
+ h264_decoder_bigcache_no_output_wide_acp.apm Locally Modified          198 
+ h264_decoder_split_no_output_synth.apm Locally Modified          198 
+ h264_decoder_synth_bigcache_acp.apm Locally Modified          198 
+ h264_decoder_deblocking.apm Locally Modified          198 
+ h264_decoder_parallel_backend.apm Locally Modified          198 
+ h264_decoder_mcd_split_synth.apm Locally Modified          198 
+ h264_decoder_mcd.apm      Locally Modified          198 
+ h264_decoder_8192.apm     Locally Modified          198 
+ h264_decoder_synth_bigcache_skew_hrg.apm Locally Modified          198 
+ h264_decoder_synth.apm    Locally Modified          198 
+ h264_decoder_synth_htg.apm Locally Modified          198 
+ h264_fast.apm             Locally Modified          198 
+ h264_decoder_synth_bigcache_no_output_acp.apm Locally Modified          198 
+
+
+* Updating .apm files to version 2.2 using "awb-shell update model"

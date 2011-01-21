@@ -1,7 +1,7 @@
 
 [Global]
 Type=HAsim
-Version=2.1
+Version=2.2
 File=h264_decoder_coalesce
 SaveParameters=0
 Description=H264 Decoder
@@ -9,6 +9,8 @@ Name=H264 Decoder
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=HW/SW Hybrid Project Foundation
+RootProvides=model
 
 [Model]
 DefaultAttributes=h264 bluespec
@@ -16,7 +18,7 @@ model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
-Packagehint=platforms
+Packagehint=leap
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -81,15 +83,15 @@ Packagehint=h264
 
 [Soft Connections Library]
 File=config/pm/hasim/submodels/common/soft-connections-lib.apm
-Packagehint=hasim
+Packagehint=leap
 
 [HW/SW Hybrid Project Foundation]
 File=modules/project/project-hybrid.awb
-Packagehint=platforms
+Packagehint=leap
 
 [Soft Connections Hybrid Application Environment]
 File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
-Packagehint=platforms
+Packagehint=leap
 
 [HW/SW Hybrid Project Foundation/Requires]
 project_common=Hybrid Project Common Utilities
@@ -107,17 +109,18 @@ Packagehint=h264
 
 [H264 split coalescing parallel buffer control module/Requires]
 h264_output_control_split=H264 output control module split memories
+h264_buffer_control_common=H264 buffer control common
 
 [H264 output control module split memories/Requires]
 processor_library=Processor Library
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=hasim
+Packagehint=leap
 
 [Platform Services]
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
-Packagehint=hasim
+Packagehint=leap
 
 [H264 output RRR]
 File=modules/h264/src/finalOutput/h264_output_rrr.awb
@@ -136,7 +139,6 @@ Packagehint=h264
 
 [FPGA Environment/Params]
 CENTRAL_CACHE_DEBUG_ENABLE=0
-SRATCHPAD_MEMORY_DEBUG_ENABLE=0
 
 [Synth Interpolator H264 prediction module/Requires]
 h264_interpolator_synth=Synthesizable H264 interpolator module
@@ -158,3 +160,7 @@ h264_interpolator_types_synth=H264 Synth Interpolator types
 
 [Platform Services/Params]
 PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
+
+[H264 buffer control common]
+File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
+Packagehint=h264

@@ -1,7 +1,7 @@
 
 [Global]
 Type=HAsim
-Version=2.1
+Version=2.2
 File=h264_decoder_synth_acp_60Mhz
 SaveParameters=0
 Description=H264 Decoder Synth
@@ -9,6 +9,8 @@ Name=H264 Decoder Synth
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
+RootName=HW/SW Hybrid Project Foundation
+RootProvides=model
 
 [Model]
 DefaultAttributes=h264 bluespec
@@ -16,19 +18,19 @@ model=HW/SW Hybrid Project Foundation
 
 [FPGA Environment]
 File=config/pm/hasim/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech.apm
-Packagehint=platform-acp
+Packagehint=platforms-acp
 
 [Soft Connections Library]
 File=config/pm/hasim/submodels/common/soft-connections-lib.apm
-Packagehint=hasim
+Packagehint=leap
 
 [HW/SW Hybrid Project Foundation]
 File=modules/project/project-hybrid.awb
-Packagehint=platforms
+Packagehint=leap
 
 [Soft Connections Hybrid Application Environment]
 File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
-Packagehint=platforms
+Packagehint=leap
 
 [HW/SW Hybrid Project Foundation/Requires]
 project_common=Hybrid Project Common Utilities
@@ -42,11 +44,11 @@ connected_application=H264 System
 
 [Hybrid Project Common Utilities]
 File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=hasim
+Packagehint=leap
 
 [Platform Services]
 File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
-Packagehint=hasim
+Packagehint=leap
 
 [FPGA Environment/Params]
 MODEL_CLOCK_DIVIDER=8
@@ -144,10 +146,15 @@ Packagehint=h264
 
 [H264 split coalescing parallel buffer control module/Requires]
 h264_output_control_split=H264 output control module split memories
+h264_buffer_control_common=H264 buffer control common
 
 [H264 output control module split memories/Requires]
 processor_library=Processor Library
 
 [H264 output Dump]
 File=modules/h264/src/finalOutput/h264_output_dump.awb
+Packagehint=h264
+
+[H264 buffer control common]
+File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
 Packagehint=h264
