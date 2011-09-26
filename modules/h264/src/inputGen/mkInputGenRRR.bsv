@@ -75,10 +75,9 @@ module [CONNECTED_MODULE] mkInputGen( IInputGen );
    Reg#(Bit#(64)) resps  <- mkReg(0);
    Reg#(Bit#(64)) cycles <- mkReg(0);
    // Need outstanding reqs to throttle things
-   NumTypeParam#(256) p = ?;
-   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedBRAMFIFOF(p);
-   FIFOF#(Bit#(64)) buffer <- mkSizedBRAMFIFOF(p);
-   FIFOF#(InputGenOT) outfifo <- mkSizedBRAMFIFOF(p);
+   FIFOF#(Bit#(0)) outstandingReqs <- mkSizedBRAMFIFOF(256);
+   FIFOF#(Bit#(64)) buffer <- mkSizedBRAMFIFOF(256);
+   FIFOF#(InputGenOT) outfifo <- mkSizedBRAMFIFOF(256);
    
    rule count;
      cycles <= cycles + 1;

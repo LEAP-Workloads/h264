@@ -503,3 +503,13 @@ Directory config/pm/h264
 
 
 * Updating .apm files to version 2.2 using "awb-shell update model"
+
+----------
+mcadler     Date: Sun Sep 25 20:26:12 EDT 2011  CSN: CSN-h264-200
+                  Mon Sep 26 00:26:12 UTC 2011
+
+
+Directory modules/h264/src/inputGen
+ mkInputGenRRR.bsv         Locally Modified          199 
+
+Arguments to mkSizedBRAMFIFOF() changed.
