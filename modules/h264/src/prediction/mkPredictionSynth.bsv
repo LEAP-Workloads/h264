@@ -33,6 +33,7 @@
 
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
+`include "asim/provides/h264_memory_unit.bsh"
 `include "asim/provides/h264_interpolator_synth.bsh"
 `include "asim/provides/h264_interpolator_types_synth.bsh"
 
@@ -165,6 +166,13 @@ endfunction
 
 //(* synthesize *)
 module [CONNECTED_MODULE] mkPrediction ();
+
+   IMemEDConnection#(TAdd#(PicWidthSz,2),68) memP_intra     
+                              <- mkMemEDConnection("mkPrediction_intraMemReqQ",
+                                                   "mkPrediction_intraMemRespQ");
+   IMemEDConnection#(TAdd#(PicWidthSz,2),32) memP_inter     
+                              <- mkMemEDConnection("mkPrediction_interMemReqQ",
+                                                   "mkPrediction_interMemRespQ");
 
    Connection_Receive#(EntropyDecOT) infifo <- mkConnection_Receive("mkPrediction_infifo");
    Connection_Receive#(InverseTransOT) infifo_ITB <- mkConnection_Receive("mkPrediction_infifo_ITB");

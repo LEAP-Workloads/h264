@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "asim/syntax.h"
 #include "asim/rrr/service_ids.h"
 #include "asim/provides/starter_device.h"
 #include "asim/provides/connected_application.h"

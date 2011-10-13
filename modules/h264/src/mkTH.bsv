@@ -50,16 +50,6 @@ module [CONNECTED_MODULE] mkConnectedApplication ();
    IInputGen     inputgen    <- mkInputGen();
    IFinalOutput   finaloutput   <- mkFinalOutput();
    IH264         h264        <- mkH264();
-   IMemEDConnection#(TAdd#(PicWidthSz,1),20) memED          
-                              <- mkMemEDConnection("mkCalc_nc_MemReqQ",
-                                                   "mkCalc_nc_MemRespQ");
-   IMemEDConnection#(TAdd#(PicWidthSz,2),68) memP_intra     
-                              <- mkMemEDConnection("mkPrediction_intraMemReqQ",
-                                                   "mkPrediction_intraMemRespQ");
-   IMemEDConnection#(TAdd#(PicWidthSz,2),32) memP_inter     
-                              <- mkMemEDConnection("mkPrediction_interMemReqQ",
-                                                   "mkPrediction_interMemRespQ");
-
  
    // Cycle counter
    Reg#(Bit#(40)) cyclecount <- mkReg(0);

@@ -1,3 +1,4 @@
+#include "asim/syntax.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>

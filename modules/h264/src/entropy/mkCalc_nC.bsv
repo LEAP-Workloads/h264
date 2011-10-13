@@ -31,6 +31,7 @@
 `include "asim/provides/soft_connections.bsh"
 
 `include "asim/provides/h264_types.bsh"
+`include "asim/provides/h264_memory_unit.bsh"
 
 import FIFO::*;
 
@@ -41,6 +42,10 @@ import ClientServer::*;
 
 //(* synthesize *)
 module [CONNECTED_MODULE] mkCalc_nC( Calc_nC );
+
+   IMemEDConnection#(TAdd#(PicWidthSz,1),20) memED          
+                              <- mkMemEDConnection("mkCalc_nc_MemReqQ",
+                                                   "mkCalc_nc_MemRespQ");
 
    Connection_Receive#(MemResp#(20)) memRespQ <- mkConnection_Receive("mkCalc_nc_MemRespQ");
   

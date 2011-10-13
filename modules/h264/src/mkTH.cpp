@@ -11,6 +11,7 @@
 // estoppel, implication or by operation of law. Recipient accepts all risks 
 // of use.
 //
+#include "asim/syntax.h"
 
 #include <stdio.h>
 #include <pthread.h>

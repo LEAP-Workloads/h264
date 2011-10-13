@@ -513,3 +513,32 @@ Directory modules/h264/src/inputGen
  mkInputGenRRR.bsv         Locally Modified          199 
 
 Arguments to mkSizedBRAMFIFOF() changed.
+
+----------
+kfleming    Date: Thu Oct 13 14:46:05 EDT 2011  CSN: CSN-h264-201
+                  Thu Oct 13 18:46:05 UTC 2011
+
+
+Directory config/pm/h264
+ h264_decoder_split_synth.apm Locally Modified          200 
+
+Directory modules/h264/src
+ mkTH.cpp                  Locally Modified          200 
+
+Directory modules/h264/src/inputGen
+ mkInputGenRRR.cpp         Locally Modified          200 
+
+Directory modules/h264/src/entropy
+ mkCalc_nC.bsv             Locally Modified          200 
+
+Directory modules/h264/src/prediction
+ mkPredictionSynth.bsv     Locally Modified          200 
+
+Directory modules/h264/src/finalOutput
+ mkFinalOutputRRR.cpp      Locally Modified          200 
+
+Directory modules/h264/src
+ mkTH.bsv                  Locally Modified          200 
+
+
+Fixed broken apm and moved around memory instantiations to help multiple FPGA implementation.  
