@@ -542,3 +542,19 @@ Directory modules/h264/src
 
 
 Fixed broken apm and moved around memory instantiations to help multiple FPGA implementation.  
+
+----------
+mcadler     Date: Thu Dec  1 14:37:22 EST 2011  CSN: CSN-h264-202
+                  Thu Dec  1 19:37:22 UTC 2011
+
+
+Directory config/pm/h264
+ h264_decoder_mcd_split.apm Locally Modified          201 
+ h264_decoder_mcd_split_no_output_synth.apm Locally Modified          201 
+ h264_decoder_mcd_synth.apm Locally Modified          201 
+ h264_decoder_split_no_output_synth.apm Locally Modified          201 
+ h264_decoder_mcd_split_synth.apm Locally Modified          201 
+ h264_decoder_mcd.apm      Locally Modified          201 
+
+Update platforms for LEAP changes:  moved platform and soft services to FPGA
+environment.
