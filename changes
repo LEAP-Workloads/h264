@@ -558,3 +558,13 @@ Directory config/pm/h264
 
 Update platforms for LEAP changes:  moved platform and soft services to FPGA
 environment.
+
+----------
+mcadler     Date: Sat Dec 10 16:50:15 EST 2011  CSN: CSN-h264-203
+                  Sat Dec 10 21:50:15 UTC 2011
+
+
+Directory config/pm/h264
+ h264_decoder_8192.apm     Locally Modified          202 
+
+Changed SCRATCHPAD_STD_PVT_SKEW to integer.
