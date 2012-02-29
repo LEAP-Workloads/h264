@@ -19,7 +19,7 @@
 #include <errno.h>
 
 #include "asim/provides/connected_application.h"
-#include "asim/provides/stats_device.h"
+#include "asim/provides/stats_service.h"
 #include "asim/provides/h264_output.h"
 #include "mkTH.h"
 
@@ -62,7 +62,7 @@ CONNECTED_APPLICATION_CLASS::Main()
   UINT32 frameCount = 0;
   struct timeval    tp;
   struct timespec time;
-  STATS_DEVICE_SERVER_CLASS::GetInstance()->SetupStats();
+  STATS_SERVER_CLASS::GetInstance()->SetupStats();
 
   pthread_mutex_lock(&lock);
 
@@ -92,8 +92,8 @@ CONNECTED_APPLICATION_CLASS::Main()
       printf("Simulation Complete, Shutting Down\n");
       fflush(stdout);
       pthread_mutex_unlock(&lock); 
-      STATS_DEVICE_SERVER_CLASS::GetInstance()->DumpStats();
-      STATS_DEVICE_SERVER_CLASS::GetInstance()->EmitFile();
+      STATS_SERVER_CLASS::GetInstance()->DumpStats();
+      STATS_SERVER_CLASS::GetInstance()->EmitFile();
       STARTER_DEVICE_SERVER_CLASS::GetInstance()->End(0);
       return;
     }  

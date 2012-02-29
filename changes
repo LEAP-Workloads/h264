@@ -568,3 +568,13 @@ Directory config/pm/h264
  h264_decoder_8192.apm     Locally Modified          202 
 
 Changed SCRATCHPAD_STD_PVT_SKEW to integer.
+
+----------
+mcadler     Date: Wed Feb 29 16:09:40 EST 2012  CSN: CSN-h264-204
+                  Wed Feb 29 21:09:40 UTC 2012
+
+
+Directory modules/h264/src
+ mkTH.cpp                  Locally Modified          203 
+
+STATS_DEVICE is now STATS_SERVER.
