@@ -62,7 +62,6 @@ CONNECTED_APPLICATION_CLASS::Main()
   UINT32 frameCount = 0;
   struct timeval    tp;
   struct timespec time;
-  STATS_SERVER_CLASS::GetInstance()->SetupStats();
 
   pthread_mutex_lock(&lock);
 

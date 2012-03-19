@@ -578,3 +578,13 @@ Directory modules/h264/src
  mkTH.cpp                  Locally Modified          203 
 
 STATS_DEVICE is now STATS_SERVER.
+
+----------
+mcadler     Date: Mon Mar 19 19:42:15 EDT 2012  CSN: CSN-h264-205
+                  Mon Mar 19 23:42:15 UTC 2012
+
+
+Directory modules/h264/src
+ mkTH.cpp                  Locally Modified          204 
+
+Statistics initialization now handled by common platform services.
