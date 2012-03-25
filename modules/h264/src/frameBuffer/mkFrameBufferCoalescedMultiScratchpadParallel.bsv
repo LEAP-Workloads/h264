@@ -34,7 +34,6 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_base.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
@@ -124,23 +123,12 @@ module [CONNECTED_MODULE] mkFrameBuffer();
 
 
    // Define stat constructors for each cache.
-   let mkRasterStats = mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
-  
-   let mkLumaStats = mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
-
-   let mkChromaStats = mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
+   let mkRasterStats = mkBasicRLCacheStats("FRAME_BUFFER_RASTER_CACHE_",
+                                           "H264 FRAME BUFFER Raster cache: ");
+   let mkLumaStats = mkBasicRLCacheStats("FRAME_BUFFER_INTER_CACHE_LUMA_",
+                                         "H264 FRAME BUFFER Inter cache luma: ");
+   let mkChromaStats = mkBasicRLCacheStats("FRAME_BUFFER_INTER_CACHE_CHROMA_",
+                                           "H264 FRAME BUFFER Inter cache chroma: ");
 				 
    let stat_constructors = cons(mkRasterStats, cons(mkLumaStats, cons(mkChromaStats, nil)));
 
@@ -174,14 +162,14 @@ module [CONNECTED_MODULE] mkFrameBuffer();
    Reg#(FrameBufferData) registeredData <- mkRegU;
 
    // Make some stats
-   STAT statLoadQ1Full  <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q1_FULL);
-   STAT statLoadQ1Empty <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q1_EMPTY);
-   STAT statLoadQ2Full  <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q2_FULL);
-   STAT statLoadQ2Empty <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q2_EMPTY);
-   STAT statLoadQ3Full  <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q3_FULL);
-   STAT statLoadQ3Empty <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q3_EMPTY);
-   STAT statStoreQFull  <- mkStatCounter(`STATS_FRAME_BUFFER_STORE_Q_FULL);
-   STAT statStoreQEmpty <- mkStatCounter(`STATS_FRAME_BUFFER_STORE_Q_EMPTY);
+   STAT statLoadQ1Full  <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q1_FULL", "H264 FRAME BUFFER: load Q1 full cycles"));
+   STAT statLoadQ1Empty <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q1_EMPTY", "H264 FRAME BUFFER: load Q1 empty cycles"));
+   STAT statLoadQ2Full  <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q2_FULL", "H264 FRAME BUFFER: load Q2 full cycles"));
+   STAT statLoadQ2Empty <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q2_EMPTY", "H264 FRAME BUFFER: load Q2 empty cycles"));
+   STAT statLoadQ3Full  <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q3_FULL", "H264 FRAME BUFFER: load Q full cycles"));
+   STAT statLoadQ3Empty <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q3_EMPTY", "H264 FRAME BUFFER: load Q3 empty cycles"));
+   STAT statStoreQFull  <- mkStatCounter(statName("FRAME_BUFFER_STORE_Q_FULL", "H264 FRAME BUFFER: store Q full cycles"));
+   STAT statStoreQEmpty <- mkStatCounter(statName("FRAME_BUFFER_STORE_Q_EMPTY", "H264 FRAME BUFFER: store Q empty cycles"));
 
 
  

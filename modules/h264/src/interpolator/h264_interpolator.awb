@@ -13,7 +13,7 @@
 
 %attributes h264
 
-%public mkInterpolator.bsv IInterpolator.bsv Interpolator.dic 
+%public mkInterpolator.bsv IInterpolator.bsv
 
 %param --global INTERPOLATOR_DEBUG  0 "Enable Interpolation Debug"
 

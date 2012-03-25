@@ -32,7 +32,6 @@
 `include "asim/provides/soft_connections.bsh"
 `include "h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_cache.bsh"
 `include "asim/provides/project_common.bsh"
@@ -66,11 +65,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFile(rasterCacheFilename):
                                mkDebugFileNull(rasterCacheFilename); 
 
-  RL_CACHE_STATS rasterStats <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_RASTER_CACHE_STORE_MISS);
+  RL_CACHE_STATS rasterStats <- mkBasicRLCacheStats("FRAME_BUFFER_RASTER_CACHE_",
+                                                    "H264 FRAME BUFFER Raster cache: ");
   
   NumTypeParam#(2048) rasterCacheSize = 0;
   function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t))
@@ -89,11 +85,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFile(interCacheFilename):
                                mkDebugFileNull(interCacheFilename); 
 
-  RL_CACHE_STATS interStats <- mkBasicRLCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
+  RL_CACHE_STATS interStats <- mkBasicRLCacheStats("FRAME_BUFFER_INTER_CACHE_",
+                                                   "H264 FRAME BUFFER Inter cache: ");
   
   NumTypeParam#(8192) interCacheSize = 0;
   function CONNECTED_MODULE#(RL_DM_CACHE#(addr_t,mem_t,ref_t)) 
@@ -127,12 +120,12 @@ module [CONNECTED_MODULE] mkFrameBuffer();
    Reg#(FrameBufferData) registeredData <- mkRegU;
 
    // Make some stats
-   STAT statLoadQ1Full  <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q1_FULL);
-   STAT statLoadQ1Empty <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q1_EMPTY);
-   STAT statLoadQ2Full  <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q2_FULL);
-   STAT statLoadQ2Empty <- mkStatCounter(`STATS_FRAME_BUFFER_LOAD_Q2_EMPTY);
-   STAT statStoreQFull  <- mkStatCounter(`STATS_FRAME_BUFFER_STORE_Q_FULL);
-   STAT statStoreQEmpty <- mkStatCounter(`STATS_FRAME_BUFFER_STORE_Q_EMPTY);
+   STAT statLoadQ1Full  <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q1_FULL", "H264 FRAME BUFFER: load Q1 full cycles"));
+   STAT statLoadQ1Empty <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q1_EMPTY", "H264 FRAME BUFFER: load Q1 empty cycles"));
+   STAT statLoadQ2Full  <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q2_FULL", "H264 FRAME BUFFER: load Q2 full cycles"));
+   STAT statLoadQ2Empty <- mkStatCounter(statName("FRAME_BUFFER_LOAD_Q2_EMPTY", "H264 FRAME BUFFER: load Q2 empty cycles"));
+   STAT statStoreQFull  <- mkStatCounter(statName("FRAME_BUFFER_STORE_Q_FULL", "H264 FRAME BUFFER: store Q full cycles"));
+   STAT statStoreQEmpty <- mkStatCounter(statName("FRAME_BUFFER_STORE_Q_EMPTY", "H264 FRAME BUFFER: store Q empty cycles"));
 
 
  

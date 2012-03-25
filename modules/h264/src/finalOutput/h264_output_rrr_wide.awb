@@ -14,6 +14,5 @@
 %sources -t H    -v PUBLIC  mkFinalOutputRRRWide.h
 %sources -t CPP  -v PRIVATE mkFinalOutputRRRWide.cpp
 %sources -t RRR  -v PUBLIC  mkFinalOutputRRRWide.rrr
-%public mkFinalOutput.dic
 
 %AWB_END

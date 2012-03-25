@@ -29,7 +29,6 @@
 
 `include "soft_connections.bsh"
 `include "h264_types.bsh"
-`include "asim/dict/STATS_INTERPOLATOR.bsh"
 `include "asim/provides/stats_service.bsh"
 `include "asim/provides/h264_interpolator_types_synth.bsh"
 
@@ -103,8 +102,8 @@ module [CONNECTED_MODULE] mkInterpolatorDomain (Empty);
    Reg#(Bit#(2)) outPixelNum <- mkReg(0);
    Reg#(Bool) outDone <- mkReg(False);
 
-   STAT statReqQFull  <- mkStatCounter(`STATS_INTERPOLATOR_REQ_Q_FULL);
-   STAT statReqQEmpty <- mkStatCounter(`STATS_INTERPOLATOR_REQ_Q_EMPTY);
+   STAT statReqQFull  <- mkStatCounter(statName("INTERPOLATOR_REQ_Q_FULL", "H264 INTERPOLATOR: req q full cycles"));
+   STAT statReqQEmpty <- mkStatCounter(statName("INTERPOLATOR_REQ_Q_EMPTY", "H264 INTERPOLATOR: req q empty cycles"));
 
    rule checkLoadQ1Full(!reqfifoLoadLuma.notFull);
      statReqQFull.incr(); 

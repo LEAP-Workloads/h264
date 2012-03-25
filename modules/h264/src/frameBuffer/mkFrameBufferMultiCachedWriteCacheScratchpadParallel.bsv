@@ -31,7 +31,6 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/stats_service.bsh"
 `include "asim/provides/mem_services.bsh"
@@ -89,11 +88,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheLumaFilename):
                                    mkDebugFileNull(interCacheLumaFilename); 
 
-  SCRATCHPAD_STATS_CONSTRUCTOR interStatsLuma = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LUMA_STORE_MISS);
+  SCRATCHPAD_STATS_CONSTRUCTOR interStatsLuma = mkBasicScratchpadCacheStats("FRAME_BUFFER_INTER_CACHE_LUMA_",
+                                                                            "H264 FRAME BUFFER Inter cache luma: ");
 
   function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
                mkInterCacheLuma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)
@@ -109,11 +105,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                    mkDebugFile(interCacheChromaFilename):
                                    mkDebugFileNull(interCacheChromaFilename); 
 
-  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStatsChroma = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_CHROMA_STORE_MISS);
+  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStatsChroma = mkBasicScratchpadCacheStats("FRAME_BUFFER_INTER_CACHE_CHROMA_",
+                                                                                "H264 FRAME BUFFER Inter cache chroma: ");
 
   function CONNECTED_MODULE#(RL_DM_CACHE_SIZED#(addr_t,mem_t,ref_t,4096)) 
                mkInterCacheChroma(RL_DM_CACHE_SOURCE_DATA#(addr_t,mem_t,ref_t) source)

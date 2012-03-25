@@ -32,7 +32,6 @@
 `include "asim/provides/h264_types.bsh"
 
 `include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
-`include "asim/dict/STATS_FINAL_OUTPUT.bsh"
 
 import FIFO::*;
 import RegFile::*;
@@ -76,10 +75,10 @@ module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    Vector#(TSub#(WordsPerBurst,1),Reg#(Bit#(32))) dataBuffer <- replicateM(mkRegU);
    Reg#(Bit#(TAdd#(1,TLog#(WordsPerBurst)))) burstCount <- mkReg(0);
 
-   STAT picWidthStat  <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_WIDTH);
-   STAT picHeightStat <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_HEIGHT);
-   STAT frameCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_FRAME_COUNT);
-   STAT cycleCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_CYCLE_COUNT);
+   STAT picWidthStat  <- mkStatCounter(statName("FINAL_OUTPUT_PIC_WIDTH", "H264 GENERAL: Pic Width"));
+   STAT picHeightStat <- mkStatCounter(statName("FINAL_OUTPUT_PIC_HEIGHT", "H264 GENERAL: Pic Height"));
+   STAT frameCount    <- mkStatCounter(statName("FINAL_OUTPUT_FRAME_COUNT", "H264 GENERAL: Frame Count"));
+   STAT cycleCount    <- mkStatCounter(statName("FINAL_OUTPUT_CYCLE_COUNT", "H264 GENERAL: Cycle Count"));
 
    rule tick;
      tickCounter <= tickCounter + 1;

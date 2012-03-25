@@ -31,7 +31,6 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/stats_service.bsh"
 `include "asim/provides/mem_services.bsh"

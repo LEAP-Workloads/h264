@@ -32,7 +32,6 @@
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/h264_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER.bsh"
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/stats_service.bsh"
 `include "asim/provides/mem_services.bsh"
@@ -96,11 +95,8 @@ module [CONNECTED_MODULE] mkFrameBuffer();
                                mkDebugFile(interCacheFilename):
                                mkDebugFileNull(interCacheFilename); 
 
-  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStats = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_INTER_CACHE_STORE_MISS);
+  SCRATCHPAD_STATS_CONSTRUCTOR mkInterStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_INTER_CACHE_",
+                                                                          "H264 FRAME BUFFER Inter cache: ");
 
   // slightly larger to get some locality
   NumTypeParam#(256) interCacheSize = 0;

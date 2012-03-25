@@ -33,9 +33,6 @@
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
 `include "asim/dict/VDEV_SCRATCH.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER_Y.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER_U.bsh"
-`include "asim/dict/STATS_FRAME_BUFFER_V.bsh"
 `include "asim/provides/h264_output_control_split_wide.bsh"
 `include "asim/provides/h264_buffer_control_common.bsh"
 
@@ -58,24 +55,12 @@ import ClientServer::*;
 module [CONNECTED_MODULE] mkBufferControl();
 
    // Instantiate RL Stats
-   let mkBufferYStats = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_Y_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_Y_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_Y_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_Y_STORE_MISS);
-
-   let mkBufferUStats = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_U_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_U_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_U_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_U_STORE_MISS);
-
-   let mkBufferVStats = mkBasicScratchpadCacheStats(
-                                 `STATS_FRAME_BUFFER_V_LOAD_HIT,
-                                 `STATS_FRAME_BUFFER_V_LOAD_MISS,
-                                 `STATS_FRAME_BUFFER_V_STORE_HIT,
-                                 `STATS_FRAME_BUFFER_V_STORE_MISS);
-
+   let mkBufferYStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_Y_",
+                                                    "H264 FRAME BUFFER Y: ");
+   let mkBufferUStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_U_",
+                                                    "H264 FRAME BUFFER U: ");
+   let mkBufferVStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_V_",
+                                                    "H264 FRAME BUFFER V: ");
 
    // We use three mem interfaces here
 

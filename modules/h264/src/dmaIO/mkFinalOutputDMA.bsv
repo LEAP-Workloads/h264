@@ -35,7 +35,6 @@
 `include "asim/provides/physical_platform.bsh"
 
 `include "asim/rrr/remote_client_stub_MKFINALOUTPUTRRR.bsh"
-`include "asim/dict/STATS_FINAL_OUTPUT.bsh"
 
 
 import FIFO::*;
@@ -97,10 +96,10 @@ module [CONNECTED_MODULE] mkFinalOutput( IFinalOutput );
    Reg#(Bool) allocatedBuffer <- mkReg(False);
    FIFO#(SHARED_MEMORY_ADDRESS) bufferPtrs <- mkFIFO();
 
-   STAT picWidthStat  <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_WIDTH);
-   STAT picHeightStat <- mkStatCounter(`STATS_FINAL_OUTPUT_PIC_HEIGHT);
-   STAT frameCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_FRAME_COUNT);
-   STAT cycleCount    <- mkStatCounter(`STATS_FINAL_OUTPUT_CYCLE_COUNT);
+   STAT picWidthStat  <- mkStatCounter(statName("FINAL_OUTPUT_PIC_WIDTH", "H264 GENERAL: Pic Width"));
+   STAT picHeightStat <- mkStatCounter(statName("FINAL_OUTPUT_PIC_HEIGHT", "H264 GENERAL: Pic Height"));
+   STAT frameCount    <- mkStatCounter(statName("FINAL_OUTPUT_FRAME_COUNT", "H264 GENERAL: Frame Count"));
+   STAT cycleCount    <- mkStatCounter(statName("FINAL_OUTPUT_CYCLE_COUNT", "H264 GENERAL: Cycle Count"));
 
    /// Build the dma engine
 
