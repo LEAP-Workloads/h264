@@ -5,7 +5,7 @@ Version=2.2
 File=h264_decoder_split_no_output_synth
 SaveParameters=0
 Description=H264 Decoder
-Name=H264 Decoder
+Name=H264 Decoder Split No Output Synth
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -77,7 +77,6 @@ Packagehint=h264
 File=modules/leap/build-support/project/project-common-hybrid.awb
 Packagehint=leap
 
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
@@ -101,22 +100,6 @@ Packagehint=h264
 File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
@@ -132,8 +115,6 @@ Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=H264 System
-
-
 
 [Synthesizable H264 interpolator split memory access module]
 File=modules/h264/src/interpolator/h264_interpolator_split_synth.awb

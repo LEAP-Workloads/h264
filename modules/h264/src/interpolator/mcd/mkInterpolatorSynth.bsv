@@ -27,10 +27,11 @@
 //
 //
 
-`include "soft_connections.bsh"
-`include "h264_types.bsh"
-`include "asim/provides/stats_service.bsh"
-`include "asim/provides/h264_interpolator_types_synth.bsh"
+`include "awb/provides/soft_connections.bsh"
+`include "awb/provides/fpga_components.bsh"
+`include "awb/provides/h264_types.bsh"
+`include "awb/provides/stats_service.bsh"
+`include "awb/provides/h264_interpolator_types_synth.bsh"
 
 import FIFO::*;
 import FIFOF::*;

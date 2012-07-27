@@ -4,8 +4,8 @@ Type=HAsim
 Version=2.2
 File=h264_decoder_mcd
 SaveParameters=0
-Description=H264 Decoder
-Name=H264 Decoder
+Description=H264 Decoder MCD
+Name=H264 Decoder MCD
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -15,10 +15,6 @@ RootProvides=model
 [Model]
 DefaultAttributes=h264 bluespec
 model=HW/SW Hybrid Pipeline Build
-
-[FPGA Environment]
-File=modules/leap/virtual-platform/fpga-environment.awb
-Packagehint=leap
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -73,11 +69,6 @@ Packagehint=h264
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[Hybrid Project Common Utilities]
-File=modules/leap/build-support/project/project-common-hybrid.awb
-Packagehint=leap
-
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
@@ -120,29 +111,13 @@ Packagehint=h264
 File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
 Packagehint=h264
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid Simulation FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
 [Soft Services Hybrid Application Environment]
@@ -151,7 +126,6 @@ Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=H264 System
-
 
 [H264 MCD deblocking filter module]
 File=modules/h264/src/deblocking/mcd/h264_deblocking.awb
@@ -164,9 +138,10 @@ Packagehint=h264
 [Synthesizable MCD H264 interpolator module/Requires]
 h264_interpolator_types_synth=H264 Synth Interpolator types
 
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
+[Hybrid Simulation FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=leap
 
-[FPGA Environment/Requires]
-soft_services=Soft Services Submodel
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap

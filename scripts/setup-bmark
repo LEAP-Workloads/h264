@@ -77,7 +77,7 @@ if (! defined($group)) {
 
 chdir($dstdir) or ErrorExit("Failed to cd to $dstdir");
 
-mkdir('hasim_debug') or ErrorExit("Failed to make 'hasim_debug' directory");
+mkdir('leap_debug') or ErrorExit("Failed to make 'leap_debug' directory");
 
 # Set up benchmark for non-null feeders
 if ($feeder ne "none") {

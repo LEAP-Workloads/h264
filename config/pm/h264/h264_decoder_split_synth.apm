@@ -5,7 +5,7 @@ Version=2.2
 File=h264_decoder_split_synth
 SaveParameters=0
 Description=H264 Decoder
-Name=H264 Decoder
+Name=H264 Decoderc Split Synth
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -69,9 +69,6 @@ Packagehint=h264
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[Platform Services]
-File=modules/leap/libraries/platform-services/platform-services-standard.awb
-Packagehint=leap
 
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
@@ -96,76 +93,21 @@ Packagehint=h264
 File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
-[Scratchpad Memory Service]
-File=modules/leap/libraries/platform-services/mem-services/scratchpad-memory-service/scratchpad-memory-service.awb
-Packagehint=leap
 
-[Common Services/Requires]
-stats_service=Stats Service
-assertions_service=Assertions Service
-debug_scan_service=Debug Scan Services
-streams_service=Streams Service
-dynamic_parameters_service=Dynamic Parameter Service
 
-[Standard Mem Services]
-File=modules/leap/libraries/platform-services/mem-services/mem-services-standard.awb
-Packagehint=leap
 
-[Front Panel Service]
-File=modules/leap/libraries/platform-services/front-panel-service/front-panel-service.awb
-Packagehint=leap
 
-[Streams Service]
-File=modules/leap/libraries/platform-services/common-services/streams-service/streams-service.awb
-Packagehint=leap
 
-[Debug Scan Services]
-File=modules/leap/libraries/platform-services/common-services/debug-scan-service/debug-scan-service.awb
-Packagehint=leap
 
-[Dynamic Parameter Service]
-File=modules/leap/libraries/platform-services/common-services/dynamic-parameters-service/dynamic-parameters-service.awb
-Packagehint=leap
 
-[Starter Service]
-File=modules/leap/libraries/platform-services/starter-service/starter-service.awb
-Packagehint=leap
 
-[Stats Service]
-File=modules/leap/libraries/platform-services/common-services/stats-service/stats-service.awb
-Packagehint=leap
 
-[Common Services]
-File=modules/leap/libraries/platform-services/common-services/common-services-standard.awb
-Packagehint=leap
 
-[Assertions Service]
-File=modules/leap/libraries/platform-services/common-services/assertions-service/assertions-service.awb
-Packagehint=leap
 
-[Standard Mem Services/Requires]
-shared_memory_service=Shared Memory Services
-scratchpad_memory_service=Scratchpad Memory Service
-central_cache_service=Central Cache Service
 
-[Central Cache Service]
-File=modules/leap/libraries/platform-services/mem-services/central-cache-service/central-cache-service.awb
-Packagehint=leap
 
-[Shared Memory Services]
-File=modules/leap/libraries/platform-services/mem-services/shared-memory-service/shared-memory-service.awb
-Packagehint=leap
 
-[Platform Services/Requires]
-common_services=Common Services
-mem_services=Standard Mem Services
-front_panel_service=Front Panel Service
-starter_service=Starter Service
 
-[Scratchpad Memory Service/Params]
-SCRATCHPAD_STD_PVT_CACHE_ENTRIES=4096
-SCRATCHPAD_PVT_CACHE_MODE=2
-PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
 
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
@@ -173,7 +115,6 @@ Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
 project_common=Default Hybrid Project Common Utilities
-fpgaenv=Hybrid ACP M2 Compute Environment (Nallatech)
 application_env=Soft Services Hybrid Application Environment
 
 [Soft Services Hybrid Application Environment]
@@ -181,8 +122,6 @@ File=modules/leap/build-support/project/application-env/soft-services/applicatio
 Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
-platform_services=Platform Services
-soft_services=Soft Services Submodel
 connected_application=H264 System
 
 [Synthesizable H264 interpolator split memory access module]
@@ -215,16 +154,8 @@ Packagehint=h264
 File=modules/h264/src/bufferControl/common/h264_buffer_control_common_wide.awb
 Packagehint=h264
 
-[Hybrid ACP M2 Compute Environment (Nallatech)]
-File=config/pm/leap/submodels/fpgaenv/fpgaenv-acp-m2c-nallatech.apm
-Packagehint=leap-platforms-acp
 
-[Hybrid ACP M2 Compute Environment (Nallatech)/Params]
-MODEL_CLOCK_FREQ=50
 
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
-Packagehint=leap
 
 [Default Hybrid Project Common Utilities]
 File=config/pm/leap/submodels/common/project-common-default.apm

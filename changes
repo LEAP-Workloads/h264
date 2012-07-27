@@ -648,3 +648,31 @@ Directory modules/h264/src/bufferControl
  mkBufferControlParallelCoalesced64SplitNewOutputWide.bsv Locally Modified          205 
 
 Statistics IDs are now global strings instead of dictionary entries.
+
+----------
+keflemin    Date: Fri Jul 27 16:48:26 EDT 2012  CSN: CSN-h264-207
+                  Fri Jul 27 20:48:26 UTC 2012
+
+
+Directory config/pm/h264
+ h264_decoder_mcd_split.apm Locally Modified          206 
+ h264_decoder_mcd_split_no_output_synth.apm Locally Modified          206 
+ h264_decoder_split_synth.apm Locally Modified          206 
+ h264_decoder.apm          Locally Modified          206 
+ h264_decoder_mcd_synth.apm Locally Modified          206 
+ h264_decoder_split_no_output_synth.apm Locally Modified          206 
+ h264_decoder_mcd_split_synth.apm Locally Modified          206 
+ h264_decoder_mcd.apm      Locally Modified          206 
+ h264_decoder_split_no_output.apm Locally Added               0 
+
+Directory scripts
+ run.bmark                 Locally Modified          206 
+ setup-bmark               Locally Modified          206 
+
+Directory modules/h264/src/interpolator/mcd
+ mkInterpolatorSynth.bsv   Locally Modified          206 
+
+
+Fixed some of the H264 apms and the benchmark system.  
+Multiple clock domain modules have bit-rotted in non-trivial ways. 
+

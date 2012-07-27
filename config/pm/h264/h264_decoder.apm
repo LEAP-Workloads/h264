@@ -9,16 +9,12 @@ Name=H264 Decoder
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
-RootName=HW/SW Hybrid Project Foundation
+RootName=HW/SW Hybrid Pipeline Build
 RootProvides=model
 
 [Model]
 DefaultAttributes=h264 bluespec
-model=HW/SW Hybrid Project Foundation
-
-[FPGA Environment]
-File=config/pm/hasim/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
-Packagehint=leap
+model=HW/SW Hybrid Pipeline Build
 
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
@@ -34,7 +30,7 @@ h264_inverse_transform=H264 inverse transform module
 h264_prediction=Synth Interpolator H264 prediction module
 h264_entropy_decoder=H264 entropy decoder module
 h264_nal_unwrap=H264 nal unwrap module
-h264_buffer_control=H264 split coalescing parallel buffer control module
+h264_buffer_control=H264 buffer control module
 h264_control=H264 default control module
 h264_decoder_types=H264 Decoder Types
 
@@ -73,67 +69,13 @@ Packagehint=h264
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[Soft Connections Hybrid Application Environment]
-File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
-Packagehint=leap
-
-[HW/SW Hybrid Project Foundation/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
-application_env=Soft Connections Hybrid Application Environment
-
-[Soft Connections Hybrid Application Environment/Requires]
-platform_services=Platform Services
-soft_connections_lib=Soft Connections Library
-connected_application=H264 System
-
-[Soft Connections Library]
-File=config/pm/hasim/submodels/common/soft-connections-lib.apm
-Packagehint=leap
-
-[HW/SW Hybrid Project Foundation]
-File=modules/project/project-hybrid.awb
-Packagehint=leap
-
-[Soft Connections Hybrid Application Environment]
-File=modules/application-env/hybrid/soft-connections/application-env-hybrid-soft-conn.awb
-Packagehint=leap
-
-[HW/SW Hybrid Project Foundation/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
-application_env=Soft Connections Hybrid Application Environment
-
-[Soft Connections Hybrid Application Environment/Requires]
-platform_services=Platform Services
-soft_connections_lib=Soft Connections Library
-connected_application=H264 System
-
-[Hybrid Project Common Utilities]
-File=config/pm/hasim/submodels/common/project-common-default.apm
-Packagehint=leap
-
-[Platform Services]
-File=config/pm/hasim/submodels/platform-services/standard-platform-services.apm
-Packagehint=leap
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
 
-[H264 deblocking filter module]
-File=modules/h264/src/deblocking/h264_deblocking.awb
-Packagehint=h264
-
 [H264 System types]
 File=modules/h264/src/h264_system_types.awb
 Packagehint=h264
-
-[FPGA Environment/Params]
-CENTRAL_CACHE_DEBUG_ENABLE=0
-
-[Platform Services/Params]
-PLATFORM_SCRATCHPAD_DEBUG_ENABLE=0
 
 [Synth Interpolator H264 prediction module/Requires]
 h264_interpolator_synth=Synthesizable H264 interpolator module
@@ -142,36 +84,57 @@ h264_interpolator_synth=Synthesizable H264 interpolator module
 File=modules/h264/src/prediction/h264_prediction_synth.awb
 Packagehint=h264
 
-[Synthesizable H264 interpolator module]
-File=modules/h264/src/interpolator/h264_interpolator_synth.awb
-Packagehint=h264
-
 [H264 Synth Interpolator types]
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
-
-[Synthesizable H264 interpolator module/Requires]
-h264_interpolator_types_synth=H264 Synth Interpolator types
-
-[H264 output control module split memories]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control_split.awb
-Packagehint=h264
-
-[H264 split coalescing parallel buffer control module]
-File=modules/h264/src/bufferControl/h264_buffer_control_coalesced_parallel_split.awb
-Packagehint=h264
-
-[H264 split coalescing parallel buffer control module/Requires]
-h264_output_control_split=H264 output control module split memories
-h264_buffer_control_common=H264 buffer control common
-
-[H264 output control module split memories/Requires]
-processor_library=Processor Library
 
 [H264 output Dump]
 File=modules/h264/src/finalOutput/h264_output_dump.awb
 Packagehint=h264
 
-[H264 buffer control common]
-File=modules/h264/src/bufferControl/common/h264_buffer_control_common.awb
+[HW/SW Hybrid Pipeline Build]
+File=modules/leap/build-support/project/project-pipeline.awb
+Packagehint=leap
+
+[HW/SW Hybrid Pipeline Build/Requires]
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid Simulation FPGA Environment
+application_env=Soft Services Hybrid Application Environment
+
+[Soft Services Hybrid Application Environment]
+File=modules/leap/build-support/project/application-env/soft-services/application-env-hybrid-soft-service.awb
+Packagehint=leap
+
+[Soft Services Hybrid Application Environment/Requires]
+connected_application=H264 System
+
+[Hybrid Simulation FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
+Packagehint=leap
+
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module]
+File=modules/h264/src/interpolator/h264_interpolator_synth.awb
+Packagehint=h264
+
+[Synthesizable H264 interpolator module/Requires]
+h264_interpolator_types_synth=H264 Synth Interpolator types
+
+[H264 buffer control module/Requires]
+processor_library=Processor Library
+h264_frame_buffer=H264 scratchpad frame buffer
+
+[H264 scratchpad frame buffer]
+File=modules/h264/src/h264_scratchpad_frame_buffer.awb
+Packagehint=h264
+
+[H264 buffer control module]
+File=modules/h264/src/bufferControl/h264_buffer_control.awb
 Packagehint=h264

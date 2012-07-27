@@ -2,10 +2,10 @@
 [Global]
 Type=HAsim
 Version=2.2
-File=h264_decoder_mcd_split_synth
+File=h264_decoder_split_no_output
 SaveParameters=0
 Description=H264 Decoder
-Name=H264 Decoder MCD Split Synth
+Name=H264 Decoder Split No Output 
 Class=Asim::Model
 DefaultBenchmark=
 DefaultRunOpts=
@@ -16,10 +16,6 @@ RootProvides=model
 DefaultAttributes=h264 bluespec
 model=HW/SW Hybrid Pipeline Build
 
-[FPGA Environment]
-File=modules/leap/virtual-platform/fpga-environment.awb
-Packagehint=leap
-
 [H264 System]
 File=modules/h264/src/h264_h264_system.awb
 Packagehint=h264
@@ -29,7 +25,7 @@ File=modules/h264/src/memory/h264_default_memory_unit.awb
 Packagehint=h264
 
 [H264 decoder module/Requires]
-h264_deblocking=H264 MCD deblocking filter module
+h264_deblocking=H264 deblocking filter module
 h264_inverse_transform=H264 inverse transform module
 h264_prediction=Synth Interpolator H264 prediction module
 h264_entropy_decoder=H264 entropy decoder module
@@ -73,10 +69,6 @@ Packagehint=h264
 File=modules/h264/src/h264_decoder_types.awb
 Packagehint=h264
 
-[Hybrid Project Common Utilities]
-File=modules/leap/build-support/project/project-common-hybrid.awb
-Packagehint=leap
-
 [Processor Library]
 File=modules/bluespec/mit-6.375/lab4/processor_library.awb
 Packagehint=mit-6.375
@@ -96,17 +88,13 @@ Packagehint=h264
 File=modules/h264/src/interpolator/h264_interpolator_types.awb
 Packagehint=h264
 
-[H264 output Dump]
-File=modules/h264/src/finalOutput/h264_output_dump.awb
-Packagehint=h264
-
 [HW/SW Hybrid Pipeline Build]
 File=modules/leap/build-support/project/project-pipeline.awb
 Packagehint=leap
 
 [HW/SW Hybrid Pipeline Build/Requires]
-project_common=Hybrid Project Common Utilities
-fpgaenv=FPGA Environment
+project_common=Default Hybrid Project Common Utilities
+fpgaenv=Hybrid Simulation FPGA Environment
 application_env=Soft Services Hybrid Application Environment
 
 [Soft Services Hybrid Application Environment]
@@ -115,10 +103,6 @@ Packagehint=leap
 
 [Soft Services Hybrid Application Environment/Requires]
 connected_application=H264 System
-
-[H264 MCD deblocking filter module]
-File=modules/h264/src/deblocking/mcd/h264_deblocking.awb
-Packagehint=h264
 
 [Synthesizable H264 interpolator split memory access module]
 File=modules/h264/src/interpolator/h264_interpolator_split_synth.awb
@@ -130,25 +114,34 @@ Packagehint=h264
 
 [H264 split LC coalescing parallel buffer 64 bit/Requires]
 h264_buffer_control_common=H264 buffer control wide common
-h264_output_control_split_wide=H264 null output control size
+h264_output_control_split_wide=H264 output control module split, wide memory
 
 [Synthesizable H264 interpolator split memory access module/Requires]
 h264_interpolator_types_synth=H264 Synth Interpolator types
 
-[H264 null output control size]
-File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_wide_null.awb
+[H264 deblocking filter module]
+File=modules/h264/src/deblocking/h264_deblocking.awb
 Packagehint=h264
-
-[H264 null output control size/Requires]
-processor_library=Processor Library
 
 [H264 buffer control wide common]
 File=modules/h264/src/bufferControl/common/h264_buffer_control_common_wide.awb
 Packagehint=h264
 
-[Soft Services Submodel]
-File=config/pm/leap/submodels/common/soft-services.apm
+[Hybrid Simulation FPGA Environment]
+File=config/pm/leap/submodels/fpgaenv/fpgaenv-hybrid-exe.apm
 Packagehint=leap
 
-[FPGA Environment/Requires]
-soft_services=Soft Services Submodel
+[Default Hybrid Project Common Utilities]
+File=config/pm/leap/submodels/common/project-common-default.apm
+Packagehint=leap
+
+[H264 output control module split, wide memory/Requires]
+processor_library=Processor Library
+
+[H264 output control module split, wide memory]
+File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_wide.awb
+Packagehint=h264
+
+[H264 output Dump]
+File=modules/h264/src/finalOutput/h264_output_dump.awb
+Packagehint=h264
