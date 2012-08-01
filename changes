@@ -676,3 +676,14 @@ Directory modules/h264/src/interpolator/mcd
 Fixed some of the H264 apms and the benchmark system.  
 Multiple clock domain modules have bit-rotted in non-trivial ways. 
 
+
+----------
+keflemin    Date: Wed Aug  1 11:45:48 EDT 2012  CSN: CSN-h264-208
+                  Wed Aug  1 15:45:48 UTC 2012
+
+
+Directory config/pm/h264
+ h264_decoder_split_no_output_synth.apm Locally Modified          207 
+
+
+Fixed a target for the ACP.
