@@ -687,3 +687,14 @@ Directory config/pm/h264
 
 
 Fixed a target for the ACP.
+
+----------
+keflemin    Date: Wed Aug  1 13:58:00 EDT 2012  CSN: CSN-h264-209
+                  Wed Aug  1 17:58:00 UTC 2012
+
+
+Directory config/pm/h264
+ h264_decoder_split_no_output_synth.apm Locally Modified          208 
+
+
+Changed clock to 65MHz

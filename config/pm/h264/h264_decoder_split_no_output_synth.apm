@@ -145,3 +145,6 @@ processor_library=Processor Library
 [H264 output control module split, wide memory]
 File=modules/h264/src/bufferControl/outputControl/h264_output_control_split_wide.awb
 Packagehint=h264
+
+[Hybrid ACP M2 Compute Environment (Nallatech)/Params]
+MODEL_CLOCK_FREQ=65
