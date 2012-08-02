@@ -698,3 +698,14 @@ Directory config/pm/h264
 
 
 Changed clock to 65MHz
+
+----------
+keflemin    Date: Wed Aug  1 20:52:44 EDT 2012  CSN: CSN-h264-210
+                  Thu Aug  2 00:52:44 UTC 2012
+
+
+Directory scripts
+ run.bmark                 Locally Modified          209 
+
+
+We can once again run h264 on the ACP. 
