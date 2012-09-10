@@ -709,3 +709,14 @@ Directory scripts
 
 
 We can once again run h264 on the ACP. 
+
+----------
+kfleming    Date: Mon Sep 10 16:48:29 EDT 2012  CSN: CSN-h264-211
+                  Mon Sep 10 20:48:29 UTC 2012
+
+
+Directory scripts
+ run.bmark                 Locally Modified          210 
+
+
+run.bmark now supports multi-process simulation.

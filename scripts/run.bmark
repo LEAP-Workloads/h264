@@ -31,10 +31,18 @@ sub ReadConfig($$);
 
 my %config;
 
+#set config{master} to silence warnings.
+$config{master} = "";
+
 ReadConfig("config/env.sh", 1);
 ReadConfig("$config{modelDir}/config/env.sh", 1);
-ReadConfig("$config{modelDir}/config/fpga.sh", 0);
-ReadConfig("$config{modelDir}/config/signature.sh", 0);
+ReadConfig("$config{modelDir}/config/platform_env.sh", 0);
+#now we have the "master" platform.  Do what it says. 
+#for singletons, this will be what we have just read.
+ReadConfig("$config{modelDir}/$config{master}/config/env.sh", 0);
+ReadConfig("$config{modelDir}/$config{master}/config/fpga.sh", 0);
+ReadConfig("$config{modelDir}/$config{master}/config/signature.sh", 0);
+
 
 ## For legacy codes fill in the expected parameters
 ## This can be removed on switch to build pipline 
@@ -115,13 +123,13 @@ if ($onlyCompare != 0) {
 if ($m5run != 0) {
     $mType = $MODEL_NONE;
 }
-elsif (-f "$config{modelDir}/$config{model}_hw.errinfo") {
+elsif (-f "$config{modelDir}/$config{master}/$config{model}_hw.errinfo") {
     $mType = $MODEL_FPGA;
 }
-elsif (-f "$config{modelDir}/$config{model}_hw.exe") {
+elsif (-f "$config{modelDir}/$config{master}/$config{model}_hw.exe") {
     $mType = $MODEL_BLUESIM;
 }
-elsif (-f "$config{modelDir}/$config{model}_hw.vexe") {
+elsif (-f "$config{modelDir}/$config{master}/$config{model}_hw.vexe") {
     $mType = $MODEL_VSIM;
 }
 else {
@@ -151,7 +159,7 @@ if ($help || ! $status) {
     }
 
     if ($config{isHybridModel}) {
-        my $cmd = "$config{modelDir}/$config{model} --help-run-append";
+        my $cmd = "$config{modelDir}/$config{master}/$config{model} --help-run-append";
         system($cmd);
     }
 
@@ -196,7 +204,7 @@ my $cmd;
 
 if ($m5run == 0) {
     # Normal run
-    $cmd = "$config{modelDir}/$config{model} --modeldir=$config{modelDir} --workload=$config{workload} --showfp=${showfp} --funcp=\"${feedFlags}\" $config{genFlags}";
+    $cmd = "$config{modelDir}/$config{master}/$config{model} --modeldir=$config{modelDir}/$config{master} --workload=$config{workload} --showfp=${showfp} --funcp=\"${feedFlags}\" $config{genFlags}";
     foreach my $c (@ARGV) {
         $cmd .= " $c";
     }
@@ -264,8 +272,8 @@ if (! $config{isHybridModel} && ($mType == $MODEL_BLUESIM)) {
 }
 
 # Define the global string database
-if (-f "$config{modelDir}/$config{model}.str" && $config{isHybridModel}) {
-    $cmd .= " --global-strings=\'$config{modelDir}/$config{model}.str\'";
+if (-f "$config{modelDir}/$config{master}/$config{model}.str" && $config{isHybridModel}) {
+    $cmd .= " --global-strings=\'$config{modelDir}/$config{master}/$config{model}.str\'";
 }
 
 #############################################################################
@@ -288,12 +296,12 @@ my $fpga_dev = undef;
 
 if ($mType == $MODEL_FPGA) {
     # Load FPGA
-    $ENV{FPGA_BIT_FILE} = "$config{modelDir}/.xilinx/$config{model}_par.bit";
+    $ENV{FPGA_BIT_FILE} = "$config{modelDir}/$config{master}/.xilinx/$config{model}_par.bit";
 
     if (! $noProgram) {
-        if (! $forceLoad && -s "$config{modelDir}/$config{model}_hw.errinfo") {
+        if (! $forceLoad && -s "$config{modelDir}/$config{master}/$config{model}_hw.errinfo") {
             print STDERR "FPGA bit file has errors:\n\n";
-            system("cat $config{modelDir}/$config{model}_hw.errinfo > /dev/stderr");
+            system("cat $config{modelDir}/$config{master}/$config{model}_hw.errinfo > /dev/stderr");
             print STDERR "\nUse --force-load to ignore the error.\n";
             exit(1);
         }
@@ -307,7 +315,7 @@ if ($mType == $MODEL_FPGA) {
         }
 
         # Does a download script exist to program the FPGA?
-        my $needProgram = (-f "$config{modelDir}/config/$config{model}.download");
+        my $needProgram = (-f "$config{modelDir}/$config{master}/config/$config{model}.download");
 
         # Is the FPGA already programmed with the correct bit file and does it support soft reset?
         if (exists($config{signature}) && $config{SOFT_RESET}) {
@@ -323,7 +331,7 @@ if ($mType == $MODEL_FPGA) {
             Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --program", "Failed to enter FPGA programming mode");
             my $dir = `pwd`;
             chomp($dir);
-            Exec("(cd $config{modelDir}; ./config/$config{model}.download --device-id=${fpga_dev_id} ${dir}/FPGA_programming.log)", "Failed to program FPGA");
+            Exec("(cd $config{modelDir}/$config{master}; ./config/$config{model}.download --device-id=${fpga_dev_id} ${dir}/FPGA_programming.log)", "Failed to program FPGA");
             if (exists($config{signature})) {
                 Exec("leap-fpga-ctrl --device-id=${fpga_dev_id} --setsignature=$config{signature}", "Failed to set FPGA bit image signature");
             }
@@ -339,10 +347,35 @@ if ($mType == $MODEL_FPGA) {
     }
 }
 
+# Fork off any non-master models. 
+my @pidlist = ();
+if(exists $config{"slaves"}) {
+    my $slave_ref = $config{"slaves"};
+    for my $slave (keys %$slave_ref) {
+        if($mType == $MODEL_BLUESIM) {
+            my $pid = fork();
+            if($pid == 0) {
+                setpgrp;
+                my $slave_path = $slave_ref->{$slave};
+                `mkdir -p "$config{modelDir}/$slave_path/leap_debug"`;
+                exec("$config{modelDir}/$slave_path/${slave}_hw.exe 2>&1 > ${slave}.log");
+                exit(0); # in case we get here    
+            }
+            push(@pidlist, $pid);
+        }    
+    }
+}
+
 # Run the software side or a hardware simulator
 my $run_status = 0;
 if ($config{isHybridModel} || ($mType != $MODEL_FPGA)) {
     $run_status = ExecModel($cmd);
+}
+
+# and now that we are done we will tear down the subordinate modules
+for my $pid (@pidlist) {
+    #Terminate with extreme prejudice
+    kill(-9,getpgrp($pid));
 }
 
 # Create a stats file for null workloads to make regression.launcher happy (HACK)
@@ -509,8 +542,6 @@ sub Exec($$) {
 
 
 
-
-
 sub CompareOutput() {
     return 0 if ($noCompare != 0);
     return 0 if (! exists($config{compare}) || ($config{compare} eq ''));
@@ -541,9 +572,6 @@ sub CompareOutput() {
 }
 
 
-#
-# Read the configuration file
-#
 sub ReadConfig($$) {
     my $conf = shift;
     my $required = shift;
@@ -557,17 +585,14 @@ sub ReadConfig($$) {
     while (<CONFIG>) {
         chomp;
         my $t = $_;
-        $t =~ s/#.*//;
-        if ($t =~ /^\s*([^\s]+)\s*=\s*"(.*)"\s*$/) {
+        $t =~ s/#.*//; # remove comments                                                           
+        if ($t =~ /^\s*([a-zA-Z_0-9]+)\s*=(.*)$/) {
             my $c = $1;
-            my $v = $2;
-            $v =~ s/^["'](.*)["']$/$1/;         # Drop quotation marks
-            $config{$c} = $v;
-        }
-        elsif ($t =~ /^\s*([^\s]+)\s*=\s*([^\s]+)\s*$/) {
-            my $c = $1;
-            my $v = $2;
+            # this allows us the full expressivity of perl,                                        
+            # without needing to parse it.                                                         
+            my $v = eval($2);
             $config{$c} = $v;
         }
     }
 }
+
