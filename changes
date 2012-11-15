@@ -720,3 +720,21 @@ Directory scripts
 
 
 run.bmark now supports multi-process simulation.
+
+----------
+kfleming    Date: Thu Nov 15 11:55:16 EST 2012  CSN: CSN-h264-212
+                  Thu Nov 15 16:55:16 UTC 2012
+
+
+Directory config/pm/h264
+ h264_decoder_split_no_output_ml605.apm Locally Added               0 
+
+Directory modules/h264/src/bufferControl/split
+ mkBufferControlParallelCoalesced64SplitNewOutputWide.bsv Locally Modified          211 
+
+
+1) Added ML605 target 
+
+2) Changed the way that the frame buffer scratchpads are instantiated.
+Now that scratchpads are connected modules, we don't have to
+instantiate their statistics externally.

@@ -55,18 +55,12 @@ import ClientServer::*;
 module [CONNECTED_MODULE] mkBufferControl();
 
    // Instantiate RL Stats
-   let mkBufferYStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_Y_",
-                                                    "H264 FRAME BUFFER Y: ");
-   let mkBufferUStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_U_",
-                                                    "H264 FRAME BUFFER U: ");
-   let mkBufferVStats = mkBasicScratchpadCacheStats("FRAME_BUFFER_V_",
-                                                    "H264 FRAME BUFFER V: ");
 
    // We use three mem interfaces here
 
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrLuma, Vector#(2,FrameBufferData))   bufferY <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED, mkBufferYStats);
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED, mkBufferUStats);
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadStatsScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED, mkBufferVStats);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrLuma, Vector#(2,FrameBufferData))   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED);
 
    // protect the read interfaces
    NumTypeParam#(16) p = 0;
