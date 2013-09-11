@@ -41,6 +41,7 @@
 `include "asim/provides/project_common.bsh"
 `include "asim/provides/platform_services.bsh"
 `include "asim/provides/common_services.bsh"
+`include "asim/provides/scratchpad_memory_common.bsh"
 `include "asim/provides/common_utility_devices.bsh"
 
 
@@ -52,6 +53,7 @@ import GetPut::*;
 import ClientServer::*;
 import Connectable::*;
 import FIFO::*;
+import DefaultValue::*;
 
 
 
@@ -68,7 +70,7 @@ module [CONNECTED_MODULE] mkFrameBuffer();
 
   //-----------------------------------------------------------
   // State
-  MEMORY_IFC#(FrameBufferAddr, FrameBufferData) memory <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, SCRATCHPAD_CACHED);
+  MEMORY_IFC#(FrameBufferAddr, FrameBufferData) memory <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER, defaultValue);
 
   
    FIFO#(Queue) qFIFO <- mkSizedFIFO(32);

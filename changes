@@ -738,3 +738,19 @@ Directory modules/h264/src/bufferControl/split
 2) Changed the way that the frame buffer scratchpads are instantiated.
 Now that scratchpads are connected modules, we don't have to
 instantiate their statistics externally.
+
+----------
+mcadler     Date: Wed Sep 11 16:03:52 EDT 2013  CSN: CSN-h264-213
+                  Wed Sep 11 20:03:52 UTC 2013
+
+
+Directory modules/h264/src/frameBuffer
+ mkFrameBufferScratchpad.bsv Locally Modified          212 
+
+Directory modules/h264/src/bufferControl/split
+ mkBufferControlParallelCoalesced64SplitNewOutputWide.bsv Locally Modified          212 
+
+Directory modules/h264/src/bufferControl
+ mkBufferControlParallelCoalesced64Split.bsv Locally Modified          212 
+
+New scratchpad parameters.

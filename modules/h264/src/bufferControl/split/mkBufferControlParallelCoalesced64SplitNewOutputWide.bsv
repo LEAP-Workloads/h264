@@ -29,6 +29,7 @@
 `include "asim/provides/scratchpad_memory.bsh"
 `include "asim/provides/librl_bsv_base.bsh"
 `include "asim/provides/mem_services.bsh"
+`include "asim/provides/scratchpad_memory_common.bsh"
 
 `include "asim/provides/h264_types.bsh"
 `include "asim/provides/h264_decoder_types.bsh"
@@ -42,6 +43,7 @@ import Vector::*;
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
+import DefaultValue::*;
 
 
 
@@ -58,9 +60,9 @@ module [CONNECTED_MODULE] mkBufferControl();
 
    // We use three mem interfaces here
 
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrLuma, Vector#(2,FrameBufferData))   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, SCRATCHPAD_CACHED);
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, SCRATCHPAD_CACHED);
-   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, SCRATCHPAD_CACHED);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrLuma, Vector#(2,FrameBufferData))   bufferY <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, defaultValue);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferU <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, defaultValue);
+   MEMORY_MULTI_READ_IFC#(2,ScratchpadAddrChroma, Vector#(2,FrameBufferData)) bufferV <- mkMultiReadScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, defaultValue);
 
    // protect the read interfaces
    NumTypeParam#(16) p = 0;

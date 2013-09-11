@@ -28,6 +28,7 @@
 
 `include "asim/provides/soft_connections.bsh"
 `include "asim/provides/common_services.bsh"
+`include "asim/provides/scratchpad_memory_common.bsh"
 `include "asim/provides/h264_frame_buffer_coalesced_64_parallel.bsh"
 
 `include "asim/provides/h264_types.bsh"
@@ -39,6 +40,7 @@ import Vector::*;
 import Connectable::*;
 import GetPut::*;
 import ClientServer::*;
+import DefaultValue::*;
 
 
 
@@ -443,9 +445,9 @@ typedef Bit#(TSub#(FrameBufferSz, 2)) FrameBufferAddrChroma;
 
 module [CONNECTED_MODULE] mkBufferControl ();
 
-  MEMORY_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, True);
-  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, True);
-  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, True);
+  MEMORY_IFC#(FrameBufferAddrLuma, FrameBufferData) bufferY <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_Y, defaultValue);
+  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferU <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_U, defaultValue);
+  MEMORY_IFC#(FrameBufferAddrChroma, FrameBufferData) bufferV <- mkScratchpad(`VDEV_SCRATCH_FRAME_BUFFER_V, defaultValue);
 
 
   Connection_Receive#(DeblockFilterOT) infifo <- mkConnection_Receive("mkDeblocking_outfifo");  
